@@ -176,18 +176,7 @@ export const App: React.FC = () => {
       {/* Smoked Glass Top Navigation */}
       <Navigation />
 
-      {/* Floating View Switcher (Desktop to Mobile tester) */}
-      <div className="fixed bottom-4 right-4 z-40">
-        <button
-          type="button"
-          onClick={toggleViewMode}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#18181B]/80 hover:bg-[#27272A] border border-[#38383C] text-[11px] font-mono text-[#A2A2A8] hover:text-white shadow-xl backdrop-blur-md transition-all"
-          title="Switch to Mobile View"
-        >
-          <Smartphone className="w-3.5 h-3.5" />
-          <span>Mobile View</span>
-        </button>
-      </div>
+
 
       {/* Main Flow */}
       <main>

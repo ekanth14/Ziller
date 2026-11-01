@@ -187,15 +187,7 @@ python -m cryptoscope.dashboard --port 8900`;
                 {copiedLink ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-[#A2A2A8]" />}
                 <span>{copiedLink ? 'Link Copied!' : 'Copy Site URL'}</span>
               </button>
-              {onSwitchToDesktop && (
-                <button
-                  type="button"
-                  onClick={onSwitchToDesktop}
-                  className="text-[11px] font-mono text-[#A2A2A8] hover:text-white transition-colors underline-offset-2 hover:underline"
-                >
-                  View Desktop Layout
-                </button>
-              )}
+
             </div>
           </div>
         </div>
@@ -575,17 +567,7 @@ python -m cryptoscope.dashboard --port 8900`;
           </button>
         </div>
 
-        {onSwitchToDesktop && (
-          <div className="text-center mb-6">
-            <button
-              type="button"
-              onClick={onSwitchToDesktop}
-              className="text-xs font-mono text-[#A2A2A8] hover:text-white transition-colors py-1.5 px-3 rounded-lg border border-[#27272A]"
-            >
-              Switch to Full Desktop View
-            </button>
-          </div>
-        )}
+
 
         <div className="text-[10px] font-mono text-[#777] leading-relaxed space-y-2 border-t border-[#1E1E22] pt-6">
           <p>
