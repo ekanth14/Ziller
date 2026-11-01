@@ -27,7 +27,7 @@ const state = {
 const money = value => {
   if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—';
   const num = Number(value);
-  if (state.currency === 'INR' && state.fx?.status === 'available' && state.fx?.rate) {
+  if (state.currency === 'INR' && (state.fx?.status === 'available' || state.fx?.status === 'stale') && state.fx?.rate) {
     const inrVal = num * state.fx.rate;
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: inrVal < 10 ? 4 : 2 }).format(inrVal);
   }
@@ -697,16 +697,24 @@ async function fetchFxRate() {
     const res = await request('/api/fx/rate');
     state.fx = res;
     const btn = $('fx-toggle');
+    const label = $('fx-currency-label');
     if (!btn) return;
-    if (res.status === 'available') {
+    if (res.status === 'available' || res.status === 'stale') {
       btn.style.display = 'inline-flex';
-      btn.textContent = state.currency === 'INR' ? '₹ INR' : '$ USD';
-      btn.title = `Real FX Rate: 1 USD = ${res.rate.toFixed(2)} INR (Age: ${res.age_seconds || 0}s, Source: ${res.source})`;
+      const displayText = (state.currency === 'INR' ? '₹ INR' : '$ USD') + (res.status === 'stale' ? ' (STALE)' : '');
+      if (label) {
+        label.textContent = displayText;
+        label.className = res.status === 'stale' ? 'val warn' : 'val';
+      } else {
+        btn.textContent = displayText;
+      }
+      btn.title = `${res.status === 'stale' ? '[STALE] ' : ''}Real FX Rate: 1 USD = ${res.rate ? res.rate.toFixed(2) : '—'} INR (Age: ${res.age_seconds || 0}s, Source: ${res.source})`;
     } else {
       btn.style.display = 'none';
       if (state.currency === 'INR') {
         state.currency = 'USD';
         renderOverview();
+        renderListings();
       }
     }
   } catch (e) {
@@ -717,7 +725,15 @@ async function fetchFxRate() {
 if ($('fx-toggle')) {
   $('fx-toggle').addEventListener('click', () => {
     state.currency = state.currency === 'USD' ? 'INR' : 'USD';
-    $('fx-toggle').textContent = state.currency === 'INR' ? '₹ INR' : '$ USD';
+    const label = $('fx-currency-label');
+    const staleTag = state.fx?.status === 'stale' ? ' (STALE)' : '';
+    const displayText = (state.currency === 'INR' ? '₹ INR' : '$ USD') + staleTag;
+    if (label) {
+      label.textContent = displayText;
+      label.className = state.fx?.status === 'stale' ? 'val warn' : 'val';
+    } else {
+      $('fx-toggle').textContent = displayText;
+    }
     renderOverview();
     renderListings();
   });

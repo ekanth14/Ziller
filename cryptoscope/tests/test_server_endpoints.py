@@ -110,6 +110,16 @@ class ServerEndpointTests(unittest.TestCase):
             self.assertIn("tickers", payload)
             self.assertIn("connections", payload)
 
+    def test_fx_rate_endpoint(self):
+        req = Request(f"{self.base_url}/api/fx/rate?target=INR")
+        with urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.load(resp)
+            self.assertIn("status", data)
+            self.assertEqual(data["target"], "INR")
+            # Cold state without upstream mock returns unavailable
+            self.assertIn(data["status"], ["available", "stale", "unavailable"])
+
 
 if __name__ == "__main__":
     unittest.main()
