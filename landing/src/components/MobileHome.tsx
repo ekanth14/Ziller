@@ -366,7 +366,7 @@ python -m cryptoscope.dashboard --port 8900`;
               onClick={handleCopyCode}
               className="inline-flex items-center gap-1 text-[10px] font-mono text-[#A2A2A8] hover:text-white"
             >
-              {copiedCode ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+              {copiedCode ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-[#A2A2A8]" />}
               <span>{copiedCode ? 'Copied' : 'Copy'}</span>
             </button>
           </div>
@@ -536,7 +536,7 @@ python -m cryptoscope.dashboard --port 8900`;
           </form>
         )}
 
-        {/* Passcode Protected Desk Entry */}
+        {/* Passcode Protected Desk Entry (NO PASSCODE PRINTED) */}
         <div className="mt-5 p-3.5 rounded-xl bg-[#121214] border border-[#27272A]">
           <div className="flex items-center gap-2 mb-1.5">
             <Lock className="w-3.5 h-3.5 text-amber-300" />
@@ -549,7 +549,7 @@ python -m cryptoscope.dashboard --port 8900`;
             href="/collaborations"
             className="inline-flex items-center gap-1.5 text-xs font-mono text-amber-300 hover:text-amber-200 transition-colors"
           >
-            <span>Open Submissions Desk (Ekanthbs@4514)</span>
+            <span>Open Submissions Desk</span>
             <ArrowRight className="w-3 h-3" />
           </a>
         </div>
@@ -586,21 +586,6 @@ python -m cryptoscope.dashboard --port 8900`;
             </button>
           </div>
         )}
-
-        {/* Machine-Readable Specs */}
-        <div className="text-center pb-4 text-[10px] font-mono text-[#777] flex items-center justify-center gap-3">
-          <a href="/llms.txt" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:text-amber-300">
-            llms.txt (GEO)
-          </a>
-          <span>·</span>
-          <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" className="hover:text-white">
-            sitemap.xml
-          </a>
-          <span>·</span>
-          <a href="/robots.txt" target="_blank" rel="noopener noreferrer" className="hover:text-white">
-            robots.txt
-          </a>
-        </div>
 
         <div className="text-[10px] font-mono text-[#777] leading-relaxed space-y-2 border-t border-[#1E1E22] pt-6">
           <p>

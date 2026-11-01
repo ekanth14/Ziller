@@ -359,7 +359,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 if not is_auth:
                     return self.json(401, {
                         "error": "Passcode required to view collaboration submissions",
-                        "help": "Provide passcode Ekanthbs@4514 via header X-Desk-Passcode or cookie"
+                        "help": "Provide verified operator passcode via header X-Desk-Passcode or cookie"
                     })
                 return self.json(200, {"status": "ok", "total": len(records), "proposals": records})
 

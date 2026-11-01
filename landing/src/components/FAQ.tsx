@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, HelpCircle, ArrowUpRight } from 'lucide-react';
+import { ChevronDown, HelpCircle } from 'lucide-react';
 
 interface FAQItem {
   question: string;
@@ -112,7 +112,7 @@ export const FAQ: React.FC = () => {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#151518] border border-[#27272A] text-xs font-mono text-[#A2A2A8] uppercase tracking-wider mb-4">
             <HelpCircle className="w-3.5 h-3.5 text-amber-300" />
-            <span>Knowledge Base · AEO & FAQs</span>
+            <span>Knowledge Base · FAQ</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-4">
             Frequently Asked Questions
@@ -165,34 +165,6 @@ export const FAQ: React.FC = () => {
               </div>
             );
           })}
-        </div>
-
-        {/* LLM & AI Engine Direct Citation Link */}
-        <div className="mt-12 p-4 rounded-2xl bg-[#0D0D10] border border-[#222226] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-[#888]">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span>Generative Engine Optimization (GEO) & Machine-Readable Spec</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <a
-              href="/llms.txt"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#D8D8DC] hover:text-white inline-flex items-center gap-1 transition-colors"
-            >
-              <span>/llms.txt</span>
-              <ArrowUpRight className="w-3 h-3" />
-            </a>
-            <a
-              href="/sitemap.xml"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#D8D8DC] hover:text-white inline-flex items-center gap-1 transition-colors"
-            >
-              <span>/sitemap.xml</span>
-              <ArrowUpRight className="w-3 h-3" />
-            </a>
-          </div>
         </div>
       </div>
     </section>

@@ -101,7 +101,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!isAuthorized(req)) {
       return res.status(401).json({
         error: 'Passcode required to view collaboration submissions',
-        help: 'Provide the operator passcode Ekanthbs@4514 via header X-Desk-Passcode or unlock at /collaborations',
+        help: 'Provide the verified operator passcode via header X-Desk-Passcode or authenticate at /collaborations',
       });
     }
 
