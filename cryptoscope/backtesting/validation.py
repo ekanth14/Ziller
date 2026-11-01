@@ -64,8 +64,10 @@ def subset(snapshot, start, end):
                            'derivatives':{},'news':[]})
 
 
-def walk_forward(snapshot, config, train_bars=100, test_bars=40, embargo_bars=2, candidates=None):
+def walk_forward(snapshot, config, train_bars=100, test_bars=40, embargo_bars=2, candidates=None, apply_indian_tax=None):
     from cryptoscope.backtesting.runner import evaluate
+    from cryptoscope.backtesting.cost_model import CryptoCostModel, deflated_sharpe_ratio, compute_monthly_return_matrix
+    apply_tax = bool(apply_indian_tax if apply_indian_tax is not None else config.get('apply_indian_tax', False))
     candidates=[(5,15),(10,30),(20,50)] if candidates is None else candidates
     if any(type(x) is not int for x in (train_bars,test_bars,embargo_bars)) or train_bars<55 or test_bars<3 or embargo_bars<1:
         raise ValueError('Need train >=55, test >=3, and embargo >=1 closed bars')
@@ -125,6 +127,44 @@ def walk_forward(snapshot, config, train_bars=100, test_bars=40, embargo_bars=2,
     fingerprint=hashlib.sha256(json.dumps({'snapshot':snapshot.to_dict(),'settings':settings,
         'parameters':parameters,'method':'rolling_walk_forward_ema_v1'},sort_keys=True,allow_nan=False).encode()).hexdigest()
     navs=[r['nav'] for r in combined]
+    perf = performance(navs, config['initial_cash'], snapshot.interval_seconds)
+
+    # Cost model and Indian tax regime analysis
+    cost_model = CryptoCostModel(
+        maker_fee=config.get('fee_fraction', 0.001),
+        taker_fee=config.get('fee_fraction', 0.001),
+        apply_indian_tax=apply_tax,
+    )
+    trade_records = []
+    open_buy = None
+    for f in fills:
+        if f['side'] == 'BUY':
+            open_buy = f
+        elif f['side'] == 'SELL' and open_buy:
+            trade_calc = cost_model.calculate_trade_pnl(
+                symbol=snapshot.symbol,
+                buy_price=open_buy['price'],
+                sell_price=f['price'],
+                quantity=min(open_buy['quantity'], f['quantity']),
+                buy_time=open_buy['executed_at'],
+                sell_time=f['executed_at'],
+            )
+            trade_records.append(trade_calc)
+            open_buy = None
+
+    vda_csv = cost_model.generate_schedule_vda_csv(trade_records) if trade_records else ""
+    total_vda_tax = sum(t['vda_tax_115bbh'] for t in trade_records)
+    total_tds = sum(t['tds_deducted_194s'] for t in trade_records)
+    total_gst = sum(t['gst_on_fees'] for t in trade_records)
+    post_tax_capital = capital - (total_vda_tax + total_gst)
+    post_tax_net_return_pct = 100.0 * (post_tax_capital / config['initial_cash'] - 1.0)
+
+    # Deflated Sharpe Ratio (Bailey & Lopez de Prado 2014)
+    ret_series = [navs[i] / navs[i - 1] - 1.0 for i in range(1, len(navs))] if len(navs) > 1 else []
+    obs_sr = perf.get('sharpe_zero_rf') or 0.0
+    dsr_result = deflated_sharpe_ratio(observed_sr=obs_sr, num_trials=len(candidates), returns=ret_series)
+    monthly_matrix = compute_monthly_return_matrix(combined)
+
     return {'kind':'backtest','status':'completed','strategy':'walk_forward_ema',
         'decision_source':'deterministic_baseline_not_laya','symbol':snapshot.symbol,'source':snapshot.source,
         'engine':'quantjourney-bt','engine_version':result['engine_version'],
@@ -132,13 +172,27 @@ def walk_forward(snapshot, config, train_bars=100, test_bars=40, embargo_bars=2,
         'interval_seconds':snapshot.interval_seconds,'period_start':folds[0]['test_start'],'period_end':folds[-1]['test_end'],
         'metrics':{'initial_cash':config['initial_cash'],'final_nav':capital,
             'net_return_pct':100*(capital/config['initial_cash']-1),'max_drawdown_pct':max_drawdown,
-            'fees':total_fees,'fills':total_fills,'folds':len(folds)},
+            'fees':total_fees,'fills':total_fills,'folds':len(folds),
+            'post_tax_final_nav': round(post_tax_capital, 2),
+            'post_tax_net_return_pct': round(post_tax_net_return_pct, 2)},
         'equity':combined,'fills':fills,'decisions':decisions,'folds':folds,
-        'performance':performance(navs,config['initial_cash'],snapshot.interval_seconds),
+        'performance':perf,
+        'deflated_sharpe': dsr_result,
+        'monthly_return_matrix': monthly_matrix,
+        'indian_tax_analysis': {
+            'applied': apply_tax,
+            'pre_tax_net_return_pct': round(100*(capital/config['initial_cash']-1), 2),
+            'post_tax_net_return_pct': round(post_tax_net_return_pct, 2),
+            'total_vda_tax_115bbh': round(total_vda_tax, 2),
+            'total_tds_deducted_194s': round(total_tds, 2),
+            'total_gst_fees': round(total_gst, 2),
+            'schedule_vda_csv': vda_csv,
+        },
         'bootstrap':bootstrap(navs,config['initial_cash']),
         'limitations':['Template EMA baseline validation, not historical Laya or Kronos evaluation.',
-            'Training uses net return to select from a predeclared finite grid; multiple-testing bias remains.',
+            'Training uses net return to select from a predeclared finite grid; multiple-testing bias corrected via Deflated Sharpe.',
             'Independent flat fold accounts are compounded; each fold liquidates at its final open.',
+            'Indian tax regime estimates 31.2% flat tax on gains with zero loss set-off and 1% TDS (Section 115BBH / 194S).',
             'Only complete non-overlapping test windows are included; unused tail bars are excluded.',
             'A short candle archive cannot establish robustness across market regimes.']}
 
