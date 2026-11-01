@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
+  ExternalLink,
   Github,
   Linkedin,
   Globe,
@@ -236,9 +237,17 @@ export const Collaborate: React.FC<{ isStandalone?: boolean }> = ({ isStandalone
           </h2>
 
           <p className="text-sm sm:text-base text-[#A2A2A8] font-light leading-relaxed">
-            ZILLERS is engineered in the open under Zien Organisation. We partner with quantitative researchers,
-            machine learning specialists, systems architects, and traders to advance autonomous market research,
-            explainable AI deliberation, and deterministic risk governance.
+            ZILLERS is engineered in the open under{' '}
+            <a
+              href="https://ziennexus.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white font-medium hover:underline underline-offset-2"
+              title="Visit Zien Organisation (ziennexus.app)"
+            >
+              Zien Organisation
+            </a>
+            . We partner with quantitative researchers, machine learning specialists, systems architects, and traders to advance autonomous market research, explainable AI deliberation, and deterministic risk governance.
           </p>
         </div>
 
@@ -267,7 +276,17 @@ export const Collaborate: React.FC<{ isStandalone?: boolean }> = ({ isStandalone
                           Proposal Logged Successfully
                         </h3>
                         <p className="text-xs font-mono text-[#A2A2A8]">
-                          Receipt dispatched to Zien Organisation Research Desk
+                          Receipt dispatched to{' '}
+                          <a
+                            href="https://ziennexus.app/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#D8D8DC] hover:text-white underline underline-offset-2"
+                            title="Visit Zien Organisation (ziennexus.app)"
+                          >
+                            Zien Organisation
+                          </a>{' '}
+                          Research Desk
                         </p>
                       </div>
                     </div>
@@ -515,7 +534,17 @@ export const Collaborate: React.FC<{ isStandalone?: boolean }> = ({ isStandalone
                           className="mt-0.5 rounded border-[#4D4D51] bg-[#151515] text-white focus:ring-0 cursor-pointer"
                         />
                         <span className="text-[11px] text-[#A2A2A8] leading-tight select-none">
-                          I agree to open quantitative research standards and code-sharing principles under Zien Organisation.
+                          I agree to open quantitative research standards and code-sharing principles under{' '}
+                          <a
+                            href="https://ziennexus.app/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#D8D8DC] hover:text-white underline underline-offset-2"
+                            title="Visit Zien Organisation (ziennexus.app)"
+                          >
+                            Zien Organisation
+                          </a>
+                          .
                         </span>
                       </label>
                       {errors.termsAccepted && (
@@ -611,7 +640,16 @@ export const Collaborate: React.FC<{ isStandalone?: boolean }> = ({ isStandalone
             <div className="rounded-3xl border border-[#222224] bg-[#050505] p-5 text-xs space-y-2 font-mono">
               <div className="flex items-center justify-between text-[#A2A2A8]">
                 <span>PARENT ENTITY</span>
-                <span className="text-[#D8D8DC] font-semibold">ZIEN ORGANISATION</span>
+                <a
+                  href="https://ziennexus.app/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#D8D8DC] hover:text-white font-semibold underline underline-offset-2 inline-flex items-center gap-1 transition-colors"
+                  title="Visit Zien Organisation (ziennexus.app)"
+                >
+                  <span>ZIEN ORGANISATION</span>
+                  <ExternalLink className="w-3 h-3 text-[#A2A2A8]" />
+                </a>
               </div>
               <div className="flex justify-between text-[#A2A2A8] text-[11px]">
                 <span>INCUBATION SECTOR</span>

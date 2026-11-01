@@ -37,9 +37,16 @@ export const Hero: React.FC = () => {
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#4D4D51] bg-[#151515]/80 backdrop-blur-md mb-8"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-[#D8D8DC] animate-pulse" />
-            <span className="font-mono text-[10px] md:text-[11px] font-medium tracking-[0.2em] text-[#D8D8DC] uppercase">
-              A Zien Organisation Company
-            </span>
+            <a
+              href="https://ziennexus.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-[10px] md:text-[11px] font-medium tracking-[0.2em] text-[#D8D8DC] hover:text-white uppercase transition-colors inline-flex items-center gap-1.5"
+              title="Visit Zien Organisation (ziennexus.app)"
+            >
+              <span>A Zien Organisation Company</span>
+              <span className="text-[9px] opacity-70">↗</span>
+            </a>
           </motion.div>
 
           {/* Primary Metallic Headline */}

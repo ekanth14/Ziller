@@ -1,4 +1,5 @@
 import React from 'react';
+import { ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import zillersEmblem from '../assets/emblem.png';
 import zienEmblem from '../assets/zien-emblem.png';
@@ -34,13 +35,20 @@ export const ZienOrganisation: React.FC = () => {
           </div>
 
           {/* Parent Zien Crest */}
-          <div className="relative z-10 w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#090909] border border-[#E5C07B]/30 flex flex-col items-center justify-center p-3.5 sm:p-4 shadow-[0_0_40px_rgba(229,192,123,0.12)]">
+          <a
+            href="https://ziennexus.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Visit Zien Organisation (ziennexus.app)"
+            className="group/crest relative z-10 w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#090909] border border-[#E5C07B]/30 hover:border-[#E5C07B] flex flex-col items-center justify-center p-3.5 sm:p-4 shadow-[0_0_40px_rgba(229,192,123,0.12)] hover:shadow-[0_0_50px_rgba(229,192,123,0.35)] transition-all duration-300 transform hover:scale-105"
+          >
             <img
               src={zienEmblem}
               alt="Zien Organisation"
-              className="w-full h-full object-contain filter drop-shadow-[0_4px_12px_rgba(229,192,123,0.3)]"
+              className="w-full h-full object-contain filter drop-shadow-[0_4px_12px_rgba(229,192,123,0.3)] group-hover/crest:drop-shadow-[0_4px_16px_rgba(229,192,123,0.6)] transition-all"
             />
-          </div>
+            <span className="sr-only">Visit Zien Organisation</span>
+          </a>
         </motion.div>
 
         {/* Section Heading */}
@@ -61,7 +69,17 @@ export const ZienOrganisation: React.FC = () => {
           transition={{ duration: 0.8, delay: 0.1 }}
           className="text-3xl sm:text-5xl font-semibold tracking-tight text-metallic leading-[1.15]"
         >
-          An innovation under Zien Organisation.
+          An innovation under{' '}
+          <a
+            href="https://ziennexus.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-white underline underline-offset-8 decoration-[#E5C07B]/40 hover:decoration-[#E5C07B] transition-colors"
+            title="Visit Zien Organisation (ziennexus.app)"
+          >
+            Zien Organisation
+          </a>
+          .
         </motion.h2>
 
         {/* Supporting Paragraph */}
@@ -72,20 +90,42 @@ export const ZienOrganisation: React.FC = () => {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="mt-6 text-sm sm:text-base md:text-lg text-[#A2A2A8] font-normal leading-relaxed max-w-2xl"
         >
-          ZILLERS represents Zien Organisation's pursuit of research-driven,
-          accessible financial technology and intelligent quantitative software.
+          ZILLERS represents{' '}
+          <a
+            href="https://ziennexus.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#F4F4F5] font-medium hover:text-[#E5C07B] underline underline-offset-4 decoration-[#4D4D51] hover:decoration-[#E5C07B] transition-colors"
+            title="Visit Zien Organisation (ziennexus.app)"
+          >
+            Zien Organisation
+          </a>
+          's pursuit of research-driven, accessible financial technology and intelligent quantitative software.
         </motion.p>
 
-        {/* Corporate Metadata Pill */}
+        {/* Corporate Metadata Pill & Official Portal Link */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="mt-8 inline-flex items-center gap-3 px-4 py-2 rounded-full border border-[#38383C] bg-[#151515] font-mono text-xs text-[#D8D8DC]"
+          className="mt-8 flex flex-wrap items-center justify-center gap-3"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-[#E5C07B]" />
-          <span>INDUSTRY: FINTECH & QUANTITATIVE SYSTEMS</span>
+          <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border border-[#38383C] bg-[#151515] font-mono text-xs text-[#D8D8DC]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#E5C07B]" />
+            <span>INDUSTRY: FINTECH & QUANTITATIVE SYSTEMS</span>
+          </div>
+
+          <a
+            href="https://ziennexus.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#E5C07B]/40 hover:border-[#E5C07B] bg-[#151515] hover:bg-[#E5C07B]/10 font-mono text-xs text-[#E5C07B] hover:text-white transition-all group"
+            title="Visit Zien Organisation portal"
+          >
+            <span>VISIT ZIENNEXUS.APP</span>
+            <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </a>
         </motion.div>
       </div>
     </section>

@@ -23,8 +23,17 @@ export const Introduction: React.FC = () => {
             Beyond conventional trading.
           </h2>
           <p className="mt-8 text-base md:text-xl text-[#F4F4F5] font-light leading-relaxed">
-            ZILLERS is a quantitative financial technology venture under Zien Organisation,
-            focused on developing accessible trading research, algorithmic automation, and intelligent cryptocurrency market analysis.
+            ZILLERS is a quantitative financial technology venture under{' '}
+            <a
+              href="https://ziennexus.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white font-medium hover:text-[#D8D8DC] underline underline-offset-4 decoration-[#4D4D51] hover:decoration-white transition-colors"
+              title="Visit Zien Organisation (ziennexus.app)"
+            >
+              Zien Organisation
+            </a>
+            , focused on developing accessible trading research, algorithmic automation, and intelligent cryptocurrency market analysis.
           </p>
           <p className="mt-4 text-sm md:text-base text-[#A2A2A8] font-normal leading-relaxed">
             By shifting from emotional human guesswork to deterministic algorithmic rules paired with local multi-agent deliberation,
@@ -158,7 +167,16 @@ export const Introduction: React.FC = () => {
             </div>
 
             <div className="mt-6 pt-3 border-t border-[#38383C] flex justify-between items-center text-[10px] font-mono text-[#A2A2A8]">
-              <span>ZIEN ORG RESEARCH LAB</span>
+              <a
+                href="https://ziennexus.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white transition-colors inline-flex items-center gap-1"
+                title="Visit Zien Organisation (ziennexus.app)"
+              >
+                <span>ZIEN ORG RESEARCH LAB</span>
+                <span className="text-[9px]">↗</span>
+              </a>
               <span className="text-[#D8D8DC]">PRODUCTION VERIFIED</span>
             </div>
           </div>
