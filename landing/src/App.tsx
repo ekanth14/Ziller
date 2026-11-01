@@ -13,7 +13,8 @@ import { SetupGuide } from './components/SetupGuide';
 import { ZienOrganisation } from './components/ZienOrganisation';
 import { Collaborate } from './components/Collaborate';
 import { Footer } from './components/Footer';
-import { ArrowLeft } from 'lucide-react';
+import { MobileHome } from './components/MobileHome';
+import { ArrowLeft, Smartphone } from 'lucide-react';
 import zillersEmblem from './assets/emblem.png';
 
 export const App: React.FC = () => {
@@ -22,6 +23,32 @@ export const App: React.FC = () => {
     if (window.location.pathname.startsWith('/collaborate')) return 'collaborate';
     return 'home';
   });
+
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const saved = sessionStorage.getItem('zillers_view_mode');
+    if (saved === 'desktop') return false;
+    if (saved === 'mobile') return true;
+    return window.innerWidth < 768;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      const saved = sessionStorage.getItem('zillers_view_mode');
+      if (!saved) {
+        setIsMobile(window.innerWidth < 768);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const toggleViewMode = () => {
+    const nextMode = isMobile ? 'desktop' : 'mobile';
+    sessionStorage.setItem('zillers_view_mode', nextMode);
+    setIsMobile(!isMobile);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     const handleLocationChange = () => {
@@ -137,10 +164,29 @@ export const App: React.FC = () => {
     );
   }
 
+  // 1. MOBILE-FIRST STREAMLINED VIEW (NO HEAVY PICTOGRAPHY)
+  if (isMobile) {
+    return <MobileHome onSwitchToDesktop={toggleViewMode} />;
+  }
+
+  // 2. FULL DESKTOP TERMINAL VIEWPORT
   return (
     <div className="min-h-screen bg-[#050505] text-[#F4F4F5] selection:bg-[#38383C] selection:text-white relative overflow-x-hidden font-sans">
       {/* Smoked Glass Top Navigation */}
       <Navigation />
+
+      {/* Floating View Switcher (Desktop to Mobile tester) */}
+      <div className="fixed bottom-4 right-4 z-40">
+        <button
+          type="button"
+          onClick={toggleViewMode}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#18181B]/80 hover:bg-[#27272A] border border-[#38383C] text-[11px] font-mono text-[#A2A2A8] hover:text-white shadow-xl backdrop-blur-md transition-all"
+          title="Switch to Mobile View"
+        >
+          <Smartphone className="w-3.5 h-3.5" />
+          <span>Mobile View</span>
+        </button>
+      </div>
 
       {/* Main Flow */}
       <main>
@@ -150,7 +196,7 @@ export const App: React.FC = () => {
         {/* 2. Institutional Product Showcase (With Interactive Working Window Arrows) */}
         <ProductShowcase />
 
-        {/* 3. Live System Workspace · Authentic Working Windows Gallery */}
+        {/* 3. Live System Workspace – Authentic Working Windows Gallery */}
         <TerminalGallery />
 
         {/* 4. Introducing ZILLERS */}
