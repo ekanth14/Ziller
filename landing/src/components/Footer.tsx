@@ -70,6 +70,9 @@ export const Footer: React.FC = () => {
             <a href="#vision" className="hover:text-white transition-colors">
               Vision
             </a>
+            <a href="#setup" className="hover:text-white transition-colors">
+              Setup
+            </a>
             <a href="#collaborate" className="hover:text-white transition-colors">
               Collaborate
             </a>

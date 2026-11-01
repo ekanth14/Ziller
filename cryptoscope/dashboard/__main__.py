@@ -127,7 +127,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 name, kind = assets[url.path]
                 return self.send(200, (STATIC / name).read_bytes(), kind + "; charset=utf-8")
 
-            if url.path in {"/landing", "/docs", "/about", "/landing/", "/collaborate", "/collaborate/"}:
+            if url.path in {"/landing", "/docs", "/about", "/landing/", "/collaborate", "/collaborate/", "/setup", "/setup/"}:
                 landing_html = STATIC / "landing" / "index.html"
                 if landing_html.is_file():
                     return self.send(200, landing_html.read_bytes(), "text/html; charset=utf-8")
@@ -290,6 +290,18 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 if not session:
                     return self.json(401, {"error": "Authentication required"})
                 return self.json(200, auth_store.get_settings(session["user_id"]))
+
+            if url.path == "/api/collaborate/list":
+                with _collab_lock:
+                    records = []
+                    if COLLAB_FILE.is_file():
+                        try:
+                            records = json.loads(COLLAB_FILE.read_text(encoding="utf-8"))
+                            if not isinstance(records, list):
+                                records = []
+                        except Exception:
+                            records = []
+                    return self.json(200, {"status": "ok", "total": len(records), "proposals": records})
 
             # Dashboard API routes (accessible by authenticated sessions or test runners)
             workspace = query.get("workspace", ["research"])[0]

@@ -1,6 +1,6 @@
-# ZILLERS Quant Institutional Crypto Terminal
+# ⚡ ZILLER — Quantitative research, algorithmic automation, and AI-powered market intelligence
 
-[![CI / Production Build Verification](https://github.com/ekanth14/zien-crypto-trading-software/actions/workflows/ci.yml/badge.svg)](https://github.com/ekanth14/zien-crypto-trading-software/actions/workflows/ci.yml)
+[![CI / Production Build Verification](https://github.com/ekanth14/Ziller/actions/workflows/ci.yml/badge.svg)](https://github.com/ekanth14/Ziller/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Terminal GUI](https://img.shields.io/badge/GUI-Institutional_Dark-080a0f.svg)](#)

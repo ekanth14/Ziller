@@ -209,7 +209,7 @@ class ServerEndpointTests(unittest.TestCase):
                     self.assertIn(key, c)
 
     def test_landing_page_and_documentation_routes(self):
-        for route in ("/landing", "/docs", "/about", "/landing/", "/collaborate", "/collaborate/"):
+        for route in ("/landing", "/docs", "/about", "/landing/", "/collaborate", "/collaborate/", "/setup", "/setup/"):
             req = Request(f"{self.base_url}{route}")
             with urlopen(req) as resp:
                 self.assertEqual(resp.status, 200)
@@ -218,6 +218,14 @@ class ServerEndpointTests(unittest.TestCase):
                 self.assertIn("Zien Organisation", html)
 
 
+
+    def test_collaborate_list_endpoint(self):
+        req = Request(f"{self.base_url}/api/collaborate/list")
+        with urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.load(resp)
+            self.assertEqual(data["status"], "ok")
+            self.assertIn("proposals", data)
 
     def test_collaborate_proposal_submission(self):
         payload = {
