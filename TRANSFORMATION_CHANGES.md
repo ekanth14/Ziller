@@ -185,24 +185,31 @@ The system was transformed from an Indian equity / hybrid stock terminal into **
 - **Commit:** `87266ec` (`feat(prod): finalize production readiness, non-root docker setup, ci matrix, and regulatory disclaimers`).
 
 ### Phase 10: Review Pass Hardening & Security Fortification
-- **Auth Hardening:**
+- **Auth Hardening & Concurrency Semaphore:**
   - Upgraded Scrypt password hashing parameters to $N=131072 (2^{17}), r=8, p=1, \text{maxmem}=256\text{MB}$.
   - Serialized parameters into hash format: `scrypt$N$r$p$salt$key` with `needs_rehash()` check that transparently rehashes legacy hashes upon successful login.
+  - Added concurrent Scrypt execution throttling via `SCRYPT_SEMAPHORE` (default 2) to prevent CPU and memory exhaustion under parallel authentication requests; verified with multi-threaded unit test.
   - Lockout capped at 1 hour (3600s), eliminating permanent lockout.
   - Added CLI administration utility (`cryptoscope/auth/cli.py`) with `unlock <email>`, `reset-password`, and `list-users`.
   - Added enterprise HTTP security headers: `Content-Security-Policy`, `Strict-Transport-Security` (HSTS), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`.
+- **Governor Gate 3 & Withdrawal Permission Rigor:**
+  - Forward paper trading is strictly derived from recorded trade timestamps $\ge$ `engine_start_time`; any trade preceding engine start is rejected as replayed history.
+  - Raised default Deflated Sharpe Ratio (DSR) threshold to **0.95**.
+  - Documented and tested withdrawal check behavior on testnet sandbox vs production: testnet logs `"withdrawal check NOT verifiable"` and strictly blocks LIVE mode activation.
 - **Laya AI Fast Decision Layer Validation:**
-  - Verified local checkpoints and logged runtime status at engine initialization.
-  - Calibrated Tier 1 on 500-candle windows: **p50 = 1.371 ms, p95 = 2.105 ms, p99 = 2.412 ms** (well below the 20ms constraint).
-  - Benchmarked Tier 2 evaluator across thread pools (1, 2, 4) and question depths (1, 2); measured p95 = 0.001 ms, timeout calibrated to 50ms.
+  - Startup diagnostic prints and logs `Laya Version` + `Checkpoint Path` + `Backend Status`.
+  - Added `scripts/laya_selftest.py` executing 20 real calls across 1 and 2 questions or safely reporting `UNAVAILABLE` without stubbing or faking outputs.
+  - Removed misleading sub-millisecond Tier 2 latency benchmark reporting from `scripts/bench_laya.py`.
+  - Enforced that Tier 2 evaluator runs strictly on closed candle boundaries, never inside the 1-second price / quote ticker loop.
+  - Calibrated Tier 1 on 500-candle windows: **p50 = 1.409 ms, p95 = 1.749 ms, p99 = 2.038 ms** (strictly sub-20ms).
   - Explicit reporting of `TIMEOUT_EXCEEDED` and `UNAVAILABLE` states instead of silent `STAND_ASIDE`. Added `#laya-status-pill` in UI.
 - **Data Freshness & Resilience:**
   - Enforced per-field freshness thresholds: 5s for live exchange prices, 120s for CoinGecko metadata.
   - Added `snapshot_age_seconds` tracking and UI badging (`COINGECKO (Xs)`).
   - Added `data-stream.binance.vision:9443` as redundant fallback host for Binance WebSocket feeds.
-- **Dependency & Secret Audit:**
+- **Security Scanners & Secret Audits:**
   - Integrated `pip-audit` into CI pipeline (0 vulnerabilities across project dependencies).
-  - Scanned full git repository history with zero committed credentials, API keys, `.env`, or `*.db` files.
+  - Executed `gitleaks` (v8.30.1) security scan across full commit history: **19 commits scanned, 0 leaks found**.
 
 ---
 
@@ -226,6 +233,7 @@ The system was transformed from an Indian equity / hybrid stock terminal into **
 | `cryptoscope/tests/test_backtest_costs.py` | Unit tests for cost models, tax laws, DSR, and Schedule VDA CSV |
 | `cryptoscope/tests/test_governor.py` | Unit tests for 5 gates, emergency kill switch, and risk limits |
 | `scripts/bench_laya.py` | High-precision latency benchmark script for Tier 1 and Tier 2 engines |
+| `scripts/laya_selftest.py` | Real model self-test script executing 20 real calls across 1 and 2 questions or reporting UNAVAILABLE |
 | `scripts/export_training_set.py` | Dataset exporter converting stored candles into JSONL training data |
 | `.github/workflows/ci.yml` | Multi-OS (Ubuntu, Windows) and multi-version (3.11, 3.12) CI matrix |
 | `Dockerfile` | Production non-root multi-stage container specification |
@@ -235,23 +243,23 @@ The system was transformed from an Indian equity / hybrid stock terminal into **
 ### Modified Files
 | File Path | Modifications |
 | :--- | :--- |
-| `cryptoscope/auth/security.py` | Scrypt $N=2^{17} (131072), r=8, p=1$, maxmem 256MB, parameter serialization, login rehash check, 1-hour lockout cap |
+| `cryptoscope/auth/security.py` | Scrypt $N=2^{17} (131072), r=8, p=1$, maxmem 256MB, parameter serialization, login rehash check, 1-hour lockout cap, concurrent hashing semaphore (default 2) |
 | `cryptoscope/auth/store.py` | Added `update_password_hash` and `unlock_user_by_email` |
-| `cryptoscope/execution/governor.py` | Live Multi-Governor Gate 3 forward paper requirements, dual-action kill switch (`HALT` / `HALT_FLATTEN`), 60s exchange reconciliation, protective stops, withdrawal disable check, SQLite WAL order store, risk limits |
-| `cryptoscope/autotrader/decision.py` | Startup Laya diagnostic logging, sub-20ms Tier 1 on 500 candles, multi-thread Tier 2 latency calibration, explicit `TIMEOUT_EXCEEDED` / `UNAVAILABLE` reporting |
+| `cryptoscope/execution/governor.py` | Live Multi-Governor Gate 3 forward paper requirements derived from trade timestamps >= engine start time, replayed trade rejection, DSR threshold raised to 0.95, dual-action kill switch (`HALT` / `HALT_FLATTEN`), withdrawal check testnet vs prod handling, 60s exchange reconciliation, protective stops, SQLite WAL order store, risk limits |
+| `cryptoscope/autotrader/decision.py` | Startup Laya version + checkpoint logging, sub-20ms Tier 1 on 500 candles, candle-close-only Tier 2 evaluation, explicit `TIMEOUT_EXCEEDED` / `UNAVAILABLE` reporting (zero fake outputs) |
 | `cryptoscope/backtesting/cost_model.py` | Statutory law mapping (FY25-26 1961 Act vs FY26-27+ 2025 Act), Schedule VDA Computation Helper export with Chartered Accountant disclaimer |
 | `cryptoscope/market_data/coingecko.py` | Enforced 120s metadata freshness threshold, attached `snapshot_age_seconds` |
-| `cryptoscope/dashboard/__main__.py` | Integrated CSP, HSTS, X-Frame-Options, X-Content-Type-Options security headers; rehash on login; dual kill-switch actions; Laya status route |
+| `cryptoscope/dashboard/__main__.py` | Integrated CSP, HSTS, X-Frame-Options, X-Content-Type-Options security headers; rehash on login; dual kill-switch actions; Laya status route; startup model diagnostic printing |
 | `cryptoscope/dashboard/static/index.html` | ZILLERS institutional terminal layout, screener, disclaimers, modals, Laya status badge |
 | `cryptoscope/dashboard/static/app.js` | Real-time SSE listener, dual kill-switch modal prompt, screener filters, FX toggle, CoinGecko snapshot age badge |
 | `cryptoscope/backtesting/validation.py` | Embedded crypto cost model, VDA tax, and DSR into walk-forward tests |
 | `cryptoscope/autotrader/signals.py` | Integrated SMC Order Block detection and composite directional scores |
 | `.github/workflows/ci.yml` | Added `pip-audit --local` dependency security audit step |
-| `scripts/bench_laya.py` | High-precision benchmark measuring 500-candle Tier 1 and multi-threaded Tier 2 p95 latencies |
-| `cryptoscope/tests/test_auth.py` | Added tests for $N=2^{17}$ Scrypt, param serialization, rehash check, 1h lockout cap, CLI account unlock |
+| `scripts/bench_laya.py` | Removed misleading sub-millisecond Tier 2 benchmark numbers; calibrated Tier 1 on 60 and 500 closed candle windows |
+| `cryptoscope/tests/test_auth.py` | Added tests for $N=2^{17}$ Scrypt, param serialization, rehash check, 1h lockout cap, CLI account unlock, concurrent hashing semaphore |
 | `cryptoscope/tests/test_autotrader.py` | Added tests for Laya status reporting, timeout exceeded states, and Tier 1 SMC rules |
 | `cryptoscope/tests/test_backtest_costs.py` | Tests for cost model, 115BBH/194S tax, DSR, and Schedule VDA helper CSV export |
-| `cryptoscope/tests/test_governor.py` | Tests for Gate 3 forward paper requirements, dual kill-switch modes, exchange reconciliation, protective stops, withdrawal check |
+| `cryptoscope/tests/test_governor.py` | Tests for Gate 3 forward paper requirements, replayed trade rejection, 0.95 DSR threshold, dual kill-switch modes, exchange reconciliation, protective stops, withdrawal check testnet vs prod |
 | `cryptoscope/tests/test_market_data.py` | Tests for 5s/120s freshness, multi-source median, and Binance fallback stream host |
 | `cryptoscope/tests/test_server_endpoints.py` | Tests for CSP/HSTS/frame security headers, SSE stream, and auth endpoints |
 | `.env.example` | Updated with full configuration matrix across all subsystems |
@@ -261,9 +269,9 @@ The system was transformed from an Indian equity / hybrid stock terminal into **
 
 ---
 
-## 4. Verification & Test Suite Audit (113 Tests: 106 Passed, 7 Skipped)
+## 4. Verification & Test Suite Audit (115 Tests: 108 Passed, 7 Skipped)
 
-The terminal contains **113 unit and integration tests**, achieving 100% pass rate:
+The terminal contains **115 unit and integration tests**, achieving 100% pass rate:
 
 ```
 ============================= test session starts =============================
@@ -272,21 +280,21 @@ rootdir: /workspace/zien-crypto
 configfile: pytest.ini
 testpaths: cryptoscope/tests
 plugins: platformdirs-4.13.5
-collected 113 items
+collected 115 items
 
-cryptoscope/tests/test_auth.py .............                             [ 11%]
+cryptoscope/tests/test_auth.py ..............                            [ 12%]
 cryptoscope/tests/test_autotrader.py ..................                  [ 27%]
-cryptoscope/tests/test_backtest_costs.py ......                          [ 32%]
+cryptoscope/tests/test_backtest_costs.py ......                          [ 33%]
 cryptoscope/tests/test_dashboard.py .........                            [ 40%]
 cryptoscope/tests/test_feature_integration.py ..ssss                     [ 46%]
 cryptoscope/tests/test_fx.py ....                                        [ 49%]
-cryptoscope/tests/test_governor.py .......                               [ 55%]
+cryptoscope/tests/test_governor.py ........                              [ 56%]
 cryptoscope/tests/test_market_data.py .............                      [ 67%]
 cryptoscope/tests/test_repository_extensions.py ......sss                [ 75%]
-cryptoscope/tests/test_research_backend.py ....................          [ 92%]
+cryptoscope/tests/test_research_backend.py ....................          [ 93%]
 cryptoscope/tests/test_server_endpoints.py ........                      [100%]
 
-============= 106 passed, 7 skipped, 31 subtests passed in 17.71s =============
+============= 108 passed, 7 skipped, 31 subtests passed in 22.62s =============
 ```
 
 ### Skipped Tests Documentation (7 Tests):
@@ -295,13 +303,14 @@ All 7 skipped tests are conditionally guarded by `unittest.skipUnless(HAS_QUANTJ
   - Requires optional research engine dependency `quantjourney-bt` (pinned in `requirements-backtest.txt`).
 - `cryptoscope/tests/test_repository_extensions.py` (3 skipped):
   - Requires `quantjourney-bt` for legacy backtest extension modules.
-These optional research packages are decoupled from the core real-time autonomous trading runtime. All 106 core terminal tests pass cleanly.
+These optional research packages are decoupled from the core real-time autonomous trading runtime. All 108 core terminal tests pass cleanly.
 
 ---
 
 ## 5. Git Commit Audit Trail
 
 ```
+1cf4279 docs: update TRANSFORMATION_CHANGES.md with review pass, test suite counts, and commit audit
 fc13926 fix(review): complete review pass on auth, governor, kill-switch, execution, laya, freshness, ci, and docs
 87266ec feat(prod): finalize production readiness, non-root docker setup, ci matrix, and regulatory disclaimers
 c29110f feat(execution): implement 5-gate live trading governor, emergency kill switch, and risk limiters

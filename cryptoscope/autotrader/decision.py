@@ -312,15 +312,19 @@ class LayaTier2Evaluator:
         try:
             import laya  # type: ignore
             self.package_loaded = True
-            logger.info("Laya native package detected and initialized")
+            self.laya_version = getattr(laya, "__version__", "1.0.0")
+            logger.info("Laya native package detected (version: %s)", self.laya_version)
         except ImportError:
             self.package_loaded = False
+            self.laya_version = "UNAVAILABLE"
             logger.debug("Laya native library (laya-ai.com) not installed in local environment")
 
         # 3. Checkpoint scan in checkpoints/ and data/models/
+        self.checkpoint_path = "UNAVAILABLE"
         check_dirs = [
             Path(__file__).resolve().parents[2] / "checkpoints",
             Path(__file__).resolve().parents[2] / "data/models",
+            Path(os.environ.get("USERPROFILE", "")) / ".ollama/models/blobs",
         ]
         for d in check_dirs:
             if d.exists():
@@ -346,12 +350,19 @@ class LayaTier2Evaluator:
             self.ollama_available = False
 
         status_label = "ACTIVE" if (self.package_loaded or self.checkpoint_loaded) else ("OLLAMA_EXPLAIN_ONLY" if self.ollama_available else "NOT_LOADED")
+        backend_desc = (
+            f"Native Package ({self.laya_version})" if self.package_loaded
+            else f"Local Checkpoint ({Path(self.checkpoint_path).name})" if (self.checkpoint_loaded and self.checkpoint_path != "UNAVAILABLE")
+            else f"Ollama ({self.ollama_model})" if self.ollama_available
+            else "UNAVAILABLE"
+        )
+        startup_msg = f"[LAYA STARTUP] Version: {self.laya_version} | Checkpoint: {self.checkpoint_path} | Backend: {backend_desc}"
+        print(startup_msg)
         logger.info(
-            "[LAYA INIT] Status: %s | Package: %s | Checkpoint: %s (%s) | Ollama: %s (%s) | Threads: %d | Timeout: %.1fms",
+            "[LAYA INIT] Status: %s | Package: %s | Checkpoint: %s | Ollama: %s (%s) | Threads: %d | Timeout: %.1fms",
             status_label,
-            "Loaded" if self.package_loaded else "Not installed",
-            "Loaded" if self.checkpoint_loaded else "None",
-            self.checkpoint_path or "No file",
+            self.laya_version,
+            self.checkpoint_path,
             "Available" if self.ollama_available else "Unreachable",
             self.ollama_model,
             self.num_threads,
@@ -361,9 +372,10 @@ class LayaTier2Evaluator:
     def get_status(self) -> Dict[str, Any]:
         """Expose operational diagnostics for API and UI status indicators."""
         return {
-            "status": "ACTIVE" if (self.package_loaded or self.checkpoint_loaded) else ("OLLAMA_EXPLAIN_ONLY" if self.ollama_available else "NOT_LOADED"),
+            "status": "ACTIVE" if (self.package_loaded or (self.checkpoint_loaded and self.checkpoint_path != "UNAVAILABLE")) else ("OLLAMA_EXPLAIN_ONLY" if self.ollama_available else "NOT_LOADED"),
+            "laya_version": self.laya_version,
             "package_loaded": self.package_loaded,
-            "checkpoint_loaded": self.checkpoint_loaded,
+            "checkpoint_loaded": self.checkpoint_loaded and self.checkpoint_path != "UNAVAILABLE",
             "checkpoint_path": self.checkpoint_path,
             "ollama_available": self.ollama_available,
             "ollama_model": self.ollama_model,
@@ -373,6 +385,7 @@ class LayaTier2Evaluator:
         }
 
     def evaluate(self, tier1_result: Dict[str, Any], simulate_delay_ms: float = 0.0) -> Dict[str, Any]:
+        """Tier 2 candidate evaluation. Runs strictly on closed candle boundaries, never inside 1s ticker loop."""
         t0 = time.perf_counter()
         action = tier1_result.get("action", "STAND_ASIDE")
         if action == "STAND_ASIDE":
@@ -395,8 +408,6 @@ class LayaTier2Evaluator:
             time.sleep(simulate_delay_ms / 1000.0)
 
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
-
-        # Check timeout budget
         if elapsed_ms > self.max_timeout_ms:
             logger.warning("[LAYA TIMEOUT EXCEEDED] Evaluation took %.2fms exceeding %.1fms budget!", elapsed_ms, self.max_timeout_ms)
             return {
@@ -408,27 +419,47 @@ class LayaTier2Evaluator:
                 "reason": f"Laya evaluation exceeded {self.max_timeout_ms:.1f}ms budget (actual: {elapsed_ms:.1f}ms)",
             }
 
-        if not (self.package_loaded or self.checkpoint_loaded):
+        # Check if real model is available (native package or local checkpoint)
+        # Never stub or fake outputs when unavailable
+        if not self.package_loaded:
             latency = round((time.perf_counter() - t0) * 1000, 2)
             return {
                 "status": "UNAVAILABLE",
                 "agreed": False,
                 "latency_ms": latency,
                 "questions": questions,
-                "answers": {"q1": "UNAVAILABLE", "q2": "UNAVAILABLE"},
-                "reason": "Laya classifier package/checkpoint unavailable in runtime. Fail-safe to STAND_ASIDE.",
+                "answers": {},
+                "reason": "Laya model unavailable in runtime. Never stubbing or faking outputs; failing safe to STAND_ASIDE.",
             }
 
-        # Actual or mock inference
         try:
-            agreed = True
+            # Real native laya package execution
+            import laya  # type: ignore
+            # Evaluate using native package API
+            ans1 = laya.eval_question(q1) if hasattr(laya, "eval_question") else "NO"
+            ans2 = laya.eval_question(q2) if hasattr(laya, "eval_question") else "NO"
+            answers = {"q1": ans1, "q2": ans2}
+            agreed = (ans1.strip().upper() == "YES" and ans2.strip().upper() == "YES")
+
+            elapsed_ms = (time.perf_counter() - t0) * 1000.0
+            if elapsed_ms > self.max_timeout_ms:
+                logger.warning("[LAYA TIMEOUT EXCEEDED] Evaluation took %.2fms exceeding %.1fms budget!", elapsed_ms, self.max_timeout_ms)
+                return {
+                    "status": "TIMEOUT_EXCEEDED",
+                    "agreed": False,
+                    "latency_ms": round(elapsed_ms, 2),
+                    "questions": questions,
+                    "answers": answers,
+                    "reason": f"Laya evaluation exceeded {self.max_timeout_ms:.1f}ms budget (actual: {elapsed_ms:.1f}ms)",
+                }
+
             return {
                 "status": "EVALUATED",
                 "agreed": agreed,
                 "latency_ms": round(elapsed_ms, 2),
                 "questions": questions,
-                "answers": {"q1": "YES", "q2": "YES"},
-                "reason": "Laya confirmed setup validity",
+                "answers": answers,
+                "reason": "Laya confirmed setup validity" if agreed else "Laya rejected setup validity",
             }
         except Exception as e:
             elapsed_ms = (time.perf_counter() - t0) * 1000.0

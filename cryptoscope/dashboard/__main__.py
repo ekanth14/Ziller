@@ -492,6 +492,10 @@ def main():
     live_governor = LiveMultiGateGovernor()
     kill_switch = EmergencyKillSwitch(risk_governor, live_governor)
 
+    # Initialize Laya and print version + checkpoint path at startup
+    laya_evaluator = LayaTier2Evaluator()
+    print(f"[ZILLERS AI] Laya Version: {laya_evaluator.laya_version} | Checkpoint: {laya_evaluator.checkpoint_path}", flush=True)
+
     # Start live exchange feeds in background
     binance_feed = BinanceFeed(on_ticker=market_aggregator.record_ticker, symbols=["BTCUSDT", "ETHUSDT", "SOLUSDT"])
     coinbase_feed = CoinbaseFeed(on_ticker=market_aggregator.record_ticker, symbols=["BTCUSDT", "ETHUSDT", "SOLUSDT"])

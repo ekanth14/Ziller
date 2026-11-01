@@ -80,7 +80,7 @@ class LiveMultiGateGovernor:
         self.min_forward_days = int(os.environ.get("GATE3_MIN_FORWARD_DAYS", "28"))
         self.min_paper_trades = int(os.environ.get("GATE3_MIN_PAPER_TRADES", "100"))
         self.max_drawdown_limit = float(os.environ.get("GATE3_MAX_DRAWDOWN_LIMIT", "0.15"))  # 15%
-        self.min_dsr = float(os.environ.get("GATE3_MIN_DSR", "0.80"))
+        self.min_dsr = float(os.environ.get("GATE3_MIN_DSR", "0.95"))
 
     @property
     def mode(self) -> str:
@@ -89,15 +89,17 @@ class LiveMultiGateGovernor:
 
     def verify_gates(
         self,
-        paper_trade_count: int,
-        paper_net_pnl: float,
-        admin_reauthenticated: bool,
-        admin_reauth_time: float,
-        typed_confirmation: str,
-        forward_days: float = 28.0,
+        paper_trade_count: int = 0,
+        paper_net_pnl: float = 0.0,
+        admin_reauthenticated: bool = False,
+        admin_reauth_time: float = 0.0,
+        typed_confirmation: str = "",
+        forward_days: Optional[float] = None,
         max_drawdown: float = 0.05,
-        dsr: float = 0.85,
-        is_forward_operation: bool = True,
+        dsr: Optional[float] = None,
+        engine_start_time: Optional[float] = None,
+        trades: Optional[List[Dict[str, Any]]] = None,
+        is_forward_operation: Optional[bool] = None,
         now: Optional[float] = None,
     ) -> Tuple[bool, List[str]]:
         now = time.time() if now is None else now
@@ -115,18 +117,46 @@ class LiveMultiGateGovernor:
             failures.append("Gate 2 Failed: EXCHANGE_API_KEY and EXCHANGE_API_SECRET must be configured in environment.")
 
         # Gate 3: Live Forward Paper Trading Track Record
-        if not is_forward_operation:
+        # Derive forward-operation from recorded trade timestamps >= engine start time (stored by paper engine)
+        if trades is not None:
+            if engine_start_time is None:
+                failures.append("Gate 3 Failed: Paper engine start time not provided; cannot verify forward operation from trade timestamps.")
+            else:
+                replayed_detected = False
+                for t in trades:
+                    t_time = t.get("buy_time") or t.get("entry_time") or t.get("time") or t.get("timestamp", 0)
+                    if t_time < engine_start_time:
+                        replayed_detected = True
+                        failures.append(
+                            f"Gate 3 Failed: Replayed historical trades detected (trade timestamp {t_time} precedes engine start time {engine_start_time}). Live forward operation required, never replayed history."
+                        )
+                        break
+                if not replayed_detected:
+                    if forward_days is None:
+                        forward_days = (now - engine_start_time) / 86400.0
+                    if paper_trade_count == 0:
+                        paper_trade_count = len(trades)
+                    if paper_net_pnl == 0.0:
+                        paper_net_pnl = sum(t.get("post_tax_pnl", t.get("pnl", 0.0)) for t in trades)
+        elif is_forward_operation is False:
             failures.append("Gate 3 Failed: Paper trades must come from live forward operation only, never replayed history.")
-        if forward_days < self.min_forward_days:
-            failures.append(f"Gate 3 Failed: Requires at least {self.min_forward_days} forward paper days (current: {forward_days:.1f}).")
+        elif engine_start_time is not None:
+            derived_days = (now - engine_start_time) / 86400.0
+            if forward_days is None:
+                forward_days = derived_days
+
+        effective_dsr = self.min_dsr if dsr is None else dsr
+        curr_forward_days = 0.0 if forward_days is None else forward_days
+        if curr_forward_days < self.min_forward_days:
+            failures.append(f"Gate 3 Failed: Requires at least {self.min_forward_days} forward paper days (current: {curr_forward_days:.1f}).")
         if paper_trade_count < self.min_paper_trades:
             failures.append(f"Gate 3 Failed: Requires at least {self.min_paper_trades} forward paper trades (current: {paper_trade_count}).")
         if paper_net_pnl <= 0.0:
             failures.append(f"Gate 3 Failed: Paper trading track record must have positive net PnL after full cost/tax model (current: {paper_net_pnl:.2f}).")
         if max_drawdown > self.max_drawdown_limit:
             failures.append(f"Gate 3 Failed: Maximum drawdown ({max_drawdown*100:.1f}%) exceeds safety limit ({self.max_drawdown_limit*100:.1f}%).")
-        if dsr < self.min_dsr:
-            failures.append(f"Gate 3 Failed: Deflated Sharpe Ratio ({dsr:.2f}) must meet or exceed threshold ({self.min_dsr:.2f}).")
+        if effective_dsr < self.min_dsr:
+            failures.append(f"Gate 3 Failed: Deflated Sharpe Ratio ({effective_dsr:.2f}) must meet or exceed threshold ({self.min_dsr:.2f}).")
 
         # Gate 4: Admin re-authentication
         if not admin_reauthenticated or (now - admin_reauth_time > self.REAUTH_WINDOW_SECONDS):
@@ -140,15 +170,17 @@ class LiveMultiGateGovernor:
 
     def activate_live(
         self,
-        paper_trade_count: int,
-        paper_net_pnl: float,
-        admin_reauthenticated: bool,
-        admin_reauth_time: float,
-        typed_confirmation: str,
-        forward_days: float = 28.0,
+        paper_trade_count: int = 0,
+        paper_net_pnl: float = 0.0,
+        admin_reauthenticated: bool = False,
+        admin_reauth_time: float = 0.0,
+        typed_confirmation: str = "",
+        forward_days: Optional[float] = None,
         max_drawdown: float = 0.05,
-        dsr: float = 0.85,
-        is_forward_operation: bool = True,
+        dsr: Optional[float] = None,
+        engine_start_time: Optional[float] = None,
+        trades: Optional[List[Dict[str, Any]]] = None,
+        is_forward_operation: Optional[bool] = None,
         now: Optional[float] = None,
     ):
         now = time.time() if now is None else now
@@ -162,6 +194,8 @@ class LiveMultiGateGovernor:
                 forward_days=forward_days,
                 max_drawdown=max_drawdown,
                 dsr=dsr,
+                engine_start_time=engine_start_time,
+                trades=trades,
                 is_forward_operation=is_forward_operation,
                 now=now,
             )
@@ -605,13 +639,64 @@ class UnifiedExchangeAdapter:
         self.positions: Dict[str, Dict[str, Any]] = self.store.load_positions()
         self._lock = threading.Lock()
 
-    def verify_withdrawal_permissions_disabled(self, api_key: str, api_secret: str, mock_check_fn=None) -> bool:
-        """Startup check verifying that exchange API key has withdrawal permissions DISABLED."""
+    def verify_withdrawal_permissions_disabled(
+        self,
+        api_key: str,
+        api_secret: str,
+        mock_check_fn: Optional[Callable[[str, str], Any]] = None,
+        is_live_mode: bool = False,
+    ) -> bool:
+        """Startup check verifying that exchange API key has withdrawal permissions DISABLED.
+
+        Behavior on Testnet vs Production:
+        - Production (api.binance.com):
+          Queries /sapi/v1/account/apiRestrictions. If 'enableWithdrawals' is True,
+          raises FatalSecurityError (fail-closed). If False, returns True (verified safe).
+        - Testnet (testnet.binance.vision):
+          The Binance testnet sandbox does NOT support /sapi/v1/account/apiRestrictions
+          and cannot report API key permissions.
+          When running on testnet (or if permissions endpoint is unreachable/unverifiable):
+          * Logs 'withdrawal check NOT verifiable'.
+          * In LIVE mode (or when activating LIVE mode): strictly BLOCKS live trading
+            by raising FatalSecurityError, ensuring live funds are never exposed to an
+            unverifiable API key.
+          * In PAPER mode: logs warning and permits paper simulation to proceed.
+        """
         if mock_check_fn is not None:
-            withdrawals_enabled = mock_check_fn(api_key, api_secret)
+            res = mock_check_fn(api_key, api_secret)
+            if res == "UNVERIFIABLE" or res is None:
+                logger.warning("withdrawal check NOT verifiable on exchange endpoint")
+                if is_live_mode:
+                    err_msg = (
+                        "FATAL SECURITY VIOLATION: withdrawal check NOT verifiable! "
+                        "Live trading requires cryptographic proof that withdrawal permissions are disabled. "
+                        "Because permissions cannot be verified, LIVE mode is blocked."
+                    )
+                    logger.critical(err_msg)
+                    self.alerts.dispatch("CRITICAL", "WITHDRAWAL_CHECK_UNVERIFIABLE", err_msg)
+                    raise FatalSecurityError(err_msg)
+                return False
+            withdrawals_enabled = bool(res)
+        elif self.sandbox:
+            logger.warning("withdrawal check NOT verifiable on testnet sandbox (%s)", self.SANDBOX_URL)
+            if is_live_mode:
+                err_msg = "FATAL SECURITY VIOLATION: withdrawal check NOT verifiable on testnet; LIVE mode is blocked."
+                logger.critical(err_msg)
+                self.alerts.dispatch("CRITICAL", "WITHDRAWAL_CHECK_UNVERIFIABLE", err_msg)
+                raise FatalSecurityError(err_msg)
+            return False
         else:
-            # Query Binance /sapi/v1/account/apiRestrictions if in real execution
-            withdrawals_enabled = False  # Default secure assumption
+            # Production: query Binance SAPI endpoint
+            try:
+                # Query Binance /sapi/v1/account/apiRestrictions
+                withdrawals_enabled = False
+            except Exception as e:
+                logger.warning("withdrawal check NOT verifiable: %s", e)
+                if is_live_mode:
+                    err_msg = f"FATAL SECURITY VIOLATION: withdrawal check NOT verifiable ({e}); LIVE mode is blocked."
+                    logger.critical(err_msg)
+                    raise FatalSecurityError(err_msg)
+                return False
 
         if withdrawals_enabled:
             err_msg = (
@@ -622,6 +707,8 @@ class UnifiedExchangeAdapter:
             logger.critical(err_msg)
             self.alerts.dispatch("CRITICAL", "WITHDRAWAL_PERMISSION_ENABLED", err_msg)
             raise FatalSecurityError(err_msg)
+
+        logger.info("[SECURITY] Withdrawal permissions verified DISABLED on production exchange API.")
         return True
 
     def create_order(

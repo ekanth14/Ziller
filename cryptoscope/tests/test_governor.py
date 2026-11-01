@@ -38,7 +38,7 @@ class GovernorTests(unittest.TestCase):
                 typed_confirmation="ENABLE LIVE TRADING",
                 forward_days=30.0,
                 max_drawdown=0.08,
-                dsr=0.88,
+                dsr=0.96,
                 is_forward_operation=False,  # Replayed history!
                 now=now,
             )
@@ -54,7 +54,7 @@ class GovernorTests(unittest.TestCase):
                 typed_confirmation="ENABLE LIVE TRADING",
                 forward_days=14.0,  # < 28 days
                 max_drawdown=0.08,
-                dsr=0.88,
+                dsr=0.96,
                 is_forward_operation=True,
                 now=now,
             )
@@ -70,7 +70,7 @@ class GovernorTests(unittest.TestCase):
                 typed_confirmation="ENABLE LIVE TRADING",
                 forward_days=30.0,
                 max_drawdown=0.08,
-                dsr=0.88,
+                dsr=0.96,
                 is_forward_operation=True,
                 now=now,
             )
@@ -86,7 +86,7 @@ class GovernorTests(unittest.TestCase):
                 typed_confirmation="ENABLE LIVE TRADING",
                 forward_days=30.0,
                 max_drawdown=0.08,
-                dsr=0.88,
+                dsr=0.96,
                 is_forward_operation=True,
                 now=now,
             )
@@ -102,14 +102,14 @@ class GovernorTests(unittest.TestCase):
                 typed_confirmation="ENABLE LIVE TRADING",
                 forward_days=30.0,
                 max_drawdown=0.22,  # 22% > 15%
-                dsr=0.88,
+                dsr=0.96,
                 is_forward_operation=True,
                 now=now,
             )
             self.assertFalse(passed)
             self.assertTrue(any("Maximum drawdown" in r for r in reasons))
 
-            # 6. Low DSR (<0.80) fails Gate 3
+            # 6. Low DSR (<0.95) fails Gate 3
             passed, reasons = live_gov.verify_gates(
                 paper_trade_count=120,
                 paper_net_pnl=500.0,
@@ -118,7 +118,7 @@ class GovernorTests(unittest.TestCase):
                 typed_confirmation="ENABLE LIVE TRADING",
                 forward_days=30.0,
                 max_drawdown=0.08,
-                dsr=0.65,  # < 0.80
+                dsr=0.90,  # < 0.95
                 is_forward_operation=True,
                 now=now,
             )
@@ -134,10 +134,53 @@ class GovernorTests(unittest.TestCase):
                 typed_confirmation="ENABLE LIVE TRADING",
                 forward_days=30.0,
                 max_drawdown=0.06,
-                dsr=0.89,
+                dsr=0.97,
                 is_forward_operation=True,
                 now=now,
             )
+            self.assertTrue(passed)
+            self.assertEqual(len(reasons), 0)
+
+    def test_gate3_replayed_trades_rejected_by_timestamp_comparison(self):
+        live_gov = LiveMultiGateGovernor()
+        now = time.time()
+        engine_start = now - (30 * 86400)  # Started 30 days ago
+        env = {"LIVE_TRADING": "true", "EXCHANGE_API_KEY": "valid_key", "EXCHANGE_API_SECRET": "valid_secret"}
+
+        with patch.dict(os.environ, env, clear=True):
+            # Trades containing an old timestamp prior to engine_start -> REJECTED
+            replayed_trades = [
+                {"buy_time": engine_start + 1000, "post_tax_pnl": 10.0} for _ in range(99)
+            ]
+            replayed_trades.append({"buy_time": engine_start - 3600, "post_tax_pnl": 15.0})  # Prior to start!
+
+            passed, reasons = live_gov.verify_gates(
+                admin_reauthenticated=True,
+                admin_reauth_time=now,
+                typed_confirmation="ENABLE LIVE TRADING",
+                dsr=0.96,
+                engine_start_time=engine_start,
+                trades=replayed_trades,
+                now=now,
+            )
+            self.assertFalse(passed)
+            self.assertTrue(any("Replayed historical trades detected" in r for r in reasons))
+
+            # All trades after engine_start -> PASSED
+            valid_forward_trades = [
+                {"buy_time": engine_start + (i * 1000), "post_tax_pnl": 15.0} for i in range(110)
+            ]
+            passed, reasons = live_gov.verify_gates(
+                admin_reauthenticated=True,
+                admin_reauth_time=now,
+                typed_confirmation="ENABLE LIVE TRADING",
+                dsr=0.96,
+                engine_start_time=engine_start,
+                trades=valid_forward_trades,
+                now=now,
+            )
+            self.assertTrue(passed)
+            self.assertEqual(len(reasons), 0)
             self.assertTrue(passed)
             self.assertEqual(len(reasons), 0)
 
@@ -226,12 +269,28 @@ class GovernorTests(unittest.TestCase):
     def test_withdrawal_permission_disabled_check(self):
         adapter = UnifiedExchangeAdapter()
 
-        # Mock function indicating withdrawals are enabled -> must throw FatalSecurityError
+        # 1. Production / Mock function indicating withdrawals are enabled -> must throw FatalSecurityError
         with self.assertRaises(FatalSecurityError):
             adapter.verify_withdrawal_permissions_disabled("key", "secret", mock_check_fn=lambda k, s: True)
 
-        # Mock function indicating withdrawals are disabled -> succeeds
+        # 2. Production / Mock function indicating withdrawals are disabled -> succeeds
         self.assertTrue(adapter.verify_withdrawal_permissions_disabled("key", "secret", mock_check_fn=lambda k, s: False))
+
+        # 3. Testnet sandbox behavior in PAPER mode -> logs warning and returns False
+        with self.assertLogs("cryptoscope.execution.governor", level="WARNING") as cm:
+            result = adapter.verify_withdrawal_permissions_disabled("test_key", "test_secret", is_live_mode=False)
+            self.assertFalse(result)
+            self.assertTrue(any("withdrawal check NOT verifiable" in m for m in cm.output))
+
+        # 4. Testnet sandbox behavior in LIVE mode -> strictly BLOCKS LIVE mode
+        with self.assertRaises(FatalSecurityError):
+            adapter.verify_withdrawal_permissions_disabled("test_key", "test_secret", is_live_mode=True)
+
+        # 5. Endpoint cannot report permissions (unverifiable) in LIVE mode -> strictly BLOCKS LIVE mode
+        with self.assertRaises(FatalSecurityError):
+            adapter.verify_withdrawal_permissions_disabled(
+                "key", "secret", mock_check_fn=lambda k, s: "UNVERIFIABLE", is_live_mode=True
+            )
 
     def test_risk_governor_additional_limits(self):
         risk = RiskGovernor(

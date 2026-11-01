@@ -43,6 +43,42 @@ class AuthSecurityTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             hash_password("short")
 
+    def test_scrypt_concurrency_semaphore_limits_parallel_execution(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from cryptoscope.auth.security import SCRYPT_SEMAPHORE
+        import threading
+
+        active_count = 0
+        max_active = 0
+        lock = threading.Lock()
+
+        orig_acquire = SCRYPT_SEMAPHORE.acquire
+        orig_release = SCRYPT_SEMAPHORE.release
+
+        def instrumented_acquire(*args, **kwargs):
+            nonlocal active_count, max_active
+            res = orig_acquire(*args, **kwargs)
+            with lock:
+                active_count += 1
+                if active_count > max_active:
+                    max_active = active_count
+            return res
+
+        def instrumented_release(*args, **kwargs):
+            nonlocal active_count
+            with lock:
+                active_count -= 1
+            return orig_release(*args, **kwargs)
+
+        with patch.object(SCRYPT_SEMAPHORE, 'acquire', side_effect=instrumented_acquire), \
+             patch.object(SCRYPT_SEMAPHORE, 'release', side_effect=instrumented_release):
+            with ThreadPoolExecutor(max_workers=6) as executor:
+                # Use smaller n for test speed while testing semaphore concurrency boundary
+                futures = [executor.submit(hash_password, f"PasswordTest{i}!", n=2048) for i in range(6)]
+                results = [f.result() for f in futures]
+                self.assertEqual(len(results), 6)
+                self.assertLessEqual(max_active, 2)
+
     def test_ip_rate_limiter(self):
         limiter = RateLimiter(limit=3, window_sec=10)
         ip = "192.168.1.100"

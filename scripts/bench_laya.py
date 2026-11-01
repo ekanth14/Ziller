@@ -93,7 +93,26 @@ def run_benchmarks(iterations: int = 200):
         "discrete_encoding": "SMC:BULL_OB|SWEEP:LOW|RSI:55.2|EMA:ALIGNED|VOL_DELTA:+120",
     }
 
-    print("\n### Tier 2 Laya Evaluator Latency Matrix")
+    print("\n### Tier 2 Laya Evaluator Status & Latency Analysis")
+    eval_check = LayaTier2Evaluator()
+    status = eval_check.get_status()
+
+    if not status.get("package_loaded"):
+        print("-" * 75)
+        print("  STATUS:           UNAVAILABLE (laya native package not installed)")
+        print(f"  CHECKPOINT:       {status.get('checkpoint_path', 'UNAVAILABLE')}")
+        print("  POLICY:           Never stub or fake outputs. No mock sub-millisecond latency.")
+        print("  EXECUTION GATE:   Tier 2 runs on candle close only, never in 1s ticker loop.")
+        print("  DECISION ACTION:  Returns status 'UNAVAILABLE', fails safe to STAND_ASIDE.")
+        print("-" * 75)
+        print("\n" + "=" * 80)
+        print("RUNTIME CONFIGURATION (UNAVAILABLE MODEL STATE):")
+        print("  Threads:          1 (Pinned CPU thread)")
+        print("  Fail-safe Mode:   STAND_ASIDE (Model UNAVAILABLE)")
+        print("  Timeout Budget:   200.0 ms (Default fail-closed ceiling)")
+        print("=" * 80 + "\n")
+        return
+
     print(f"{'Threads':<10} | {'Questions':<12} | {'p50 (median)':<12} | {'p95':<12} | {'p99':<12} | {'Status'}")
     print("-" * 75)
 

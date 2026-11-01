@@ -18,6 +18,10 @@ LOCKOUT_THRESHOLD = 5
 LOCKOUT_DURATION_SECONDS = 15 * 60  # 15 minutes
 MAX_LOCKOUT_DURATION_SECONDS = 60 * 60  # 1 hour cap (never permanent)
 
+# Limit concurrent scrypt hashing to prevent CPU/memory starvation (default 2)
+SCRYPT_MAX_CONCURRENT = int(os.environ.get("SCRYPT_MAX_CONCURRENT", "2"))
+SCRYPT_SEMAPHORE = threading.Semaphore(SCRYPT_MAX_CONCURRENT)
+
 
 def hash_password(password: str, n: int = SCRYPT_N, r: int = SCRYPT_R, p: int = SCRYPT_P) -> str:
     """Hash password using scrypt with random 32-byte salt and explicit parameters stored in hash."""
@@ -25,7 +29,8 @@ def hash_password(password: str, n: int = SCRYPT_N, r: int = SCRYPT_R, p: int = 
         raise ValueError("Password must be at least 8 characters")
     salt = secrets.token_bytes(32)
     maxmem = max(SCRYPT_MAXMEM, 128 * n * r * 2)
-    key = hashlib.scrypt(password.encode("utf-8"), salt=salt, n=n, r=r, p=p, maxmem=maxmem)
+    with SCRYPT_SEMAPHORE:
+        key = hashlib.scrypt(password.encode("utf-8"), salt=salt, n=n, r=r, p=p, maxmem=maxmem)
     return f"scrypt${n}${r}${p}${salt.hex()}${key.hex()}"
 
 
@@ -41,7 +46,8 @@ def verify_password(password: str, stored_hash: str) -> bool:
         salt = bytes.fromhex(parts[4])
         expected_key = bytes.fromhex(parts[5])
         maxmem = max(SCRYPT_MAXMEM, 128 * n * r * 2)
-        key = hashlib.scrypt(password.encode("utf-8"), salt=salt, n=n, r=r, p=p, maxmem=maxmem)
+        with SCRYPT_SEMAPHORE:
+            key = hashlib.scrypt(password.encode("utf-8"), salt=salt, n=n, r=r, p=p, maxmem=maxmem)
         return hmac.compare_digest(key, expected_key)
     except Exception as e:
         logger.debug("Password verification error: %s", e)
