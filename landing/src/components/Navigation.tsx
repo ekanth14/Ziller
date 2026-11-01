@@ -18,6 +18,7 @@ export const Navigation: React.FC = () => {
     { label: 'Platform', href: '#platform' },
     { label: 'Technology', href: '#technology' },
     { label: 'Vision', href: '#vision' },
+    { label: 'Collaborate', href: '#collaborate' },
   ];
 
   return (

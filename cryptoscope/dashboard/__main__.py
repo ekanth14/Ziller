@@ -1,5 +1,8 @@
 """Serve the institutional ZILLERS crypto terminal: python -m cryptoscope.dashboard --port 8900."""
 import argparse
+from datetime import datetime, timezone
+import threading
+import uuid
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -31,6 +34,8 @@ from cryptoscope.research.settings import ROOT, load_config
 
 logger = logging.getLogger("cryptoscope.server")
 STATIC = Path(__file__).parent / "static"
+COLLAB_FILE = Path(__file__).resolve().parents[2] / "data" / "collaborations.json"
+_collab_lock = threading.Lock()
 
 
 def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_service=None, market_aggregator=None, coingecko_service=None, risk_governor=None, live_governor=None, kill_switch=None, laya_evaluator=None):
@@ -122,7 +127,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 name, kind = assets[url.path]
                 return self.send(200, (STATIC / name).read_bytes(), kind + "; charset=utf-8")
 
-            if url.path in {"/landing", "/docs", "/about", "/landing/"}:
+            if url.path in {"/landing", "/docs", "/about", "/landing/", "/collaborate", "/collaborate/"}:
                 landing_html = STATIC / "landing" / "index.html"
                 if landing_html.is_file():
                     return self.send(200, landing_html.read_bytes(), "text/html; charset=utf-8")
@@ -442,6 +447,65 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     return self.json(200, {"status": "ok", "message": "Password successfully reset. Please log in."})
                 except ValueError as err:
                     return self.json(400, {"error": str(err)})
+
+            # 6. Public Collaborate Proposal Submission
+            if url.path == "/api/collaborate":
+                if not rate_limiter.is_allowed(client_ip, "/api/collaborate", limit=10):
+                    retry = rate_limiter.retry_after(client_ip, "/api/collaborate")
+                    return self.json(429, {"error": f"Rate limit exceeded. Retry in {retry} seconds."})
+
+                name = str(body.get("name", "")).strip()
+                email = str(body.get("email", "")).strip().lower()
+                github = str(body.get("github", "")).strip()
+                linkedin = str(body.get("linkedin", "")).strip()
+                website = str(body.get("website", "")).strip()
+                track = str(body.get("track", "")).strip()
+                message = str(body.get("message", "")).strip()
+
+                if not email or "@" not in email or "." not in email.split("@")[-1]:
+                    return self.json(400, {"error": "A valid email address is required."})
+                if not github:
+                    return self.json(400, {"error": "GitHub profile URL or handle is required."})
+                if not linkedin:
+                    return self.json(400, {"error": "LinkedIn profile URL or handle is required."})
+
+                collab_id = f"COL-{uuid.uuid4().hex[:8].upper()}"
+                record = {
+                    "id": collab_id,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "name": name or "Anonymous Researcher",
+                    "email": email,
+                    "github": github,
+                    "linkedin": linkedin,
+                    "website": website,
+                    "track": track or "Quantitative Strategy Research",
+                    "message": message,
+                    "client_ip": client_ip,
+                }
+
+                with _collab_lock:
+                    try:
+                        COLLAB_FILE.parent.mkdir(parents=True, exist_ok=True)
+                        records = []
+                        if COLLAB_FILE.is_file():
+                            try:
+                                loaded = json.loads(COLLAB_FILE.read_text(encoding="utf-8"))
+                                if isinstance(loaded, list):
+                                    records = loaded
+                            except Exception:
+                                records = []
+                        records.append(record)
+                        COLLAB_FILE.write_text(json.dumps(records, indent=2), encoding="utf-8")
+                    except Exception as exc:
+                        logger.error("Failed to save collaboration proposal: %s", exc)
+                        return self.json(500, {"error": "Internal storage failure"})
+
+                logger.info("New collaboration proposal logged: %s (%s)", collab_id, email)
+                return self.json(200, {
+                    "status": "ok",
+                    "collab_id": collab_id,
+                    "message": "Collaboration proposal successfully registered. The ZILLERS research team will reach out via email.",
+                })
 
             # Authenticated Mutating Routes
             if not session:

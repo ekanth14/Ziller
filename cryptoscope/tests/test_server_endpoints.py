@@ -209,7 +209,7 @@ class ServerEndpointTests(unittest.TestCase):
                     self.assertIn(key, c)
 
     def test_landing_page_and_documentation_routes(self):
-        for route in ("/landing", "/docs", "/about", "/landing/"):
+        for route in ("/landing", "/docs", "/about", "/landing/", "/collaborate", "/collaborate/"):
             req = Request(f"{self.base_url}{route}")
             with urlopen(req) as resp:
                 self.assertEqual(resp.status, 200)
@@ -217,6 +217,69 @@ class ServerEndpointTests(unittest.TestCase):
                 self.assertIn("ZILLERS", html)
                 self.assertIn("Zien Organisation", html)
 
+
+
+    def test_collaborate_proposal_submission(self):
+        payload = {
+            "name": "Jane Quant",
+            "email": "jane@quantlab.org",
+            "github": "https://github.com/janequant",
+            "linkedin": "https://linkedin.com/in/janequant",
+            "website": "https://janequant.dev",
+            "track": "Quantitative Strategy Research",
+            "message": "Interested in contributing to SMC / FVG statistical research.",
+        }
+        req = Request(
+            f"{self.base_url}/api/collaborate",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Host": f"localhost:{self.port}"},
+            method="POST",
+        )
+        with urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.load(resp)
+            self.assertEqual(data["status"], "ok")
+            self.assertTrue(data["collab_id"].startswith("COL-"))
+            self.assertIn("message", data)
+
+        # Missing email validation
+        invalid_payload = dict(payload)
+        del invalid_payload["email"]
+        req_bad = Request(
+            f"{self.base_url}/api/collaborate",
+            data=json.dumps(invalid_payload).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Host": f"localhost:{self.port}"},
+            method="POST",
+        )
+        with self.assertRaises(HTTPError) as ctx:
+            urlopen(req_bad)
+        self.assertEqual(ctx.exception.code, 400)
+
+        # Missing github validation
+        no_github = dict(payload)
+        no_github["github"] = ""
+        req_no_gh = Request(
+            f"{self.base_url}/api/collaborate",
+            data=json.dumps(no_github).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Host": f"localhost:{self.port}"},
+            method="POST",
+        )
+        with self.assertRaises(HTTPError) as ctx:
+            urlopen(req_no_gh)
+        self.assertEqual(ctx.exception.code, 400)
+
+        # Missing linkedin validation
+        no_li = dict(payload)
+        no_li["linkedin"] = ""
+        req_no_li = Request(
+            f"{self.base_url}/api/collaborate",
+            data=json.dumps(no_li).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Host": f"localhost:{self.port}"},
+            method="POST",
+        )
+        with self.assertRaises(HTTPError) as ctx:
+            urlopen(req_no_li)
+        self.assertEqual(ctx.exception.code, 400)
 
 
 if __name__ == "__main__":
