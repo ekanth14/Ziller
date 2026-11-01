@@ -10,6 +10,7 @@ import { LayaAISection } from './components/LayaAISection';
 import { RiskPhilosophy } from './components/RiskPhilosophy';
 import { FreePhilosophy } from './components/FreePhilosophy';
 import { SetupGuide } from './components/SetupGuide';
+import { FAQ } from './components/FAQ';
 import { ZienOrganisation } from './components/ZienOrganisation';
 import { Collaborate } from './components/Collaborate';
 import { Footer } from './components/Footer';
@@ -220,14 +221,17 @@ export const App: React.FC = () => {
         {/* 10. Developer Documentation & Setup Guide */}
         <SetupGuide isStandalone={false} />
 
-        {/* 11. Zien Organisation Parent Showcase */}
+        {/* 11. FAQ Knowledge Base (AEO & Search Generative Snippets) */}
+        <FAQ />
+
+        {/* 12. Zien Organisation Parent Showcase */}
         <ZienOrganisation />
 
-        {/* 12. Collaborate and Build Together */}
+        {/* 13. Collaborate and Build Together */}
         <Collaborate isStandalone={false} />
       </main>
 
-      {/* 13. Closing Section and Minimalist Footer */}
+      {/* 14. Closing Section and Minimalist Footer */}
       <Footer />
     </div>
   );

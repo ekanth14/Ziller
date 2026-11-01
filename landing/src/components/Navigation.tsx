@@ -20,6 +20,7 @@ export const Navigation: React.FC = () => {
     { label: 'Technology', href: '#technology' },
     { label: 'Vision', href: '#vision' },
     { label: 'Setup', href: '#setup' },
+    { label: 'FAQ', href: '#faq' },
     { label: 'Collaborate', href: '#collaborate' },
   ];
 

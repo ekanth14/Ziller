@@ -1,0 +1,36 @@
+# ZILLERS
+
+> Precision-engineered quantitative cryptocurrency execution platform and local deliberative AI architecture under Zien Organisation.
+
+ZILLERS is a free, open-source institutional-grade cryptocurrency trading and quantitative research platform developed by Ekanth B S under the parent technology entity Zien Organisation. It shifts algorithmic trading away from human guesswork and unvetted black-boxes into mathematically validated, deterministic execution paired with local multi-agent LLM deliberation.
+
+## Quick Facts & Canonical Knowledge
+
+- **Product Name:** ZILLERS
+- **Domain:** https://zillers.zienorganisation.online/
+- **Parent Entity:** Zien Organisation (https://ziennexus.app/)
+- **Lead Quantitative Systems Engineer & Author:** Ekanth B S (https://github.com/ekanth14)
+- **Open Source Repository:** https://github.com/ekanth14/Ziller
+- **Pricing:** 100% Free ($0.00 subscription cost, MIT/Apache reproducible code)
+- **Primary Market:** Digital assets & cryptocurrency (BTC, ETH, SOL, BNB, XRP, AVAX, etc.)
+- **Execution Latency:** Sub-20ms Smart Order Routing (SOR)
+- **Statistical Metric:** Deflated Sharpe Ratio (DSR 0.98 walk-forward validated)
+- **Deliberation Engine:** Laya AI (local offline multi-agent LLM committee)
+- **Risk Governance:** 5-Gate pre-trade deterministic risk controls and hard drawdown tripwires
+
+## Architecture Pillars
+
+- **Quantitative Strategy Research:** Rigorous walk-forward validation and data-snooping bias mitigation using Deflated Sharpe Ratio (DSR 0.98) across multi-asset volatility regimes.
+- **Crypto Market Overview:** Live multi-exchange tick ingestion and order book depth streaming concurrently from Binance, Coinbase, and Kraken.
+- **Algorithmic Execution:** Deterministic rule-based execution based on Smart Money Concepts (SMC), Fair Value Gaps (FVG), order-flow imbalances, and VWAP mean-reversion.
+- **Laya AI Deliberative Reasoning:** Multi-agent local LLM deliberation engine that debates trade candidate proposals using structured JSON schema output before submitting orders to risk gates.
+- **5-Gate Pre-Trade Risk Engine:** Hard capital preservation controls including per-trade risk limits, daily maximum drawdown limits, circuit breaker halts, and emergency position closure.
+
+## Canonical Web Resources
+
+- **Public Showcase & Trading Terminal:** https://zillers.zienorganisation.online/
+- **Research Collaboration Intake:** https://zillers.zienorganisation.online/collaborate
+- **Operator Proposals Desk:** https://zillers.zienorganisation.online/collaborations (Passcode-protected: Ekanthbs@4514)
+- **Local Installation Guide:** https://zillers.zienorganisation.online/setup
+- **Parent Venture:** https://ziennexus.app/
+- **Source Code:** https://github.com/ekanth14/Ziller

@@ -146,6 +146,21 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 name, kind = assets[url.path]
                 return self.send(200, (STATIC / name).read_bytes(), kind + "; charset=utf-8")
 
+            # Machine discovery & SEO / GEO / AEO endpoints
+            seo_files = {
+                "/robots.txt": "text/plain; charset=utf-8",
+                "/sitemap.xml": "application/xml; charset=utf-8",
+                "/llms.txt": "text/plain; charset=utf-8",
+                "/llms-full.txt": "text/plain; charset=utf-8",
+                "/manifest.json": "application/json; charset=utf-8",
+            }
+            if url.path in seo_files:
+                target_file = (STATIC / "landing" / url.path.lstrip("/")).resolve()
+                if not target_file.is_file():
+                    target_file = (STATIC / url.path.lstrip("/")).resolve()
+                if target_file.is_file():
+                    return self.send(200, target_file.read_bytes(), seo_files[url.path])
+
             if url.path in {"/landing", "/docs", "/about", "/landing/", "/collaborate", "/collaborate/", "/setup", "/setup/"}:
                 landing_html = STATIC / "landing" / "index.html"
                 if landing_html.is_file():

@@ -4,14 +4,14 @@ import zillersEmblem from '../assets/emblem.png';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="relative border-t border-[#38383C] bg-[#050505] pt-24 pb-16 px-4 md:px-8 max-w-7xl mx-auto">
-      {/* Large Closing Statement Banner */}
-      <div className="text-center mb-24 max-w-4xl mx-auto">
-        <h2 className="text-4xl sm:text-6xl md:text-7xl font-semibold tracking-[-0.03em] text-metallic leading-tight">
-          The future is systematic.
+    <footer className="border-t border-[#1E1E22] bg-[#050505] text-[#F4F4F5] pt-16 pb-12 px-6">
+      {/* Call to Action Banner */}
+      <div className="max-w-4xl mx-auto text-center mb-16">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white font-mono uppercase">
+          Autonomous Algorithmic Alpha.
         </h2>
-        <p className="mt-6 text-base sm:text-xl text-[#A2A2A8] font-light">
-          ZILLERS — Systematic Intelligence. Disciplined Execution.
+        <p className="mt-3 text-sm text-[#A2A2A8] max-w-lg mx-auto">
+          Systematic Intelligence. Disciplined Execution.
         </p>
         <div className="mt-8 flex justify-center">
           <a
@@ -83,11 +83,14 @@ export const Footer: React.FC = () => {
             <a href="#setup" className="hover:text-white transition-colors">
               Setup
             </a>
+            <a href="#faq" className="hover:text-white transition-colors">
+              FAQ
+            </a>
             <a href="#collaborate" className="hover:text-white transition-colors">
               Collaborate
             </a>
             <a
-              href="https://github.com"
+              href="https://github.com/ekanth14/Ziller"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-white transition-colors inline-flex items-center gap-1"
@@ -98,8 +101,32 @@ export const Footer: React.FC = () => {
           </div>
         </div>
 
+        {/* Machine & Discovery Specs (SEO / GEO / AEO) */}
+        <div className="py-4 border-t border-[#1E1E22] flex flex-wrap items-center justify-between gap-4 text-[11px] font-mono text-[#888]">
+          <div className="flex items-center gap-4">
+            <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+              Sitemap XML
+            </a>
+            <span>·</span>
+            <a href="/robots.txt" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+              Robots TXT
+            </a>
+            <span>·</span>
+            <a href="/llms.txt" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:text-amber-300 transition-colors">
+              llms.txt (GEO)
+            </a>
+            <span>·</span>
+            <a href="/manifest.json" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+              Manifest
+            </a>
+          </div>
+          <div className="text-[#666]">
+            Structured Data: Schema.org · JSON-LD Validated
+          </div>
+        </div>
+
         {/* Legal Disclaimers & Copyright */}
-        <div className="pt-8 border-t border-[#222224] text-[11px] text-[#A2A2A8]/70 leading-relaxed font-mono space-y-3">
+        <div className="pt-6 border-t border-[#222224] text-[11px] text-[#A2A2A8]/70 leading-relaxed font-mono space-y-3">
           <p>
             Regulatory Disclaimer: ZILLERS is a quantitative financial technology research venture. The software, interfaces,
             models, and metrics displayed on this website are for illustrative, research, and educational purposes only.

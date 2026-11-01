@@ -13,7 +13,8 @@ import {
   Send,
   Lock,
   ArrowRight,
-  Sliders,
+  ChevronDown,
+  HelpCircle,
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
@@ -26,6 +27,7 @@ interface MobileHomeProps {
 export const MobileHome: React.FC<MobileHomeProps> = ({ onSwitchToDesktop }) => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   // Collab form state
   const [fullName, setFullName] = useState('');
@@ -136,6 +138,25 @@ python -m cryptoscope.dashboard --port 8900`;
     },
   ];
 
+  const mobileFaqs = [
+    {
+      q: 'What is ZILLERS?',
+      a: 'ZILLERS is a quantitative crypto trading platform engineered by Ekanth B S under Zien Organisation. It provides sub-20ms deterministic execution, SMC/FVG strategies, and local Laya AI risk deliberation.',
+    },
+    {
+      q: 'Who built ZILLERS?',
+      a: 'ZILLERS was conceived, engineered, and built by Ekanth B S under parent company Zien Organisation (ziennexus.app).',
+    },
+    {
+      q: 'Is ZILLERS free?',
+      a: 'Yes, 100% free and open-source with a $0.00 subscription cost. The code is available at github.com/ekanth14/Ziller.',
+    },
+    {
+      q: 'What is Laya AI?',
+      a: 'Laya AI is an offline local multi-agent LLM committee that validates trade setups with strict JSON schema compliance before risk submission.',
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-[#050505] text-[#F4F4F5] selection:bg-[#38383C] selection:text-white font-sans pb-16">
       {/* 1. INSTITUTIONAL DESKTOP NOTICE CALLOUT (TOP BANNER) */}
@@ -229,10 +250,10 @@ python -m cryptoscope.dashboard --port 8900`;
             Collaborate
           </a>
           <a
-            href="#mobile-setup"
+            href="#mobile-faq"
             className="flex-1 text-center py-2.5 px-3 rounded-xl bg-[#18181B] border border-[#38383C] text-xs font-mono text-[#D8D8DC] hover:text-white transition-colors"
           >
-            Setup Guide
+            FAQs
           </a>
         </div>
       </header>
@@ -359,7 +380,41 @@ python -m cryptoscope.dashboard --port 8900`;
         </div>
       </section>
 
-      {/* 6. COLLABORATE & PROPOSALS DESK */}
+      {/* 6. AEO MOBILE FAQ ACCORDION (ANSWER ENGINE OPTIMIZATION) */}
+      <section id="mobile-faq" className="px-5 py-7 border-b border-[#1E1E22]">
+        <div className="text-[10px] font-mono text-[#A2A2A8] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <HelpCircle className="w-3 h-3 text-amber-300" />
+          <span>Knowledge Base · FAQ</span>
+        </div>
+        <h2 className="text-lg font-bold text-white mb-3 tracking-tight">
+          Frequently Asked Questions
+        </h2>
+
+        <div className="space-y-2.5">
+          {mobileFaqs.map((faq, i) => {
+            const isOpen = openFaq === i;
+            return (
+              <div key={i} className="rounded-xl bg-[#0D0D0E] border border-[#27272A] overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setOpenFaq(isOpen ? null : i)}
+                  className="w-full p-3.5 text-left flex items-center justify-between gap-3"
+                >
+                  <span className="text-xs font-semibold text-white">{faq.q}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-[#A2A2A8] transition-transform ${isOpen ? 'rotate-180 text-white' : ''}`} />
+                </button>
+                {isOpen && (
+                  <div className="px-3.5 pb-3.5 text-[11px] text-[#A2A2A8] leading-relaxed border-t border-[#18181B] pt-2.5">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 7. COLLABORATE & PROPOSALS DESK */}
       <section id="mobile-collaborate" className="px-5 py-7 border-b border-[#1E1E22]">
         <div className="text-[10px] font-mono text-[#A2A2A8] uppercase tracking-wider mb-2">
           Research Intakes · Partnerships
@@ -500,7 +555,7 @@ python -m cryptoscope.dashboard --port 8900`;
         </div>
       </section>
 
-      {/* 7. SECONDARY PC/LAPTOP RECOMMENDATION & FOOTER */}
+      {/* 8. SECONDARY PC/LAPTOP RECOMMENDATION & FOOTER */}
       <footer className="px-5 pt-8">
         <div className="p-4 rounded-2xl bg-[#0F0F12] border border-[#38383C] text-center mb-6">
           <Monitor className="w-5 h-5 text-amber-300 mx-auto mb-2" />
@@ -531,6 +586,21 @@ python -m cryptoscope.dashboard --port 8900`;
             </button>
           </div>
         )}
+
+        {/* Machine-Readable Specs */}
+        <div className="text-center pb-4 text-[10px] font-mono text-[#777] flex items-center justify-center gap-3">
+          <a href="/llms.txt" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:text-amber-300">
+            llms.txt (GEO)
+          </a>
+          <span>·</span>
+          <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" className="hover:text-white">
+            sitemap.xml
+          </a>
+          <span>·</span>
+          <a href="/robots.txt" target="_blank" rel="noopener noreferrer" className="hover:text-white">
+            robots.txt
+          </a>
+        </div>
 
         <div className="text-[10px] font-mono text-[#777] leading-relaxed space-y-2 border-t border-[#1E1E22] pt-6">
           <p>
