@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, ArrowUpRight } from 'lucide-react';
+import zillersEmblem from '../assets/emblem.png';
 
 export const Navigation: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -34,7 +35,7 @@ export const Navigation: React.FC = () => {
         {/* Brand */}
         <a href="#" className="flex items-center gap-2.5 pl-2 group">
           <img
-            src="./assets/emblem.png"
+            src={zillersEmblem}
             alt="ZILLERS"
             className="w-6 h-6 object-contain rounded-md opacity-90 group-hover:opacity-100 transition-opacity"
             onError={(e) => {

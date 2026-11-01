@@ -1,31 +1,44 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import zillersEmblem from '../assets/emblem.png';
+import zienEmblem from '../assets/zien-emblem.png';
 
 export const ZienOrganisation: React.FC = () => {
   return (
     <section className="relative py-32 px-4 md:px-8 max-w-7xl mx-auto border-t border-[#38383C]/40 bg-[#050505]">
       <div className="max-w-3xl mx-auto flex flex-col items-center text-center">
-        {/* Generous Surrounding Whitespace with Centered Gold Crest */}
+        {/* Generous Surrounding Whitespace with Centered Dual Crest Alliance */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true, margin: '-60px' }}
           transition={{ duration: 0.8 }}
-          className="relative mb-12"
+          className="relative mb-12 flex items-center justify-center gap-4 sm:gap-6"
         >
-          {/* Subtle Warm Gold Ambient Halo — Strictly Isolated Around Crest */}
-          <div className="absolute inset-0 w-36 h-36 -top-4 -left-4 bg-[#E5C07B]/10 blur-[50px] rounded-full pointer-events-none" />
+          {/* Subtle Ambient Halo */}
+          <div className="absolute inset-0 w-72 h-36 -top-4 left-1/2 -translate-x-1/2 bg-white/[0.04] blur-[50px] rounded-full pointer-events-none" />
 
-          {/* Original Metallic Gold Zien Crest */}
-          <div className="relative z-10 w-28 h-28 rounded-3xl bg-[#090909] border border-[#E5C07B]/30 flex items-center justify-center p-4 shadow-[0_0_40px_rgba(229,192,123,0.12)]">
+          {/* Official Metallic ZILLERS Logo Badge */}
+          <div className="relative z-10 w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#090909] border border-[#4D4D51] flex flex-col items-center justify-center p-3 shadow-2xl hover:border-white transition-colors">
             <img
-              src="./assets/zien-emblem.png"
+              src={zillersEmblem}
+              alt="ZILLERS Official Logo"
+              className="w-full h-full object-contain filter drop-shadow-[0_4px_16px_rgba(255,255,255,0.15)]"
+            />
+          </div>
+
+          <div className="relative z-10 flex flex-col items-center justify-center text-[#4D4D51] font-mono text-xs">
+            <div className="w-[1px] h-6 sm:h-8 bg-[#38383C]" />
+            <span className="py-1 text-[9px] sm:text-[10px] text-[#A2A2A8] font-bold tracking-widest">UNDER</span>
+            <div className="w-[1px] h-6 sm:h-8 bg-[#38383C]" />
+          </div>
+
+          {/* Parent Zien Crest */}
+          <div className="relative z-10 w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#090909] border border-[#E5C07B]/30 flex flex-col items-center justify-center p-3.5 sm:p-4 shadow-[0_0_40px_rgba(229,192,123,0.12)]">
+            <img
+              src={zienEmblem}
               alt="Zien Organisation"
               className="w-full h-full object-contain filter drop-shadow-[0_4px_12px_rgba(229,192,123,0.3)]"
-              onError={(e) => {
-                // Fallback to emblem if needed
-                (e.target as HTMLImageElement).src = './assets/emblem.png';
-              }}
             />
           </div>
         </motion.div>

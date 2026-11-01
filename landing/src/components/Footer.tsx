@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowUpRight } from 'lucide-react';
+import zillersEmblem from '../assets/emblem.png';
 
 export const Footer: React.FC = () => {
   return (
@@ -30,7 +31,7 @@ export const Footer: React.FC = () => {
           <div className="space-y-2">
             <div className="flex items-center gap-2.5">
               <img
-                src="./assets/emblem.png"
+                src={zillersEmblem}
                 alt="ZILLERS Emblem"
                 className="w-6 h-6 object-contain rounded-md"
                 onError={(e) => {

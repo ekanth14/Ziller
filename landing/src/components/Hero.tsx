@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Cpu, Activity, ArrowRight } from 'lucide-react';
+import zillersEmblem from '../assets/emblem.png';
 
 export const Hero: React.FC = () => {
   return (
@@ -22,7 +23,7 @@ export const Hero: React.FC = () => {
           >
             <div className="absolute inset-0 bg-white/[0.08] blur-xl rounded-full pointer-events-none" />
             <img
-              src="./assets/emblem.png"
+              src={zillersEmblem}
               alt="ZILLERS"
               className="w-14 h-14 md:w-16 md:h-16 object-contain rounded-2xl border border-[#4D4D51] bg-[#090909] p-1.5 shadow-[0_10px_35px_rgba(0,0,0,0.8)] relative z-10 hover:scale-105 transition-transform duration-200"
             />

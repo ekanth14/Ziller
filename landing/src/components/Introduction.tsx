@@ -1,6 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Terminal, Shield, Zap, ArrowUpRight, Github, Code2 } from 'lucide-react';
+import zillersShowcaseLogo from '../assets/zillers-showcase-logo.png';
+import zillersEmblem from '../assets/emblem.png';
 
 export const Introduction: React.FC = () => {
   return (
@@ -100,11 +102,11 @@ export const Introduction: React.FC = () => {
             <div className="mb-6 p-6 rounded-2xl bg-[#090909] border border-[#38383C] flex flex-col items-center justify-center text-center relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent pointer-events-none" />
               <img
-                src="./assets/zillers-showcase-logo.png"
+                src={zillersShowcaseLogo}
                 alt="ZILLERS Official Logo"
                 className="w-52 sm:w-60 object-contain filter drop-shadow-[0_8px_30px_rgba(255,255,255,0.08)] relative z-10 transition-transform duration-300 group-hover:scale-105"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = './assets/logo.png';
+                  (e.target as HTMLImageElement).src = zillersEmblem;
                 }}
               />
               <span className="mt-3 font-mono text-[10px] tracking-widest text-[#A2A2A8] uppercase relative z-10">

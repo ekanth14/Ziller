@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Navigation } from './components/Navigation';
 import { Hero } from './components/Hero';
 import { ProductShowcase } from './components/ProductShowcase';
+import { TerminalGallery } from './components/TerminalGallery';
 import { Introduction } from './components/Introduction';
 import { CoreCapabilities } from './components/CoreCapabilities';
 import { ArchitecturePipeline } from './components/ArchitecturePipeline';
@@ -12,6 +13,7 @@ import { ZienOrganisation } from './components/ZienOrganisation';
 import { Collaborate } from './components/Collaborate';
 import { Footer } from './components/Footer';
 import { ArrowLeft } from 'lucide-react';
+import zillersEmblem from './assets/emblem.png';
 
 export const App: React.FC = () => {
   const [isCollaboratePage, setIsCollaboratePage] = useState<boolean>(() => {
@@ -63,7 +65,7 @@ export const App: React.FC = () => {
 
             <a href="#" onClick={navigateToHome} className="flex items-center gap-2 px-2">
               <img
-                src="./assets/emblem.png"
+                src={zillersEmblem}
                 alt="ZILLERS"
                 className="w-5 h-5 object-contain rounded-md opacity-90"
                 onError={(e) => {
@@ -96,35 +98,38 @@ export const App: React.FC = () => {
         {/* 1. Hero Viewport Stage */}
         <Hero />
 
-        {/* 2. Institutional Product Showcase */}
+        {/* 2. Institutional Product Showcase (With Interactive Working Window Arrows) */}
         <ProductShowcase />
 
-        {/* 3. Introducing ZILLERS */}
+        {/* 3. Live System Workspace · Authentic Working Windows Gallery */}
+        <TerminalGallery />
+
+        {/* 4. Introducing ZILLERS */}
         <Introduction />
 
-        {/* 4. Core Capabilities */}
+        {/* 5. Core Capabilities */}
         <CoreCapabilities />
 
-        {/* 5. Technology Architecture Pipeline */}
+        {/* 6. Technology Architecture Pipeline */}
         <ArchitecturePipeline />
 
-        {/* 6. Dedicated Laya AI Section */}
+        {/* 7. Dedicated Laya AI Section */}
         <LayaAISection />
 
-        {/* 7. Risk and Research Philosophy */}
+        {/* 8. Risk and Research Philosophy */}
         <RiskPhilosophy />
 
-        {/* 8. Free Software Philosophy */}
+        {/* 9. Free Software Philosophy */}
         <FreePhilosophy />
 
-        {/* 9. Zien Organisation Parent Showcase */}
+        {/* 10. Zien Organisation Parent Showcase */}
         <ZienOrganisation />
 
-        {/* 10. Collaborate and Build Together */}
+        {/* 11. Collaborate and Build Together */}
         <Collaborate isStandalone={false} />
       </main>
 
-      {/* 11. Closing Section and Minimalist Footer */}
+      {/* 12. Closing Section and Minimalist Footer */}
       <Footer />
     </div>
   );
