@@ -50,7 +50,7 @@ export const Introduction: React.FC = () => {
                     className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#151515] border border-[#4D4D51] text-[#F4F4F5] font-bold tracking-wide hover:bg-white hover:text-[#050505] hover:border-white transition-all shadow-md group/author"
                     title="View Ekanth B S on GitHub"
                   >
-                    <span className="text-white group-hover/author:text-[#050505] underline decoration-dotted underline-offset-4 group-hover/author:no-underline">
+                    <span className="text-white group-hover/author:text-[#050505] font-bold">
                       Ekanth B S
                     </span>
                     <Github className="w-3.5 h-3.5 opacity-80 group-hover/author:opacity-100 transition-opacity" />
