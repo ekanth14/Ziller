@@ -1,0 +1,17 @@
+{
+  "symbols": ["BTCUSDT", "ETHUSDT"],
+  "interval": "15m",
+  "model": "gemma4:12b",
+  "ollama_url": "http://127.0.0.1:11434",
+  "model_timeout_seconds": 120,
+  "model_max_output_tokens": 512,
+  "model_thinking": false,
+  "max_snapshot_age_seconds": 1800,
+  "max_quote_age_seconds": 30,
+  "risk_fraction": 0.005,
+  "max_position_fraction": 0.10,
+  "minimum_reward_risk": 1.5,
+  "fee_fraction": 0.001,
+  "slippage_fraction": 0.0005,
+  "initial_cash": 10000
+}

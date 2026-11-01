@@ -1,0 +1,5 @@
+{
+  "model_timeout_seconds": 600,
+  "model_max_output_tokens": 512,
+  "model_thinking": false
+}

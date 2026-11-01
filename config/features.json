@@ -1,0 +1,288 @@
+{
+  "scope": "Repository feature families; individual upstream skills are not all implemented.",
+  "repositories": [
+    {
+      "name": "TradingAgents",
+      "url": "https://github.com/TauricResearch/TradingAgents"
+    },
+    {
+      "name": "QuantJourney",
+      "url": "https://github.com/QuantJourneyOrg/quantjourney-bt",
+      "revision": "4f403d853833e1daa6de01c5b6c6cb3983dc0044"
+    },
+    {
+      "name": "CloddsBot",
+      "url": "https://github.com/alsk1992/CloddsBot",
+      "revision": "c930628c47a4a745f497e29035a3b64622f97cc7"
+    },
+    {
+      "name": "Vibe-Trading",
+      "url": "https://github.com/HKUDS/Vibe-Trading",
+      "revision": "78fab6b3f998583f640820db60c155ffa5641a62"
+    },
+    {
+      "name": "Everything Claude Trading",
+      "url": "https://github.com/brainbytes-dev/everything-claude-trading",
+      "revision": "9a8fcfcaacd7620afc24dc8c5e79d922135f3e11"
+    },
+    {
+      "name": "Kronos",
+      "url": "https://github.com/shiyu-coder/Kronos",
+      "revision": "67b630e67f6a18c9e9be918d9b4337c960db1e9a"
+    }
+  ],
+  "features": [
+    {
+      "id": "research_roles",
+      "source": "TradingAgents",
+      "name": "Parallel technical, derivatives and news reports",
+      "status": "implemented"
+    },
+    {
+      "id": "research_debate",
+      "source": "TradingAgents",
+      "name": "Laya bull/bear debate, trader and portfolio manager",
+      "status": "implemented"
+    },
+    {
+      "id": "risk_reviews",
+      "source": "TradingAgents",
+      "name": "Aggressive, neutral and conservative Laya risk review",
+      "status": "implemented"
+    },
+    {
+      "id": "typed_decisions",
+      "source": "TradingAgents",
+      "name": "Structured decision schemas and evidence checks",
+      "status": "implemented"
+    },
+    {
+      "id": "audit_reports",
+      "source": "TradingAgents",
+      "name": "Stage persistence, model-call audit and reports",
+      "status": "implemented"
+    },
+    {
+      "id": "checkpoints",
+      "source": "TradingAgents",
+      "name": "Automatic checkpoint resume",
+      "status": "pending"
+    },
+    {
+      "id": "reflection",
+      "source": "TradingAgents",
+      "name": "Settled outcomes, memory and reflection",
+      "status": "pending"
+    },
+    {
+      "id": "fundamentals",
+      "source": "TradingAgents",
+      "name": "Crypto tokenomics and on-chain fundamentals",
+      "status": "pending"
+    },
+    {
+      "id": "provider_router",
+      "source": "TradingAgents",
+      "name": "Additional model-provider routing; Laya remains default",
+      "status": "pending"
+    },
+    {
+      "id": "historical_engine",
+      "source": "QuantJourney",
+      "name": "Local contract-aware execution and portfolio accounting",
+      "status": "implemented"
+    },
+    {
+      "id": "baseline_backtest",
+      "source": "QuantJourney",
+      "name": "Archived-candle EMA and buy/hold baseline backtests",
+      "status": "implemented"
+    },
+    {
+      "id": "costs",
+      "source": "QuantJourney",
+      "name": "Configurable backtest fees and slippage",
+      "status": "implemented"
+    },
+    {
+      "id": "walkforward",
+      "source": "QuantJourney",
+      "name": "Rolling EMA walk-forward validation, embargo and parameter search",
+      "status": "implemented"
+    },
+    {
+      "id": "advanced_orders",
+      "source": "QuantJourney",
+      "name": "Limit, trailing, bracket and OCO order integration",
+      "status": "available_upstream"
+    },
+    {
+      "id": "portfolio_allocation",
+      "source": "QuantJourney",
+      "name": "Multi-asset allocation and strategy books",
+      "status": "available_upstream"
+    },
+    {
+      "id": "extended_reports",
+      "source": "QuantJourney",
+      "name": "Extended metrics and static report packs",
+      "status": "available_upstream"
+    },
+    {
+      "id": "laya_replay",
+      "source": "QuantJourney",
+      "name": "Latency-aware replay of recorded Laya decisions",
+      "status": "pending"
+    },
+    {
+      "id": "risk_diagnostics",
+      "source": "CloddsBot",
+      "name": "Validated VaR/CVaR, sequential volatility and stress diagnostics",
+      "status": "implemented"
+    },
+    {
+      "id": "exchange_data",
+      "source": "CloddsBot",
+      "name": "Live Binance spot ingestion and closed-bar snapshots",
+      "status": "implemented"
+    },
+    {
+      "id": "streaming",
+      "source": "CloddsBot",
+      "name": "WebSocket subscriptions, freshness and reconnect lifecycle",
+      "status": "pending"
+    },
+    {
+      "id": "order_execution",
+      "source": "CloddsBot",
+      "name": "Spot paper entries, reductions, exits and idempotent ledger",
+      "status": "implemented"
+    },
+    {
+      "id": "continuous_stops",
+      "source": "CloddsBot",
+      "name": "Continuous spot paper stops, targets and ATR trailing stops",
+      "status": "implemented"
+    },
+    {
+      "id": "circuit_breakers",
+      "source": "CloddsBot",
+      "name": "Persistent paper entry halt, daily loss and drawdown enforcement",
+      "status": "implemented"
+    },
+    {
+      "id": "manual_entry_halt",
+      "source": "CloddsBot",
+      "name": "Persistent manual paper-entry halt and explicit resume",
+      "status": "implemented"
+    },
+    {
+      "id": "scheduling",
+      "source": "CloddsBot",
+      "name": "Persistent research scheduler and job queue",
+      "status": "pending"
+    },
+    {
+      "id": "arbitrage",
+      "source": "CloddsBot",
+      "name": "Venue arbitrage detection and cost-aware routing",
+      "status": "pending"
+    },
+    {
+      "id": "copy_trading",
+      "source": "CloddsBot",
+      "name": "Copy trading, TWAP and DCA workflows",
+      "status": "pending"
+    },
+    {
+      "id": "derivatives",
+      "source": "CloddsBot",
+      "name": "Perpetual accounts, funding, margin and liquidation accounting",
+      "status": "pending"
+    },
+    {
+      "id": "news_data",
+      "source": "CloddsBot",
+      "name": "Timestamped news collectors and alerts",
+      "status": "pending"
+    },
+    {
+      "id": "messaging",
+      "source": "CloddsBot",
+      "name": "Messaging-channel adapters and delivery credentials",
+      "status": "needs_configuration"
+    },
+    {
+      "id": "wallets",
+      "source": "CloddsBot",
+      "name": "EVM/Solana wallets, DEX execution and cross-chain bridges",
+      "status": "needs_configuration"
+    },
+    {
+      "id": "prediction_markets",
+      "source": "CloddsBot",
+      "name": "Prediction-market exchange adapters",
+      "status": "needs_configuration"
+    },
+    {
+      "id": "mining",
+      "source": "CloddsBot",
+      "name": "Bittensor mining and subnet integrations",
+      "status": "needs_configuration"
+    },
+    {
+      "id": "dashboard",
+      "source": "Zien",
+      "name": "Local monitor with research, backtests and risk reports",
+      "status": "implemented"
+    },
+    {
+      "id": "strategy_studio",
+      "source": "Vibe-Trading",
+      "name": "Versioned Laya natural-language drafts for constrained strategy templates",
+      "status": "implemented"
+    },
+    {
+      "id": "robustness_checks",
+      "source": "Everything Claude Trading",
+      "name": "Cost stress, matched buy/hold comparison and seeded block bootstrap",
+      "status": "implemented"
+    },
+    {
+      "id": "crypto_performance",
+      "source": "Vibe-Trading",
+      "name": "365-day crypto performance statistics in backtest reports",
+      "status": "implemented"
+    },
+    {
+      "id": "kronos_forecast",
+      "source": "Kronos",
+      "name": "Local OHLCV forecasts and time-stamped evidence for Laya",
+      "status": "implemented"
+    },
+    {
+      "id": "autonomous_paper_bot",
+      "source": "Zien",
+      "name": "Compact Laya buy/sell/hold loop with independent protective checks",
+      "status": "implemented"
+    },
+    {
+      "id": "kronos_finetuning",
+      "source": "Kronos",
+      "name": "Crypto dataset preparation and model fine-tuning",
+      "status": "pending"
+    },
+    {
+      "id": "vibe_tool_agent",
+      "source": "Vibe-Trading",
+      "name": "General chat, dynamic strategy workers, factor research and tool orchestration",
+      "status": "pending"
+    },
+    {
+      "id": "ect_quant_catalog",
+      "source": "Everything Claude Trading",
+      "name": "Remaining quantitative skill families: optimization, CPCV, DSR and specialized agents",
+      "status": "pending"
+    }
+  ]
+}
