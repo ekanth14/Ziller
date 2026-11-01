@@ -1223,8 +1223,37 @@ setInterval(()=>{
 }, 5000);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden && $('auto-refresh')?.checked) { refresh(); fetchListings(); } });
 
+function initSseStream() {
+  if (!window.EventSource) return;
+  try {
+    const sse = new EventSource('/api/market/stream');
+    sse.onmessage = e => {
+      try {
+        const payload = JSON.parse(e.data);
+        if (payload.tickers) {
+          const map = {};
+          payload.tickers.forEach(t => { map[t.symbol] = t; });
+          state.tickers = { ...state.tickers, ...map };
+          renderListings();
+        }
+        if (payload.connections && $('sidebar-feed-status')) {
+          const conn = payload.connections;
+          const live = Object.entries(conn).filter(([_, s]) => s.state === 'connected').map(([k]) => k.toUpperCase());
+          $('sidebar-feed-status').textContent = live.length ? live.join(' + ') : 'Offline';
+          $('sidebar-feed-status').className = 'val ' + (live.length ? 'ok' : 'err');
+        }
+      } catch (err) {}
+    };
+    sse.onerror = () => {
+      sse.close();
+      setTimeout(initSseStream, 5000);
+    };
+  } catch (err) {}
+}
+
 refresh();
 fetchFxRate();
 fetchAuthStatus();
 fetchListings();
 loadFeatures();
+initSseStream();

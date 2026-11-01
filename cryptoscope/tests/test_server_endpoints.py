@@ -99,6 +99,17 @@ class ServerEndpointTests(unittest.TestCase):
             self.assertTrue(data["authenticated"])
             self.assertEqual(data["email"], "admin@zillers.local")
 
+    def test_market_sse_stream_delivers_payload(self):
+        req = Request(f"{self.base_url}/api/market/stream")
+        with urlopen(req, timeout=3.0) as resp:
+            self.assertEqual(resp.status, 200)
+            self.assertIn("text/event-stream", resp.headers.get("Content-Type", ""))
+            line = resp.readline().decode("utf-8")
+            self.assertTrue(line.startswith("data: "))
+            payload = json.loads(line.removeprefix("data: ").strip())
+            self.assertIn("tickers", payload)
+            self.assertIn("connections", payload)
+
 
 if __name__ == "__main__":
     unittest.main()

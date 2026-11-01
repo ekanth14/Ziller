@@ -21,6 +21,7 @@ from cryptoscope.fx.rate_service import FxRateService
 from cryptoscope.market_data.aggregator import MarketDataAggregator
 from cryptoscope.market_data.binance_feed import BinanceFeed
 from cryptoscope.market_data.coinbase_feed import CoinbaseFeed
+from cryptoscope.market_data.kraken_feed import KrakenFeed
 from cryptoscope.market_data.coingecko import CoinGeckoService
 from cryptoscope.research.settings import ROOT, load_config
 
@@ -125,6 +126,27 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
 
             if url.path == "/api/market/tickers":
                 return self.json(200, {"tickers": market_aggregator.get_all_tickers()})
+
+            if url.path == "/api/market/stream":
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                self.send_header("Cache-Control", "no-cache")
+                self.send_header("Connection", "keep-alive")
+                self.send_header("X-Accel-Buffering", "no")
+                self.end_headers()
+                try:
+                    for _ in range(60):
+                        payload = json.dumps({
+                            "tickers": market_aggregator.get_all_tickers(),
+                            "connections": market_aggregator.get_connection_status(),
+                            "timestamp": time.time(),
+                        })
+                        self.wfile.write(f"data: {payload}\n\n".encode("utf-8"))
+                        self.wfile.flush()
+                        time.sleep(1.0)
+                except (ConnectionError, BrokenPipeError, TimeoutError, OSError):
+                    pass
+                return
 
             if url.path == "/api/market/ticker":
                 symbol = query.get("symbol", ["BTCUSDT"])[0].upper()
@@ -368,8 +390,10 @@ def main():
     # Start live exchange feeds in background
     binance_feed = BinanceFeed(on_ticker=market_aggregator.record_ticker, symbols=["BTCUSDT", "ETHUSDT", "SOLUSDT"])
     coinbase_feed = CoinbaseFeed(on_ticker=market_aggregator.record_ticker, symbols=["BTCUSDT", "ETHUSDT", "SOLUSDT"])
+    kraken_feed = KrakenFeed(on_ticker=market_aggregator.record_ticker, symbols=["BTCUSDT", "ETHUSDT", "SOLUSDT"])
     binance_feed.start()
     coinbase_feed.start()
+    kraken_feed.start()
 
     server = ThreadingHTTPServer(
         ("127.0.0.1", args.port),
@@ -391,6 +415,7 @@ def main():
     finally:
         binance_feed.stop()
         coinbase_feed.stop()
+        kraken_feed.stop()
         server.server_close()
 
 
