@@ -1,0 +1,828 @@
+<!DOCTYPE html><html class="dark" lang="en" style=""><svg class="inline-defs-container" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"></svg><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"inverse-primary":"#00668a","on-tertiary-container":"#8c0028","on-secondary-fixed":"#002113","secondary-fixed-dim":"#4edea3","secondary-fixed":"#6ffbbe","on-secondary-fixed-variant":"#005236","inverse-on-surface":"#2e3036","on-primary-fixed-variant":"#004c69","secondary-container":"#00a572","tertiary":"#ffbcbf","outline":"#87929a","surface-tint":"#7bd0ff","secondary":"#4edea3","outline-variant":"#3e484f","primary":"#8ed5ff","on-primary":"#00354a","on-error-container":"#ffdad6","tertiary-container":"#ff929a","primary-fixed-dim":"#7bd0ff","surface-variant":"#33353a","background":"#111319","surface-container-low":"#191b21","on-primary-fixed":"#001e2c","surface-dim":"#111319","tertiary-fixed-dim":"#ffb2b7","surface-container-high":"#282a30","surface-container":"#1e1f25","surface":"#111319","surface-container-highest":"#33353a","on-error":"#690005","on-tertiary-fixed-variant":"#92002a","on-surface":"#e2e2e9","on-primary-container":"#004965","on-secondary":"#003824","surface-bright":"#37393f","on-background":"#e2e2e9","inverse-surface":"#e2e2e9","on-surface-variant":"#bdc8d1","primary-fixed":"#c4e7ff","on-tertiary-fixed":"#40000d","error-container":"#93000a","error":"#ffb4ab","primary-container":"#38bdf8","on-tertiary":"#67001b","tertiary-fixed":"#ffdadb","surface-container-lowest":"#0c0e13","on-secondary-container":"#00311f"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"space-xl":"1.5rem","space-lg":"1rem","space-md":"0.75rem","space-2xs":"0.125rem","margin":"0.75rem","space-xs":"0.25rem","space-sm":"0.5rem","margin-compact":"0.5rem","gutter":"0.5rem","gutter-compact":"0.25rem"},"fontFamily":{"label-caps":["Inter"],"mono-table":["JetBrains Mono"],"mono-metric-xl":["JetBrains Mono"],"mono-metric-lg":["JetBrains Mono"],"body-md":["Inter"],"body-sm":["Inter"],"headline-sm":["Inter"],"headline-xl":["Inter"],"headline-md":["Inter"],"body-lg":["Inter"],"mono-micro":["JetBrains Mono"],"headline-lg":["Inter"]},"fontSize":{"label-caps":["10px",{"lineHeight":"12px","letterSpacing":"0.06em","fontWeight":"600"}],"mono-table":["12px",{"lineHeight":"16px","letterSpacing":"0em","fontWeight":"400"}],"mono-metric-xl":["24px",{"lineHeight":"28px","letterSpacing":"-0.02em","fontWeight":"600"}],"mono-metric-lg":["16px",{"lineHeight":"20px","letterSpacing":"-0.01em","fontWeight":"500"}],"body-md":["12px",{"lineHeight":"16px","letterSpacing":"0em","fontWeight":"400"}],"body-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.01em","fontWeight":"400"}],"headline-sm":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"600"}],"headline-xl":["32px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"600"}],"headline-md":["18px",{"lineHeight":"24px","letterSpacing":"-0.01em","fontWeight":"600"}],"body-lg":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}],"mono-micro":["10px",{"lineHeight":"12px","letterSpacing":"0.02em","fontWeight":"500"}],"headline-lg":["24px",{"lineHeight":"30px","letterSpacing":"-0.015em","fontWeight":"600"}]}}}};</script></head><body class="bg-background font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container"><header class="fixed top-0 left-0 right-0 z-50 bg-surface-container-lowest/95 backdrop-blur-md"><div class="h-16 w-full px-space-md flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md"><img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdNCepQuOxff3FIfKVbI0ir23V0zELRYbAgkvTsNG0lKR22lZbNqAk36NGhU8roiD8flbVDVQ3errBYJQsHaI2eZKVBubrckIXpPeP1zHsSahkZ3GB6jIRWldLkoPWJGm2FlbPngNG8l3g20Gv8do72jkHpGNN2eEI6I9DDpNXCSIhjFjCvdvHUerBcTUhEFVaVrzCegsgR_LsZjVNOLuS72nNtUpWYG4mS1x9lpxJLUZaa_NP2mXfIg" alt="Zillers Logo" class="h-8 w-auto object-contain"><div class="flex flex-col"><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm tracking-wider uppercase text-on-surface">ZILLERS</span><span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-surface-container-highest text-primary-container rounded">v4.2</span></div><div class="flex items-center gap-space-xs"><span class="inline-block w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span><span class="font-mono-micro text-mono-micro text-secondary uppercase">(A Zien Organisation Company)</span></div></div></div><nav class="flex items-center gap-space-xs bg-surface-container-lowest p-space-2xs rounded-lg" data-active-classes="bg-surface-container-high text-primary"><a class="px-space-md py-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded" data-path="terminal-dashboard" href="#">Terminal</a><a aria-current="page" class="px-space-md py-space-xs font-label-caps uppercase transition-colors rounded bg-surface-container-high text-primary" data-path="strategy-engine" href="#">Strategy Engine</a><a class="px-space-md py-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded" data-path="order-book-liquidity" href="#">Order Book &amp; Liquidity</a><a class="px-space-md py-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded" data-path="risk-matrix" href="#">Risk Matrix</a><a class="px-space-md py-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded" data-path="execution-logs" href="#">Execution Logs</a><a class="px-space-md py-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded" data-path="settings" href="#">Settings</a></nav><div class="flex items-center gap-space-sm"><div class="hidden xl:flex items-center gap-space-md bg-surface-container-low px-space-md py-space-xs rounded"><div class="flex items-center gap-space-xs font-mono-table text-mono-table"><span class="material-symbols-outlined text-[14px] text-secondary">bolt</span><span class="text-on-surface-variant">NRT:</span><span class="text-secondary">1.8ms HND</span><span class="text-on-surface-variant">|</span><span class="text-secondary">4.2ms ORD</span></div><div class="flex items-center gap-space-xs font-mono-table text-mono-table"><span class="text-on-surface-variant">ETH-PERP FR:</span><span class="text-secondary">+0.0102%</span></div></div><div class="hidden lg:flex flex-col items-end px-space-sm bg-surface-container-low py-space-2xs rounded"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Prime AUM #084</span><span class="font-mono-metric-lg text-mono-metric-lg text-primary">$42,819,400.22</span></div><button class="flex items-center gap-space-xs px-space-md py-space-xs bg-error-container text-on-error rounded hover:bg-error transition-colors" type="button"><span class="material-symbols-outlined text-[16px]">power_settings_new</span><span class="font-mono-table text-mono-table font-semibold uppercase tracking-wider">KILL-SWITCH</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><aside class="fixed left-0 top-16 bottom-0 w-64 bg-surface-container-lowest z-40 flex flex-col justify-between py-space-md"><div class="flex flex-col gap-space-md px-space-sm"><div class="px-space-sm py-space-xs bg-surface-container-low rounded"><div class="flex items-center justify-between"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Core Telemetry</span><span class="w-2 h-2 rounded-full bg-secondary"></span></div><div class="mt-space-xs font-mono-table text-mono-table text-secondary flex items-center justify-between"><span class="">ENGINES ALL GREEN</span><span class="">100.0%</span></div></div><nav class="flex flex-col gap-space-2xs" data-active-classes="bg-surface-container-high text-primary font-semibold"><a class="flex items-center justify-between px-space-md py-space-sm rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="terminal-dashboard" href="#"><span class="">Tactical Workspace</span><span class="font-mono-micro text-mono-micro text-on-surface-variant">L1</span></a><a aria-current="page" class="flex items-center justify-between px-space-md py-space-sm rounded transition-all bg-surface-container-high text-primary font-semibold" data-path="strategy-engine" href="#"><span class="">Alpha Algos</span><span class="font-mono-micro text-mono-micro text-secondary">12 ACT</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="order-book-liquidity" href="#"><span class="">Market Depth L3</span><span class="font-mono-micro text-mono-micro text-primary">LIVE</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="risk-matrix" href="#"><span class="">VaR &amp; Collateral</span><span class="font-mono-micro text-mono-micro text-on-surface-variant">0.04%</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="execution-logs" href="#"><span class="">SOR Audit Tape</span><span class="font-mono-micro text-mono-micro text-on-surface-variant">480 msg/s</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="settings" href="#"><span class="">FIX / ITCH Config</span><span class="font-mono-micro text-mono-micro text-on-surface-variant">SYS</span></a></nav></div><div class="px-space-md flex flex-col gap-space-xs font-mono-micro text-mono-micro text-on-surface-variant bg-surface-container-low mx-space-sm p-space-sm rounded"><div class="flex justify-between items-center"><span class="">GATEWAY:</span><span class="text-secondary">ONLINE</span></div><div class="flex justify-between items-center"><span class="">MEM_POOL:</span><span class="text-on-surface">14.2 GB</span></div><div class="flex justify-between items-center"><span class="">CLOCK DRIFT:</span><span class="text-secondary">&lt;14ns</span></div></div></aside><div class="pl-64"><main class="w-full pt-16 bg-background min-h-screen"><div class="flex flex-col w-full">
+<!-- SECTION 1: TOP KPI / ENGINE TELEMETRY BAR -->
+<div class="w-full bg-surface-container-lowest px-space-md py-space-sm flex flex-col xl:flex-row xl:items-center xl:justify-between gap-space-sm shadow-md">
+<!-- Left: Fleet Cluster Health & Models -->
+<div class="flex flex-wrap items-center gap-space-md">
+<div class="flex items-center gap-space-xs bg-surface-container px-space-sm py-space-2xs rounded">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+<span class="font-mono-micro text-mono-micro text-secondary uppercase font-semibold">FLEET TELEMETRY: ALL 15 WORKERS HEALTHY</span>
+<span class="text-outline-variant font-mono-micro">|</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">NY4 EQUINIX ↔ LD4 SYNC (0.34ms RTT)</span>
+</div>
+<div class="flex items-center gap-space-sm font-mono-table text-mono-table">
+<span class="text-on-surface-variant uppercase text-label-caps font-label-caps">Production Models:</span>
+<span class="text-secondary font-semibold">12 RUNNING</span>
+<span class="text-on-surface-variant">/</span>
+<span class="text-primary-container">3 STANDBY</span>
+<span class="text-on-surface-variant">/</span>
+<span class="text-on-surface-variant">0 FAILED</span>
+</div>
+</div>
+<!-- Right: High Velocity Metric Badges -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-space-sm xl:flex xl:items-center font-mono-table text-mono-table">
+<div class="bg-surface-container-low px-space-sm py-space-2xs rounded flex flex-col xl:items-end">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Algo Capital Alloc</span>
+<div class="flex items-baseline gap-space-xs">
+<span class="font-mono-metric-lg text-mono-metric-lg text-primary">$37,900,000</span>
+<span class="font-mono-micro text-mono-micro text-secondary">88.5%</span>
+</div>
+</div>
+<div class="bg-surface-container-low px-space-sm py-space-2xs rounded flex flex-col xl:items-end">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Realized Alpha (30D)</span>
+<div class="flex items-baseline gap-space-xs">
+<span class="font-mono-metric-lg text-mono-metric-lg text-secondary">+$4,120,450</span>
+<span class="font-mono-micro text-mono-micro text-secondary">+19.4%</span>
+</div>
+</div>
+<div class="bg-surface-container-low px-space-sm py-space-2xs rounded flex flex-col xl:items-end">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Fleet Sharpe / Sortino</span>
+<div class="flex items-baseline gap-space-xs">
+<span class="font-mono-metric-lg text-mono-metric-lg text-on-surface">3.82</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">/</span>
+<span class="font-mono-metric-lg text-mono-metric-lg text-primary">4.95</span>
+</div>
+</div>
+<div class="bg-surface-container-low px-space-sm py-space-2xs rounded flex flex-col xl:items-end">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Alpha Slippage Capture</span>
+<div class="flex items-baseline gap-space-xs">
+<span class="font-mono-metric-lg text-mono-metric-lg text-secondary">+1.18 bps</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">vs BKM</span>
+</div>
+</div>
+</div>
+</div>
+<!-- MAIN DOCK GRID -->
+<div class="w-full p-space-sm flex flex-col gap-space-sm">
+<!-- TOP ROW: FLEET TABLE (7 Cols) + PARAMETER PANEL (5 Cols) -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-space-sm items-start">
+<!-- FLEET TABLE CONTAINER (Span 7) -->
+<div class="xl:col-span-7 bg-surface-container-lowest rounded p-space-sm flex flex-col gap-space-sm shadow-sm">
+<!-- Header & Fleet Action Controls -->
+<div class="flex flex-wrap items-center justify-between gap-space-xs bg-surface-container-low px-space-sm py-space-2xs rounded">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[16px]">dataset</span>
+<span class="font-label-caps text-label-caps uppercase text-on-surface tracking-wider">Alpha Algo Fleet Matrix</span>
+<span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-surface-container text-secondary rounded">12 OF 15 LIVE</span>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-space-2xs">
+<button class="flex items-center gap-space-2xs px-space-xs py-space-2xs bg-primary-container text-on-primary-container rounded hover:bg-primary transition-all font-mono-table text-mono-table text-[11px] font-semibold">
+<span class="material-symbols-outlined text-[14px]">rocket_launch</span>
+<span class="">Deploy Model</span>
+</button>
+<button class="flex items-center gap-space-2xs px-space-xs py-space-2xs bg-surface-container text-on-surface hover:text-primary transition-colors rounded font-mono-table text-mono-table text-[11px]">
+<span class="material-symbols-outlined text-[14px]">sync_alt</span>
+<span class="">Rebalance</span>
+</button>
+<button class="flex items-center gap-space-2xs px-space-xs py-space-2xs bg-surface-container text-tertiary-fixed hover:bg-error-container transition-colors rounded font-mono-table text-mono-table text-[11px]">
+<span class="material-symbols-outlined text-[14px]">pause_circle</span>
+<span class="">Pause Fleet</span>
+</button>
+<button class="flex items-center gap-space-2xs px-space-xs py-space-2xs bg-error-container text-on-error hover:bg-error transition-colors rounded font-mono-table text-mono-table text-[11px] font-semibold">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+<span class="">Soft-Kill</span>
+</button>
+</div>
+</div>
+<!-- Strategy Table -->
+<div class="overflow-x-auto w-full">
+<table class="w-full text-left font-mono-table text-mono-table border-collapse">
+<thead>
+<tr class="bg-surface-container-high text-on-surface-variant font-label-caps text-label-caps uppercase">
+<th class="py-space-xs px-space-xs">Engine Tag / Arch</th>
+<th class="py-space-xs px-space-xs">Target Venues</th>
+<th class="py-space-xs px-space-xs text-right">Allocated</th>
+<th class="py-space-xs px-space-xs text-right">30D Alpha</th>
+<th class="py-space-xs px-space-xs text-right">Sharpe</th>
+<th class="py-space-xs px-space-xs text-right">Max DD</th>
+<th class="py-space-xs px-space-xs text-right">Latency</th>
+<th class="py-space-xs px-space-xs text-center">Status</th>
+<th class="py-space-xs px-space-xs text-center">Tgl</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container">
+<!-- Row 1 (Selected) -->
+<tr class="bg-surface-container/70 hover:bg-surface-container transition-colors cursor-pointer" onclick="selectModel('StatArb-CrossCEX-v4')">
+<td class="py-space-xs px-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<div class="flex flex-col">
+<span class="font-semibold text-primary">StatArb-CrossCEX-v4</span>
+<span class="text-[10px] text-on-surface-variant font-mono-micro">BTC/ETH Co-integ</span>
+</div>
+</div>
+</td>
+<td class="py-space-xs px-space-xs">
+<span class="px-space-2xs py-0.5 bg-surface-container-highest text-on-surface text-[10px] rounded">BINANCE / BYBIT / OKX</span>
+</td>
+<td class="py-space-xs px-space-xs text-right font-semibold text-on-surface">$14.2M <span class="text-on-surface-variant text-[10px]">(37.4%)</span></td>
+<td class="py-space-xs px-space-xs text-right text-secondary font-semibold">+21.4%</td>
+<td class="py-space-xs px-space-xs text-right text-on-surface">4.20</td>
+<td class="py-space-xs px-space-xs text-right text-error font-mono-micro">-2.1%</td>
+<td class="py-space-xs px-space-xs text-right text-secondary">0.8ms</td>
+<td class="py-space-xs px-space-xs text-center">
+<span class="inline-block px-space-xs py-0.5 bg-secondary/10 text-secondary text-[10px] rounded font-semibold uppercase">ACTIVE</span>
+</td>
+<td class="py-space-xs px-space-xs text-center">
+<span class="material-symbols-outlined text-[16px] text-secondary">toggle_on</span>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="bg-surface-container-low/40 hover:bg-surface-container transition-colors cursor-pointer" onclick="selectModel('HFT-MarketMaker-SOL')">
+<td class="py-space-xs px-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<div class="flex flex-col">
+<span class="font-semibold text-on-surface">HFT-MarketMaker-SOL</span>
+<span class="text-[10px] text-on-surface-variant font-mono-micro">L3 Quoting Spread</span>
+</div>
+</div>
+</td>
+<td class="py-space-xs px-space-xs">
+<span class="px-space-2xs py-0.5 bg-surface-container-highest text-on-surface text-[10px] rounded">HYPERLIQUID L1</span>
+</td>
+<td class="py-space-xs px-space-xs text-right font-semibold text-on-surface">$8.2M <span class="text-on-surface-variant text-[10px]">(21.6%)</span></td>
+<td class="py-space-xs px-space-xs text-right text-secondary font-semibold">+26.8%</td>
+<td class="py-space-xs px-space-xs text-right text-on-surface">3.10</td>
+<td class="py-space-xs px-space-xs text-right text-error font-mono-micro">-1.8%</td>
+<td class="py-space-xs px-space-xs text-right text-secondary">0.6ms</td>
+<td class="py-space-xs px-space-xs text-center">
+<span class="inline-block px-space-xs py-0.5 bg-secondary/10 text-secondary text-[10px] rounded font-semibold uppercase">ACTIVE</span>
+</td>
+<td class="py-space-xs px-space-xs text-center">
+<span class="material-symbols-outlined text-[16px] text-secondary">toggle_on</span>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="bg-surface-container-low/40 hover:bg-surface-container transition-colors cursor-pointer" onclick="selectModel('FundingRate-BasisArb-ETH')">
+<td class="py-space-xs px-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<div class="flex flex-col">
+<span class="font-semibold text-on-surface">FundingRate-BasisArb-ETH</span>
+<span class="text-[10px] text-on-surface-variant font-mono-micro">Derivatives Basis Carry</span>
+</div>
+</div>
+</td>
+<td class="py-space-xs px-space-xs">
+<span class="px-space-2xs py-0.5 bg-surface-container-highest text-on-surface text-[10px] rounded">DERIBIT / OKX / STETH</span>
+</td>
+<td class="py-space-xs px-space-xs text-right font-semibold text-on-surface">$10.5M <span class="text-on-surface-variant text-[10px]">(27.7%)</span></td>
+<td class="py-space-xs px-space-xs text-right text-secondary font-semibold">+12.5%</td>
+<td class="py-space-xs px-space-xs text-right text-on-surface">5.12</td>
+<td class="py-space-xs px-space-xs text-right text-error font-mono-micro">-0.4%</td>
+<td class="py-space-xs px-space-xs text-right text-secondary">1.2ms</td>
+<td class="py-space-xs px-space-xs text-center">
+<span class="inline-block px-space-xs py-0.5 bg-secondary/10 text-secondary text-[10px] rounded font-semibold uppercase">ACTIVE</span>
+</td>
+<td class="py-space-xs px-space-xs text-center">
+<span class="material-symbols-outlined text-[16px] text-secondary">toggle_on</span>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="bg-surface-container-low/40 hover:bg-surface-container transition-colors cursor-pointer" onclick="selectModel('Volatility-Breakout-Alphas')">
+<td class="py-space-xs px-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<div class="flex flex-col">
+<span class="font-semibold text-on-surface">Volatility-Breakout-Alphas</span>
+<span class="text-[10px] text-on-surface-variant font-mono-micro">Multi-Token Momentum</span>
+</div>
+</div>
+</td>
+<td class="py-space-xs px-space-xs">
+<span class="px-space-2xs py-0.5 bg-surface-container-highest text-on-surface text-[10px] rounded">BINANCE / BYBIT</span>
+</td>
+<td class="py-space-xs px-space-xs text-right font-semibold text-on-surface">$3.5M <span class="text-on-surface-variant text-[10px]">(9.2%)</span></td>
+<td class="py-space-xs px-space-xs text-right text-secondary font-semibold">+8.7%</td>
+<td class="py-space-xs px-space-xs text-right text-on-surface">1.95</td>
+<td class="py-space-xs px-space-xs text-right text-error font-mono-micro">-4.2%</td>
+<td class="py-space-xs px-space-xs text-right text-secondary">1.8ms</td>
+<td class="py-space-xs px-space-xs text-center">
+<span class="inline-block px-space-xs py-0.5 bg-secondary/10 text-secondary text-[10px] rounded font-semibold uppercase">ACTIVE</span>
+</td>
+<td class="py-space-xs px-space-xs text-center">
+<span class="material-symbols-outlined text-[16px] text-secondary">toggle_on</span>
+</td>
+</tr>
+<!-- Row 5 (Standby) -->
+<tr class="bg-surface-container-low/20 hover:bg-surface-container transition-colors cursor-pointer opacity-80" onclick="selectModel('Microstructure-Imbalance-L3')">
+<td class="py-space-xs px-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<div class="flex flex-col">
+<span class="font-semibold text-on-surface-variant">Microstructure-Imbalance-L3</span>
+<span class="text-[10px] text-on-surface-variant font-mono-micro">L3 OFI Skew Engine</span>
+</div>
+</div>
+</td>
+<td class="py-space-xs px-space-xs">
+<span class="px-space-2xs py-0.5 bg-surface-container-highest text-on-surface-variant text-[10px] rounded">BINANCE / BYBIT</span>
+</td>
+<td class="py-space-xs px-space-xs text-right text-on-surface-variant">$1.5M <span class="text-[10px]">(3.9%)</span></td>
+<td class="py-space-xs px-space-xs text-right text-on-surface-variant font-semibold">-- (Sim)</td>
+<td class="py-space-xs px-space-xs text-right text-on-surface-variant">2.40</td>
+<td class="py-space-xs px-space-xs text-right text-on-surface-variant font-mono-micro">-0.9%</td>
+<td class="py-space-xs px-space-xs text-right text-primary">0.4ms</td>
+<td class="py-space-xs px-space-xs text-center">
+<span class="inline-block px-space-xs py-0.5 bg-primary/10 text-primary text-[10px] rounded font-semibold uppercase">STANDBY</span>
+</td>
+<td class="py-space-xs px-space-xs text-center">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">toggle_off</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- SELECTED MODEL DEEP-DIVE: BACKTEST VS LIVE DRIFT (Embedded Chart) -->
+<div class="mt-space-xs bg-surface-container-low p-space-sm rounded flex flex-col gap-space-sm">
+<div class="flex flex-wrap items-center justify-between gap-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[18px]">query_stats</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold" id="activeModelTitle">StatArb-CrossCEX-v4</span>
+<span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-surface-container text-primary-container rounded">GIT: a7f9c2d</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">Cython / AVX-512 Co-located NY4</span>
+</div>
+<div class="flex items-center gap-space-2xs">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant mr-space-xs">Tracking Drift: <span class="text-secondary font-semibold">0.94 (Tight &lt;4.8%)</span></span>
+<div class="flex bg-surface-container rounded p-space-2xs font-mono-micro text-mono-micro">
+<button class="px-space-xs py-0.5 text-on-surface-variant hover:text-on-surface">24H</button>
+<button class="px-space-xs py-0.5 text-on-surface-variant hover:text-on-surface">7D</button>
+<button class="px-space-xs py-0.5 bg-surface-container-highest text-primary font-semibold rounded">30D</button>
+<button class="px-space-xs py-0.5 text-on-surface-variant hover:text-on-surface">90D</button>
+<button class="px-space-xs py-0.5 text-on-surface-variant hover:text-on-surface">ALL</button>
+</div>
+</div>
+</div>
+<!-- Drift Curve SVG Chart Container -->
+<div class="relative w-full h-44 bg-surface-container-lowest rounded p-space-xs flex flex-col justify-between overflow-hidden">
+<!-- Chart Legend Floating Over Upper Left -->
+<div class="absolute top-2 left-3 flex items-center gap-space-md font-mono-micro text-mono-micro z-10 bg-surface-container-lowest/80 px-space-xs py-space-2xs rounded backdrop-blur">
+<div class="flex items-center gap-space-2xs">
+<span class="w-3 h-0.5 bg-outline"></span>
+<span class="text-on-surface-variant">In-Sample Fit</span>
+</div>
+<div class="flex items-center gap-space-2xs">
+<span class="w-3 h-0.5 bg-primary stroke-dasharray"></span>
+<span class="text-primary">Out-of-Sample Walk</span>
+</div>
+<div class="flex items-center gap-space-2xs">
+<span class="w-3 h-1 bg-secondary shadow-sm"></span>
+<span class="text-secondary font-semibold">Live Realized Alpha</span>
+</div>
+</div>
+<!-- Vector Chart -->
+<svg class="w-full h-full" fill="none" preserveAspectRatio="none" viewBox="0 0 680 140">
+<defs>
+<linearGradient id="liveFill" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#4edea3" stop-opacity="0.18"></stop>
+<stop offset="100%" stop-color="#4edea3" stop-opacity="0.0"></stop>
+</linearGradient>
+<linearGradient id="gridGrad" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#33353a" stop-opacity="0.4"></stop>
+<stop offset="100%" stop-color="#33353a" stop-opacity="0.1"></stop>
+</linearGradient>
+</defs>
+<!-- Grid Horizontal Lines -->
+<line stroke="#1e1f25" stroke-dasharray="2,3" x1="0" x2="680" y1="20" y2="20"></line>
+<line stroke="#1e1f25" stroke-dasharray="2,3" x1="0" x2="680" y1="60" y2="60"></line>
+<line stroke="#1e1f25" stroke-dasharray="2,3" x1="0" x2="680" y1="100" y2="100"></line>
+<!-- In-Sample Curve (Subtle gray dashed baseline) -->
+<path d="M 0 120 Q 140 105 280 85 T 480 40 T 680 18" fill="none" stroke="#87929a" stroke-dasharray="4,4" stroke-width="1.2"></path>
+<!-- Out-of-Sample Walk Forward Curve (Cyan) -->
+<path d="M 0 122 Q 130 110 270 90 T 470 48 T 680 24" fill="none" stroke="#8ed5ff" stroke-opacity="0.8" stroke-width="1.5"></path>
+<!-- Live Execution Fill & Stroke (Emerald High Contrast) -->
+<path d="M 0 122 Q 80 118 150 102 T 300 82 T 440 50 T 560 38 L 680 20 L 680 140 L 0 140 Z" fill="url(#liveFill)"></path>
+<path d="M 0 122 Q 80 118 150 102 T 300 82 T 440 50 T 560 38 L 680 20" fill="none" stroke="#4edea3" stroke-width="2.2"></path>
+<!-- Active Head Pulse Marker -->
+<circle cx="680" cy="20" fill="#4edea3" r="4"></circle>
+<circle cx="680" cy="20" fill="#4edea3" fill-opacity="0.3" r="8"></circle>
+</svg>
+</div>
+<!-- Micro Analytics Strip -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-space-xs font-mono-table text-mono-table text-[11px]">
+<div class="bg-surface-container px-space-xs py-space-2xs rounded flex justify-between items-center">
+<span class="text-on-surface-variant font-label-caps text-label-caps">Win Rate Live:</span>
+<span class="text-secondary font-semibold">71.4% <span class="text-on-surface-variant text-[10px]">(vs 72.8% BT)</span></span>
+</div>
+<div class="bg-surface-container px-space-xs py-space-2xs rounded flex justify-between items-center">
+<span class="text-on-surface-variant font-label-caps text-label-caps">Profit Factor:</span>
+<span class="text-primary font-semibold">2.84 <span class="text-on-surface-variant text-[10px]">(vs 2.95 BT)</span></span>
+</div>
+<div class="bg-surface-container px-space-xs py-space-2xs rounded flex justify-between items-center">
+<span class="text-on-surface-variant font-label-caps text-label-caps">Avg Duration:</span>
+<span class="text-on-surface font-semibold">42.6s</span>
+</div>
+<div class="bg-surface-container px-space-xs py-space-2xs rounded flex justify-between items-center">
+<span class="text-on-surface-variant font-label-caps text-label-caps">Turnover Velocity:</span>
+<span class="text-on-surface font-semibold">$84.2M / day</span>
+</div>
+</div>
+</div>
+</div>
+<!-- QUANTITATIVE PARAMETER TUNING & RISK BOUNDARIES (Span 5) -->
+<div class="xl:col-span-5 bg-surface-container-lowest rounded p-space-sm flex flex-col gap-space-sm shadow-sm">
+<!-- Header -->
+<div class="flex items-center justify-between bg-surface-container-low px-space-sm py-space-2xs rounded">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary-container text-[16px]">tune</span>
+<span class="font-label-caps text-label-caps uppercase text-on-surface tracking-wider">Live Model Config &amp; Boundaries</span>
+</div>
+<span class="font-mono-micro text-mono-micro text-secondary px-space-xs py-0.5 bg-surface-container rounded">HOT-APPLY READY</span>
+</div>
+<!-- Form Elements Container -->
+<div class="flex flex-col gap-space-sm bg-surface-container-low p-space-sm rounded">
+<!-- Param 1: Z-Score Entry -->
+<div class="flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center font-mono-table text-mono-table">
+<span class="text-on-surface font-medium text-[11px]">Z-Score Entry Threshold (σ)</span>
+<span class="text-primary font-semibold text-mono-metric-lg" id="val-zentry">2.10 σ</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<input class="w-full accent-primary-container bg-surface-container h-1 rounded cursor-pointer" max="3.5" min="1.0" oninput="document.getElementById('val-zentry').innerText = parseFloat(this.value).toFixed(2) + ' σ'" step="0.05" type="range" value="2.10">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">Step: 0.05</span>
+</div>
+</div>
+<!-- Param 2: Z-Score Exit Mean Reversion -->
+<div class="flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center font-mono-table text-mono-table">
+<span class="text-on-surface font-medium text-[11px]">Z-Score Mean Reversion Exit (σ)</span>
+<span class="text-secondary font-semibold text-mono-metric-lg" id="val-zexit">0.35 σ</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<input class="w-full accent-secondary bg-surface-container h-1 rounded cursor-pointer" max="1.20" min="0.10" oninput="document.getElementById('val-zexit').innerText = parseFloat(this.value).toFixed(2) + ' σ'" step="0.05" type="range" value="0.35">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">Target Target Mean</span>
+</div>
+</div>
+<!-- Param 3: Stop-Loss Delta -->
+<div class="flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center font-mono-table text-mono-table">
+<span class="text-on-surface font-medium text-[11px]">Stop-Loss Hard Boundary</span>
+<span class="text-error font-semibold text-mono-metric-lg" id="val-sl">3.80 σ (-0.65%)</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<input class="w-full accent-error bg-surface-container h-1 rounded cursor-pointer" max="5.0" min="2.5" oninput="document.getElementById('val-sl').innerText = parseFloat(this.value).toFixed(2) + ' σ (-0.65%)'" step="0.1" type="range" value="3.80">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">Immediate Sweep</span>
+</div>
+</div>
+<!-- Param 4: Execution Router Mode -->
+<div class="flex flex-col gap-space-2xs">
+<span class="text-on-surface font-medium font-mono-table text-mono-table text-[11px]">Execution Router Algorithmic Mode</span>
+<div class="grid grid-cols-3 gap-space-2xs font-mono-micro text-mono-micro">
+<button class="py-space-xs px-space-xs bg-surface-container text-on-surface-variant hover:text-on-surface rounded text-center">TWAP Engine</button>
+<button class="py-space-xs px-space-xs bg-surface-container text-on-surface-variant hover:text-on-surface rounded text-center">Iceberg Slicer</button>
+<button class="py-space-xs px-space-xs bg-primary-container text-on-primary-container font-semibold rounded text-center">Micro-SOR Dynamic</button>
+</div>
+</div>
+<!-- Param 5 & 6: Notional and Inventory Imbalance -->
+<div class="grid grid-cols-2 gap-space-xs">
+<div class="flex flex-col gap-space-2xs">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant uppercase">Max Single Leg</span>
+<div class="bg-surface-container px-space-xs py-space-2xs rounded flex items-center justify-between font-mono-table text-mono-table">
+<span class="text-on-surface font-semibold">$2,500,000</span>
+<span class="text-on-surface-variant text-[10px]">USD</span>
+</div>
+</div>
+<div class="flex flex-col gap-space-2xs">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant uppercase">Max Inv Imbalance</span>
+<div class="bg-surface-container px-space-xs py-space-2xs rounded flex items-center justify-between font-mono-table text-mono-table">
+<span class="text-secondary font-semibold">$500,000</span>
+<span class="text-on-surface-variant text-[10px]">SOFT CAP</span>
+</div>
+</div>
+</div>
+<!-- Param 7: Venue Weights -->
+<div class="flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant uppercase">Co-location Venue Weights</span>
+<span class="text-primary">BIN: 45% | BYB: 35% | OKX: 20%</span>
+</div>
+<!-- Tri-color segmented bar -->
+<div class="w-full h-2 rounded bg-surface-container flex overflow-hidden">
+<div class="bg-primary h-full" style="width: 45%"></div>
+<div class="bg-secondary h-full" style="width: 35%"></div>
+<div class="bg-surface-bright h-full" style="width: 20%"></div>
+</div>
+</div>
+</div>
+<!-- Hot Action Control Footer -->
+<div class="flex items-center gap-space-xs mt-auto">
+<button class="flex-1 py-space-xs bg-primary-container text-on-primary-container rounded font-mono-table text-mono-table font-semibold flex items-center justify-center gap-space-xs hover:bg-primary transition-all shadow-sm">
+<span class="material-symbols-outlined text-[16px]">sync_saved_locally</span>
+<span class="">Hot-Reload Parameters (Zero-Downtime)</span>
+</button>
+<button class="py-space-xs px-space-md bg-surface-container text-on-surface hover:text-error transition-colors rounded font-mono-table text-mono-table text-[11px]">
+            Rollback v4.1
+          </button>
+</div>
+</div>
+</div>
+<!-- BOTTOM ROW: LIVE EXECUTION BLOTTER & WORKER TELEMETRY (Dual Grid) -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-space-sm items-start">
+<!-- REAL-TIME SIGNAL & ORDER BLOTTER (Span 8) -->
+<div class="xl:col-span-8 bg-surface-container-lowest rounded p-space-sm flex flex-col gap-space-xs shadow-sm">
+<div class="flex items-center justify-between bg-surface-container-low px-space-sm py-space-2xs rounded">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-[16px]">terminal</span>
+<span class="font-label-caps text-label-caps uppercase text-on-surface tracking-wider">Sub-Millisecond SOR Signal Tape</span>
+<span class="font-mono-micro text-mono-micro text-secondary animate-pulse">● 482 SIG/SEC</span>
+</div>
+<div class="flex items-center gap-space-xs font-mono-micro text-mono-micro text-on-surface-variant">
+<span class="">Buffer Fill: 1.4%</span>
+<span class="">|</span>
+<span class="">Drops: 0</span>
+</div>
+</div>
+<!-- Scrollable Blotter Feed -->
+<div class="overflow-x-auto w-full">
+<table class="w-full text-left font-mono-table text-mono-table text-[11px] border-collapse">
+<thead>
+<tr class="bg-surface-container-high text-on-surface-variant font-label-caps text-label-caps uppercase">
+<th class="py-space-2xs px-space-xs">Time (UTC)</th>
+<th class="py-space-2xs px-space-xs">Signal Hash</th>
+<th class="py-space-2xs px-space-xs">Pair</th>
+<th class="py-space-2xs px-space-xs">Signal Type</th>
+<th class="py-space-2xs px-space-xs text-right">Fair Value</th>
+<th class="py-space-2xs px-space-xs text-center">Route Venue</th>
+<th class="py-space-2xs px-space-xs text-right">Notional</th>
+<th class="py-space-2xs px-space-xs text-right">Fill Latency</th>
+<th class="py-space-2xs px-space-xs text-center">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container font-mono-table text-[11px]" id="blotterBody"><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:51.51034</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-db38</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">SOL/USDT</td>
+          <td class="py-space-2xs px-space-xs text-primary-container font-semibold">L3_OFI_BID_REQUOTE</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$30936.87</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">HYPERLIQUID</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$71,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">160 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-primary/10 text-primary text-[10px] rounded font-semibold">POST_ONLY</span></td>
+        </tr><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:48.79527</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-9b18</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">AVAX/USDT</td>
+          <td class="py-space-2xs px-space-xs text-error font-semibold">SPREAD_WIDEN_SELL_HEDGE</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$48799.63</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">BYBIT-PERP</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$173,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">131 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-secondary/10 text-secondary text-[10px] rounded font-semibold">FILLED</span></td>
+        </tr><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:46.12611</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-d86a</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">AVAX/USDT</td>
+          <td class="py-space-2xs px-space-xs text-secondary font-semibold">BASIS_CARRY_HARVEST</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$27735.74</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">OKX-FUT</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$190,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">242 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-secondary/10 text-secondary text-[10px] rounded font-semibold">FILLED</span></td>
+        </tr><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:44.28332</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-1680c</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">SOL/USDT</td>
+          <td class="py-space-2xs px-space-xs text-secondary font-semibold">BASIS_CARRY_HARVEST</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$55695.90</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">OKX-FUT</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$429,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">242 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-secondary/10 text-secondary text-[10px] rounded font-semibold">FILLED</span></td>
+        </tr><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:41.52283</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-904e</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">SOL/USDT</td>
+          <td class="py-space-2xs px-space-xs text-primary-container font-semibold">L3_OFI_BID_REQUOTE</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$14857.68</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">HYPERLIQUID</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$116,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">248 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-primary/10 text-primary text-[10px] rounded font-semibold">POST_ONLY</span></td>
+        </tr><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:39.10415</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-16164</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">BTC/USDT</td>
+          <td class="py-space-2xs px-space-xs text-secondary font-semibold">BASIS_CARRY_HARVEST</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$37084.83</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">OKX-FUT</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$276,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">104 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-secondary/10 text-secondary text-[10px] rounded font-semibold">FILLED</span></td>
+        </tr><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:36.66653</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-4a52</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">BTC/USDT</td>
+          <td class="py-space-2xs px-space-xs text-secondary font-semibold">SPREAD_WIDEN_BUY_LEG</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$39849.13</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">BINANCE-FUT</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$489,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">191 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-secondary/10 text-secondary text-[10px] rounded font-semibold">FILLED</span></td>
+        </tr><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:34.46973</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-10f66</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">SOL/USDT</td>
+          <td class="py-space-2xs px-space-xs text-error font-semibold">SPREAD_WIDEN_SELL_HEDGE</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$54908.62</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">BYBIT-PERP</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$431,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">114 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-secondary/10 text-secondary text-[10px] rounded font-semibold">FILLED</span></td>
+        </tr><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:32.93244</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-8eb7</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">BTC/USDT</td>
+          <td class="py-space-2xs px-space-xs text-primary-container font-semibold">L3_OFI_BID_REQUOTE</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$35177.66</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">HYPERLIQUID</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$355,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">192 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-primary/10 text-primary text-[10px] rounded font-semibold">POST_ONLY</span></td>
+        </tr><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:29.77744</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-88d2</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">ETH/USDT</td>
+          <td class="py-space-2xs px-space-xs text-error font-semibold">SPREAD_WIDEN_SELL_HEDGE</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$56308.84</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">BYBIT-PERP</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$411,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">116 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-secondary/10 text-secondary text-[10px] rounded font-semibold">FILLED</span></td>
+        </tr><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:27.69307</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-10ce8</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">AVAX/USDT</td>
+          <td class="py-space-2xs px-space-xs text-error font-semibold">SPREAD_WIDEN_SELL_HEDGE</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$56358.24</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">BYBIT-PERP</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$332,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">132 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-secondary/10 text-secondary text-[10px] rounded font-semibold">FILLED</span></td>
+        </tr><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:24.93393</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-56b9</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">BTC/USDT</td>
+          <td class="py-space-2xs px-space-xs text-error font-semibold">SPREAD_WIDEN_SELL_HEDGE</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$58010.72</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">BYBIT-PERP</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$196,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">96 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-secondary/10 text-secondary text-[10px] rounded font-semibold">FILLED</span></td>
+        </tr><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:22.37019</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-dd23</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">BTC/USDT</td>
+          <td class="py-space-2xs px-space-xs text-secondary font-semibold">BASIS_CARRY_HARVEST</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$25914.57</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">OKX-FUT</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$403,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">138 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-secondary/10 text-secondary text-[10px] rounded font-semibold">FILLED</span></td>
+        </tr><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:20.48421</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-30c3</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">ETH/USDT</td>
+          <td class="py-space-2xs px-space-xs text-error font-semibold">SPREAD_WIDEN_SELL_HEDGE</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$4900.44</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">BYBIT-PERP</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$278,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">231 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-secondary/10 text-secondary text-[10px] rounded font-semibold">FILLED</span></td>
+        </tr><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:16.44424</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-abb5</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">ETH/USDT</td>
+          <td class="py-space-2xs px-space-xs text-secondary font-semibold">BASIS_CARRY_HARVEST</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$14184.28</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">OKX-FUT</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$182,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">209 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-secondary/10 text-secondary text-[10px] rounded font-semibold">FILLED</span></td>
+        </tr><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:14.95507</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-1183c</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">SOL/USDT</td>
+          <td class="py-space-2xs px-space-xs text-secondary font-semibold">BASIS_CARRY_HARVEST</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$11105.90</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">OKX-FUT</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$243,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">138 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-secondary/10 text-secondary text-[10px] rounded font-semibold">FILLED</span></td>
+        </tr><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:12.40969</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-a26b</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">AVAX/USDT</td>
+          <td class="py-space-2xs px-space-xs text-primary-container font-semibold">L3_OFI_BID_REQUOTE</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$3925.66</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">HYPERLIQUID</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$524,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">155 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-primary/10 text-primary text-[10px] rounded font-semibold">POST_ONLY</span></td>
+        </tr><tr class="hover:bg-surface-container/40 transition-colors animate-pulse">
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">18:52:10.67432</td>
+          <td class="py-space-2xs px-space-xs text-primary">#SIG-141cf</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">AVAX/USDT</td>
+          <td class="py-space-2xs px-space-xs text-primary-container font-semibold">L3_OFI_BID_REQUOTE</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">$5262.78</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">HYPERLIQUID</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">$403,000</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">134 µs</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-primary/10 text-primary text-[10px] rounded font-semibold">POST_ONLY</span></td>
+        </tr></tbody>
+</table>
+</div>
+</div>
+<!-- WORKER CLUSTER HARDWARE TELEMETRY (Span 4) -->
+<div class="xl:col-span-4 bg-surface-container-lowest rounded p-space-sm flex flex-col gap-space-xs shadow-sm">
+<div class="flex items-center justify-between bg-surface-container-low px-space-sm py-space-2xs rounded">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary-container text-[16px]">memory</span>
+<span class="font-label-caps text-label-caps uppercase text-on-surface tracking-wider">Worker Core Architecture (NY4)</span>
+</div>
+<span class="font-mono-micro text-mono-micro text-secondary font-semibold">8 CORES ENGAGED</span>
+</div>
+<div class="grid grid-cols-2 gap-space-xs mt-space-2xs font-mono-table text-mono-table text-[11px]">
+<!-- Node 01 -->
+<div class="bg-surface-container-low p-space-xs rounded flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center">
+<span class="text-on-surface font-semibold">NODE-01 // BINANCE</span>
+<span class="text-secondary font-mono-micro text-mono-micro">18% CPU</span>
+</div>
+<div class="w-full bg-surface-container h-1 rounded overflow-hidden">
+<div class="bg-secondary h-full" style="width: 18%"></div>
+</div>
+<div class="flex justify-between text-[10px] text-on-surface-variant font-mono-micro">
+<span class="">RAM: 4.2/32GB</span>
+<span class="">GC: &lt;0.4µs</span>
+</div>
+</div>
+<!-- Node 02 -->
+<div class="bg-surface-container-low p-space-xs rounded flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center">
+<span class="text-on-surface font-semibold">NODE-02 // BYBIT</span>
+<span class="text-secondary font-mono-micro text-mono-micro">24% CPU</span>
+</div>
+<div class="w-full bg-surface-container h-1 rounded overflow-hidden">
+<div class="bg-secondary h-full" style="width: 24%"></div>
+</div>
+<div class="flex justify-between text-[10px] text-on-surface-variant font-mono-micro">
+<span class="">RAM: 5.1/32GB</span>
+<span class="">GC: &lt;0.6µs</span>
+</div>
+</div>
+<!-- Node 03 -->
+<div class="bg-surface-container-low p-space-xs rounded flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center">
+<span class="text-on-surface font-semibold">NODE-03 // OKX</span>
+<span class="text-secondary font-mono-micro text-mono-micro">12% CPU</span>
+</div>
+<div class="w-full bg-surface-container h-1 rounded overflow-hidden">
+<div class="bg-secondary h-full" style="width: 12%"></div>
+</div>
+<div class="flex justify-between text-[10px] text-on-surface-variant font-mono-micro">
+<span class="">RAM: 3.8/32GB</span>
+<span class="">GC: &lt;0.2µs</span>
+</div>
+</div>
+<!-- Node 04 -->
+<div class="bg-surface-container-low p-space-xs rounded flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center">
+<span class="text-on-surface font-semibold">NODE-04 // HYPERLIQ</span>
+<span class="text-primary font-mono-micro text-mono-micro">31% CPU</span>
+</div>
+<div class="w-full bg-surface-container h-1 rounded overflow-hidden">
+<div class="bg-primary h-full" style="width: 31%"></div>
+</div>
+<div class="flex justify-between text-[10px] text-on-surface-variant font-mono-micro">
+<span class="">RAM: 6.9/32GB</span>
+<span class="">GC: &lt;0.8µs</span>
+</div>
+</div>
+<!-- Node 05 -->
+<div class="bg-surface-container-low p-space-xs rounded flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center">
+<span class="text-on-surface font-semibold">NODE-05 // DERIBIT</span>
+<span class="text-secondary font-mono-micro text-mono-micro">09% CPU</span>
+</div>
+<div class="w-full bg-surface-container h-1 rounded overflow-hidden">
+<div class="bg-secondary h-full" style="width: 9%"></div>
+</div>
+<div class="flex justify-between text-[10px] text-on-surface-variant font-mono-micro">
+<span class="">RAM: 2.7/32GB</span>
+<span class="">GC: &lt;0.1µs</span>
+</div>
+</div>
+<!-- Node 06 -->
+<div class="bg-surface-container-low p-space-xs rounded flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center">
+<span class="text-on-surface font-semibold">NODE-06 // RISK DOCK</span>
+<span class="text-secondary font-mono-micro text-mono-micro">14% CPU</span>
+</div>
+<div class="w-full bg-surface-container h-1 rounded overflow-hidden">
+<div class="bg-secondary h-full" style="width: 14%"></div>
+</div>
+<div class="flex justify-between text-[10px] text-on-surface-variant font-mono-micro">
+<span class="">RAM: 3.1/32GB</span>
+<span class="">GC: &lt;0.3µs</span>
+</div>
+</div>
+<!-- Node 07 -->
+<div class="bg-surface-container-low p-space-xs rounded flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center">
+<span class="text-on-surface font-semibold">NODE-07 // ORDER SOR</span>
+<span class="text-primary font-mono-micro text-mono-micro">44% CPU</span>
+</div>
+<div class="w-full bg-surface-container h-1 rounded overflow-hidden">
+<div class="bg-primary h-full" style="width: 44%"></div>
+</div>
+<div class="flex justify-between text-[10px] text-on-surface-variant font-mono-micro">
+<span class="">RAM: 8.4/32GB</span>
+<span class="">GC: &lt;0.5µs</span>
+</div>
+</div>
+<!-- Node 08 -->
+<div class="bg-surface-container-low p-space-xs rounded flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center">
+<span class="text-on-surface font-semibold">NODE-08 // ML PRICER</span>
+<span class="text-secondary font-mono-micro text-mono-micro">22% CPU</span>
+</div>
+<div class="w-full bg-surface-container h-1 rounded overflow-hidden">
+<div class="bg-secondary h-full" style="width: 22%"></div>
+</div>
+<div class="flex justify-between text-[10px] text-on-surface-variant font-mono-micro">
+<span class="">RAM: 5.6/32GB</span>
+<span class="">GC: &lt;0.4µs</span>
+</div>
+</div>
+</div>
+<!-- Telemetry Stream Micro-Stats -->
+<div class="mt-space-xs bg-surface-container-low px-space-xs py-space-2xs rounded flex justify-between items-center font-mono-micro text-mono-micro text-on-surface-variant">
+<div class="flex items-center gap-space-2xs">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="">NIC Solarflare XtremeScale 25GbE</span>
+</div>
+<span class="">PACKET LOSS: 0.000%</span>
+<span class="text-primary">ITCH MSG: 1.48M/sec</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Micro-interactions Script -->
+<script>
+    function selectModel(modelName) {
+      const titleElem = document.getElementById('activeModelTitle');
+      if (titleElem) {
+        titleElem.innerText = modelName;
+      }
+    }
+
+    // Realistic Telemetry Tick Simulation for Live Signal Blotter
+    (function initBlotterFeed() {
+      const blotter = document.getElementById('blotterBody');
+      if (!blotter) return;
+
+      const signals = [
+        { type: 'SPREAD_WIDEN_BUY_LEG', color: 'text-secondary', venue: 'BINANCE-FUT', status: 'FILLED', sColor: 'bg-secondary/10 text-secondary' },
+        { type: 'SPREAD_WIDEN_SELL_HEDGE', color: 'text-error', venue: 'BYBIT-PERP', status: 'FILLED', sColor: 'bg-secondary/10 text-secondary' },
+        { type: 'L3_OFI_BID_REQUOTE', color: 'text-primary-container', venue: 'HYPERLIQUID', status: 'POST_ONLY', sColor: 'bg-primary/10 text-primary' },
+        { type: 'BASIS_CARRY_HARVEST', color: 'text-secondary', venue: 'OKX-FUT', status: 'FILLED', sColor: 'bg-secondary/10 text-secondary' }
+      ];
+
+      const pairs = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'AVAX/USDT'];
+
+      setInterval(() => {
+        const d = new Date();
+        const timeStr = d.toTimeString().split(' ')[0] + '.' + Math.floor(Math.random() * 90000 + 10000);
+        const sig = signals[Math.floor(Math.random() * signals.length)];
+        const pair = pairs[Math.floor(Math.random() * pairs.length)];
+        const hash = '#SIG-' + Math.floor(Math.random() * 89999 + 10000).toString(16);
+        const lat = Math.floor(Math.random() * 190 + 70) + ' µs';
+        const notional = '$' + (Math.floor(Math.random() * 500 + 50) * 1000).toLocaleString();
+        const price = '$' + (Math.random() * 60000 + 2000).toFixed(2);
+
+        const newRow = document.createElement('tr');
+        newRow.className = 'hover:bg-surface-container/40 transition-colors animate-pulse';
+        newRow.innerHTML = `
+          <td class="py-space-2xs px-space-xs text-on-surface-variant">${timeStr}</td>
+          <td class="py-space-2xs px-space-xs text-primary">${hash}</td>
+          <td class="py-space-2xs px-space-xs font-semibold text-on-surface">${pair}</td>
+          <td class="py-space-2xs px-space-xs ${sig.color} font-semibold">${sig.type}</td>
+          <td class="py-space-2xs px-space-xs text-right text-on-surface">${price}</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 bg-surface-container text-[10px] rounded text-on-surface">${sig.venue}</span></td>
+          <td class="py-space-2xs px-space-xs text-right font-semibold text-on-surface">${notional}</td>
+          <td class="py-space-2xs px-space-xs text-right text-secondary font-semibold">${lat}</td>
+          <td class="py-space-2xs px-space-xs text-center"><span class="px-1 py-0.5 ${sig.sColor} text-[10px] rounded font-semibold">${sig.status}</span></td>
+        `;
+
+        blotter.insertBefore(newRow, blotter.firstChild);
+        if (blotter.children.length > 5) {
+          blotter.removeChild(blotter.lastChild);
+        }
+      }, 2400);
+    })();
+  </script>
+</div></main></div>
+
+</body></html>

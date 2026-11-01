@@ -1,0 +1,39 @@
+{
+  "order": "15",
+  "folder": "15-zillers-portfolio-risk-stress",
+  "id": "b60ebae267484e389da02406293a130e",
+  "title": "ZILLERS - Institutional Portfolio Risk Matrix & Stress Engine",
+  "resourceName": "projects/11951265260504602280/screens/b60ebae267484e389da02406293a130e",
+  "width": "3638",
+  "height": "2356",
+  "htmlCode": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/b60ebae267484e389da02406293a130e:download",
+    "mimeType": "text/html",
+    "name": "projects/11951265260504602280/screens/b60ebae267484e389da02406293a130e/fileEntries/html"
+  },
+  "screenshot": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f236ef9c34007c4dc2cad1fe5e8:download",
+    "mimeType": "image/png",
+    "name": "projects/11951265260504602280/screens/b60ebae267484e389da02406293a130e/fileEntries/screenshot"
+  },
+  "imageOnly": false,
+  "files": [
+    {
+      "name": "preview.png",
+      "bytes": 963073,
+      "mimeType": "image/png",
+      "sha256": "237a6b49dce658fd93ae72f2d2c8ef4c6bd68b1a5c705822da46309cb6d3ed85"
+    },
+    {
+      "name": "index.html",
+      "bytes": 47939,
+      "mimeType": "text/html",
+      "sha256": "5ea23f3bc0e4a94e6756c509f10ea1a46560096227858d0780bc5bed3e981a8b"
+    }
+  ],
+  "preview": "preview.png",
+  "verifiedImageDimensions": {
+    "width": 3638,
+    "height": 2356
+  }
+}

@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-surface":"#e2e2e9","on-tertiary-fixed":"#40000d","inverse-on-surface":"#2e3036","on-error-container":"#ffdad6","error":"#ffb4ab","primary-fixed":"#c4e7ff","tertiary-fixed-dim":"#ffb2b7","tertiary-fixed":"#ffdadb","on-tertiary-container":"#8c0028","error-container":"#93000a","on-secondary-container":"#00311f","surface-variant":"#33353a","secondary":"#4edea3","surface-tint":"#7bd0ff","outline":"#87929a","on-primary-fixed":"#001e2c","on-error":"#690005","surface-container-low":"#191b21","on-tertiary":"#67001b","primary-container":"#38bdf8","surface-container-highest":"#33353a","on-primary-fixed-variant":"#004c69","surface-container-high":"#282a30","surface-dim":"#111319","tertiary":"#ffbcbf","background":"#111319","secondary-container":"#00a572","secondary-fixed-dim":"#4edea3","primary-fixed-dim":"#7bd0ff","outline-variant":"#3e484f","surface-container":"#1e1f25","surface":"#111319","tertiary-container":"#ff929a","inverse-primary":"#00668a","on-secondary-fixed":"#002113","secondary-fixed":"#6ffbbe","inverse-surface":"#e2e2e9","primary":"#8ed5ff","surface-container-lowest":"#0c0e13","on-tertiary-fixed-variant":"#92002a","on-surface-variant":"#bdc8d1","on-secondary-fixed-variant":"#005236","on-primary":"#00354a","surface-bright":"#37393f","on-primary-container":"#004965","on-background":"#e2e2e9","on-secondary":"#003824"},borderRadius:{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},spacing:{"space-md":"0.75rem","space-2xs":"0.125rem","space-xs":"0.25rem","space-sm":"0.5rem","space-lg":"1rem","gutter":"0.5rem","gutter-compact":"0.25rem","margin":"0.75rem","margin-compact":"0.5rem","space-xl":"1.5rem"},fontFamily:{"mono-metric-lg":["JetBrains Mono"],"mono-metric-xl":["JetBrains Mono"],"headline-lg":["Inter"],"headline-sm":["Inter"],"headline-xl":["Inter"],"body-md":["Inter"],"body-lg":["Inter"],"mono-table":["JetBrains Mono"],"headline-md":["Inter"],"body-sm":["Inter"],"mono-micro":["JetBrains Mono"],"label-caps":["Inter"]},fontSize:{"mono-metric-lg":["16px",{"lineHeight":"20px","letterSpacing":"-0.01em","fontWeight":"500"}],"mono-metric-xl":["24px",{"lineHeight":"28px","letterSpacing":"-0.02em","fontWeight":"600"}],"headline-lg":["24px",{"lineHeight":"30px","letterSpacing":"-0.015em","fontWeight":"600"}],"headline-sm":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"600"}],"headline-xl":["32px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"600"}],"body-md":["12px",{"lineHeight":"16px","letterSpacing":"0em","fontWeight":"400"}],"body-lg":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}],"mono-table":["12px",{"lineHeight":"16px","letterSpacing":"0em","fontWeight":"400"}],"headline-md":["18px",{"lineHeight":"24px","letterSpacing":"-0.01em","fontWeight":"600"}],"body-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.01em","fontWeight":"400"}],"mono-micro":["10px",{"lineHeight":"12px","letterSpacing":"0.02em","fontWeight":"500"}],"label-caps":["10px",{"lineHeight":"12px","letterSpacing":"0.06em","fontWeight":"600"}]}}}}</script></head><body class="bg-surface font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container"><header class="fixed top-0 left-0 right-0 h-14 bg-surface-container-lowest/90 backdrop-blur-xl z-50 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-14 w-full px-space-md flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md shrink-0"><div class="flex items-center gap-space-xs"><img alt="Ornate Z Sword Emblem.png" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3uGzwjjewaNUv-gaod8zYonQKomD-s3lVYUvvCe3a9LRVkpADYZTDjMqmD0BP9_OGWDiqDcp_sqavjve1IdQ1VGtRY6pLC3FUOWivE6PfmEVGt--njzWLK_Sioif_cZ1_Bu8qbytZsbaluAJ_FKaQRYygbcb-IprqIdxeJboBgJ28jNg28BbzK_OQfbHx3Jo9P3z2ynpIUUnFhtg0EdV6UEIt_iZro1VgK7yvyotIhA_zZN6JpoRPKg"/><div class="flex flex-col"><span class="font-headline-sm text-headline-sm uppercase tracking-wider text-on-surface leading-none">ZILLERS</span><span class="font-label-caps text-label-caps uppercase text-on-surface-variant tracking-wider leading-none mt-space-2xs">(A ZIEN ORGANISATION COMPANY)</span></div></div><div class="hidden xl:flex items-center gap-space-xs px-space-xs py-space-2xs rounded bg-surface-container-high"><span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span><span class="font-mono-micro text-mono-micro uppercase text-secondary font-semibold tracking-wider">PROD // NY4 CO-LOCATED</span></div></div><nav class="hidden lg:flex items-center gap-space-2xs shrink-0 overflow-x-auto py-space-2xs" data-active-classes="bg-surface-container-high text-primary font-semibold"><a class="px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors whitespace-nowrap" data-path="terminal" href="#">Terminal</a><a class="px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors whitespace-nowrap" data-path="strategy-engine" href="#">Strategy Engine</a><a class="px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors whitespace-nowrap" data-path="order-book-&amp;-liquidity" href="#">Order Book &amp; Liquidity</a><a class="px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors whitespace-nowrap" data-path="risk-&amp;-kill-switch" href="#">Risk &amp; Kill-Switch</a><a class="px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors whitespace-nowrap" data-path="clock-&amp;-optical-hub" href="#">Clock &amp; Optical Hub</a><a aria-current="page" class="px-space-xs py-space-2xs rounded transition-colors whitespace-nowrap bg-surface-container-high text-primary font-semibold" data-path="fix-audit-&amp;-replay" href="#">FIX Audit &amp; Replay</a><a class="px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors whitespace-nowrap" data-path="workstation-benchmark" href="#">Workstation Benchmark</a><a class="px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors whitespace-nowrap" data-path="settings" href="#">Settings</a></nav><div class="flex items-center gap-space-sm shrink-0"><div class="hidden md:flex items-center gap-space-sm px-space-xs py-space-2xs rounded bg-surface-container"><div class="flex flex-col text-right"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">PTP DRIFT</span><span class="font-mono-micro text-mono-micro text-secondary font-medium">+0.042 µs</span></div><div class="w-px h-6 bg-surface-variant"></div><div class="flex flex-col text-right"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">NRT LATENCY</span><span class="font-mono-micro text-mono-micro text-primary font-medium">1.18 µs</span></div><div class="w-px h-6 bg-surface-variant"></div><div class="flex flex-col text-right"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">NAV AUM</span><span class="font-mono-micro text-mono-micro text-on-surface font-semibold">$418.25M</span></div></div><button class="flex items-center gap-space-2xs px-space-xs py-space-2xs rounded bg-error-container text-error hover:bg-error hover:text-on-error transition-all shadow-[0_0_8px_rgba(244,63,94,0.25)]"><span class="material-symbols-outlined text-[16px]">power_settings_new</span><span class="font-mono-micro text-mono-micro font-semibold uppercase tracking-wider hidden sm:inline">KILL-SWITCH</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><aside class="fixed left-0 top-14 bottom-0 w-64 bg-surface-container-low/95 backdrop-blur-xl z-40 flex flex-col justify-between p-space-sm shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col gap-space-md"><div class="px-space-xs py-space-2xs rounded bg-surface-container-lowest flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="w-2 h-2 rounded-full bg-secondary"></span><span class="font-label-caps text-label-caps uppercase text-on-surface">EXECUTION GATEWAY</span></div><span class="font-mono-micro text-mono-micro text-secondary font-medium">ARMED</span></div><div class="flex flex-col gap-space-2xs"><span class="px-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant">TACTICAL ROUTING</span><nav class="flex flex-col gap-space-2xs" data-active-classes="bg-surface-container text-primary font-semibold"><a class="flex items-center justify-between px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="terminal" href="#"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">terminal</span><span>Matrix Console</span></span><span class="font-mono-micro text-mono-micro text-on-surface-variant">F1</span></a><a class="flex items-center justify-between px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="strategy-engine" href="#"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">memory</span><span>Algorithmic Core</span></span><span class="font-mono-micro text-mono-micro text-secondary">RUN</span></a><a class="flex items-center justify-between px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="order-book-&amp;-liquidity" href="#"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">candlestick_chart</span><span>L3 Book &amp; Cross</span></span><span class="font-mono-micro text-mono-micro text-primary font-medium">NY4</span></a><a class="flex items-center justify-between px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="risk-&amp;-kill-switch" href="#"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">shield</span><span>Margin &amp; Breakers</span></span><span class="font-mono-micro text-mono-micro text-secondary font-medium">0.02%</span></a><a class="flex items-center justify-between px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="clock-&amp;-optical-hub" href="#"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">nest_clock_farsight_analog</span><span>Optical Chrono Hub</span></span><span class="font-mono-micro text-mono-micro text-primary-container font-medium">PTP</span></a><a aria-current="page" class="flex items-center justify-between px-space-xs py-space-2xs rounded transition-colors bg-surface-container text-primary font-semibold" data-path="fix-audit-&amp;-replay" href="#"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">history_toggle_off</span><span>FIX Packet Audit</span></span><span class="font-mono-micro text-mono-micro text-on-surface-variant">TAP</span></a><a class="flex items-center justify-between px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="workstation-benchmark" href="#"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">speed</span><span>HW Benchmark</span></span><span class="font-mono-micro text-mono-micro text-on-surface-variant">FPGA</span></a><a class="flex items-center justify-between px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="settings" href="#"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">tune</span><span>Engine Config</span></span><span class="font-mono-micro text-mono-micro text-on-surface-variant">SYS</span></a></nav></div><div class="flex flex-col gap-space-2xs pt-space-xs"><span class="px-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant">FPGA TELEMETRY FEED</span><div class="p-space-xs rounded bg-surface-container-lowest flex flex-col gap-space-2xs"><div class="flex items-center justify-between"><span class="font-body-sm text-body-sm text-on-surface-variant">NIC Queue Drop</span><span class="font-mono-micro text-mono-micro text-secondary font-semibold">0 PKTS</span></div><div class="flex items-center justify-between"><span class="font-body-sm text-body-sm text-on-surface-variant">Thermal Matrix</span><span class="font-mono-micro text-mono-micro text-on-surface font-medium">41.4°C</span></div><div class="flex items-center justify-between"><span class="font-body-sm text-body-sm text-on-surface-variant">Optical RX Power</span><span class="font-mono-micro text-mono-micro text-primary font-medium">-1.8 dBm</span></div></div></div></div><div class="p-space-xs rounded bg-surface-container flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span><span class="font-mono-micro text-mono-micro text-on-surface font-medium uppercase">DMA RING OK</span></div><span class="font-mono-micro text-mono-micro text-on-surface-variant">x8 GEN5</span></div></aside><div class="pl-64"><main class="relative pt-14 w-full px-space-md bg-surface min-h-screen"><div class="flex flex-col w-full gap-space-md py-space-sm text-on-surface">
+<!-- TOP BAR: TELEMETRY CRUMB & STATUS SUMMARY -->
+<div class="flex flex-wrap items-center justify-between gap-space-sm px-space-md py-space-xs bg-surface-container-lowest rounded shadow-sm">
+<div class="flex items-center gap-space-md">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse" id="subsystemPulse"></span>
+<span class="font-mono-micro text-mono-micro uppercase text-secondary font-semibold tracking-wider" id="subsystemLabel">TAP REPLAY SUBSYSTEM ACTIVE</span>
+</div>
+<div class="hidden md:flex items-center gap-space-xs text-on-surface-variant font-mono-table text-mono-table">
+<span>SESSION:</span>
+<span class="text-primary font-medium">FIX.4.4:ZILLER_NY4_CORE-&gt;CME_ILINK3</span>
+<span class="text-surface-variant">/</span>
+<span>CAPTURE_INTERFACE:</span>
+<span class="text-on-surface font-medium">enp1s0f0_np0 (EF_VI_ZERO_COPY)</span>
+</div>
+</div>
+<div class="flex items-center gap-space-md">
+<div class="flex items-center gap-space-xs bg-surface-container px-space-xs py-space-2xs rounded">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">TOTAL PACKETS PARSED</span>
+<span class="font-mono-metric-lg text-mono-metric-lg text-primary" id="packetCounter">842,919,204</span>
+</div>
+<div class="flex items-center gap-space-xs bg-surface-container px-space-xs py-space-2xs rounded">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">HARDWARE CLOCK DRIFT</span>
+<span class="font-mono-metric-lg text-mono-metric-lg text-secondary">±1.24 ns</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="px-space-xs py-space-2xs bg-secondary/10 text-secondary font-mono-micro text-mono-micro rounded uppercase font-semibold">DETERMINISTIC BIT-PERFECT</span>
+</div>
+</div>
+</div>
+<!-- SECTION 1: HISTORICAL TAPE REPLAY CONTROLLER -->
+<div class="flex flex-col bg-surface-container-low rounded p-space-md shadow-md gap-space-md">
+<div class="flex flex-wrap items-center justify-between gap-space-md pb-space-xs border-b border-surface-variant/40">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">history_edu</span>
+<div>
+<h2 class="font-headline-sm text-headline-sm uppercase text-on-surface tracking-wide">Historical Tape Replay Controller</h2>
+<p class="font-label-caps text-label-caps text-on-surface-variant">NY4 Volatility Window: Flash Crash Stress Trace [2024-03-12 14:32:00.000 — 14:35:00.000 EST]</p>
+</div>
+</div>
+<!-- Replay Speed & Status Indicator -->
+<div class="flex items-center gap-space-md">
+<div class="flex items-center gap-space-xs bg-surface-container-lowest px-space-sm py-space-2xs rounded">
+<span class="w-2 h-2 rounded-full bg-secondary-container" id="statusDot"></span>
+<span class="font-mono-micro text-mono-micro text-secondary font-semibold" id="replayStatusText">REPLAYING TAPE: 1,480,000 MSGS/SEC</span>
+</div>
+<div class="flex items-center bg-surface-container-highest p-space-2xs rounded gap-space-2xs text-on-surface-variant font-mono-micro text-mono-micro">
+<button class="px-space-xs py-space-2xs rounded hover:bg-surface-container hover:text-on-surface transition-colors speed-btn" data-speed="0.1x" onclick="setSpeed('0.1x')">0.1x</button>
+<button class="px-space-xs py-space-2xs rounded hover:bg-surface-container hover:text-on-surface transition-colors speed-btn" data-speed="1x" onclick="setSpeed('1x')">1x</button>
+<button class="px-space-xs py-space-2xs rounded bg-primary-container text-on-primary-container font-semibold speed-btn" data-speed="10x" onclick="setSpeed('10x')">10x</button>
+<button class="px-space-xs py-space-2xs rounded hover:bg-surface-container hover:text-on-surface transition-colors speed-btn" data-speed="100x" onclick="setSpeed('100x')">100x</button>
+<button class="px-space-xs py-space-2xs rounded hover:bg-surface-container hover:text-on-surface transition-colors speed-btn" data-speed="MAX" onclick="setSpeed('MAX')">MAX HW THROTTLE</button>
+</div>
+</div>
+</div>
+<!-- Timeline Scrubber & Fine Scrub Controls -->
+<div class="flex flex-col gap-space-xs bg-surface-container-lowest p-space-sm rounded">
+<div class="flex justify-between items-center text-on-surface-variant font-mono-table text-mono-table">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[14px] text-primary">av_timer</span>
+<span class="text-on-surface font-semibold" id="cursorTimeDisplay">CURSOR: 14:33:41.802914820 EST</span>
+<span class="text-on-surface-variant text-mono-micro" id="cursorOffsetDisplay">(OFFSET: +101.802s)</span>
+</div>
+<div class="flex items-center gap-space-md text-mono-micro">
+<span>PROGRESS: <span class="text-secondary font-semibold" id="progressPercentage">56.55%</span></span>
+<span>REPLAY BUFFER: <span class="text-on-surface" id="replayBufferInfo">3.88 GB / 6.87 GB (100% CACHED)</span></span>
+</div>
+</div>
+<!-- Scrubber Track Visualizer with L2 Book Density Sparkline -->
+<div class="relative w-full h-10 bg-surface-container rounded overflow-visible flex items-center cursor-pointer select-none group touch-none" id="timelineBar">
+<div class="relative w-full h-full rounded overflow-hidden">
+<!-- Density Background Bars (Inline SVG) -->
+<svg class="absolute inset-0 w-full h-full text-primary/20 pointer-events-none" preserveaspectratio="none" viewbox="0 0 1000 40">
+<path d="M0,35 Q40,30 80,32 T160,20 T240,28 T320,15 T400,8 T480,2 T560,18 T640,12 T720,25 T800,5 T880,18 T960,30 L1000,32 L1000,40 L0,40 Z" fill="currentColor"></path>
+<path class="text-secondary/50" d="M0,38 L120,38 L140,28 L180,34 L280,12 L310,38 L420,5 L460,25 L540,10 L610,2 L700,15 L780,8 L850,22 L1000,38" fill="none" stroke="currentColor" stroke-width="1.2"></path>
+</svg>
+<!-- Progress Fill -->
+<div class="absolute left-0 top-0 bottom-0 bg-primary/20 pointer-events-none" id="timelineProgressFill" style="width: 56.55%;"></div>
+<!-- Volatility Peak Bookmark Marker -->
+<div class="absolute left-[48%] top-0 bottom-0 w-0.5 bg-tertiary-container shadow-[0_0_8px_rgba(255,146,154,0.8)] z-10 flex flex-col justify-start pointer-events-none">
+<span class="bg-tertiary text-on-tertiary text-[9px] font-mono-micro px-1 rounded uppercase tracking-tighter whitespace-nowrap -ml-4">VOL SPIKE</span>
+</div>
+<!-- Hover Line Guide -->
+<div class="absolute top-0 bottom-0 w-px bg-on-surface-variant/60 pointer-events-none hidden z-15" id="hoverGuideLine"></div>
+</div>
+<!-- Scrub Head Playhead -->
+<div class="absolute top-0 bottom-0 w-1 bg-primary z-20 shadow-[0_0_12px_rgba(56,189,248,1)] flex items-center justify-center pointer-events-none transition-none" id="scrubHead" style="left: 56.55%;">
+<div class="w-3.5 h-6 bg-primary-container hover:scale-110 active:scale-125 transition-transform rounded shadow-lg -ml-[1px] flex items-center justify-center cursor-grab pointer-events-auto border border-primary">
+<span class="w-0.5 h-3 bg-on-primary-container"></span>
+</div>
+</div>
+<!-- Interactive Dynamic Hover / Drag Tooltip -->
+<div class="absolute -top-11 z-30 pointer-events-none hidden transform -translate-x-1/2 bg-surface-container-highest/95 backdrop-blur border border-surface-variant/80 px-2 py-1 rounded shadow-xl font-mono-micro text-mono-micro flex flex-col items-center gap-0.5 whitespace-nowrap" id="scrubTooltip">
+<div class="flex items-center gap-1.5"><span class="text-primary font-semibold" id="tooltipTime">14:33:41.802</span><span class="text-secondary font-medium" id="tooltipRate">1.48M msg/s</span></div>
+<div class="text-[9px] text-on-surface-variant" id="tooltipVol">BURST INTENSITY: 88.4%</div>
+</div>
+</div>
+<!-- Scrubber Control Buttons & Markers -->
+<div class="flex flex-wrap items-center justify-between gap-space-sm pt-space-2xs text-mono-micro">
+<div class="flex items-center gap-space-2xs">
+<button class="px-space-xs py-space-2xs bg-surface-container rounded hover:bg-surface-variant active:bg-surface-bright text-on-surface flex items-center gap-1 transition-colors" onclick="stepOffset(-10)">
+<span class="material-symbols-outlined text-[14px]">skip_previous</span> -10s
+          </button>
+<button class="px-space-xs py-space-2xs bg-surface-container rounded hover:bg-surface-variant active:bg-surface-bright text-on-surface flex items-center gap-1 transition-colors" onclick="stepOffset(-1)">
+<span class="material-symbols-outlined text-[14px]">fast_rewind</span> -1s
+          </button>
+<button class="px-space-sm py-space-2xs bg-primary text-on-primary font-bold rounded flex items-center gap-1 transition-all shadow-[0_0_8px_rgba(56,189,248,0.4)]" id="playPauseBtn" onclick="togglePlayPause()">
+<span class="material-symbols-outlined text-[14px]" id="playPauseIcon">pause</span> <span id="playPauseText">PAUSE</span>
+</button>
+<button class="px-space-xs py-space-2xs bg-surface-container rounded hover:bg-surface-variant active:bg-surface-bright text-on-surface flex items-center gap-1 transition-colors" onclick="stepOffset(1)">
+<span class="material-symbols-outlined text-[14px]">fast_forward</span> +1s
+          </button>
+<button class="px-space-xs py-space-2xs bg-surface-container rounded hover:bg-surface-variant active:bg-surface-bright text-on-surface flex items-center gap-1 transition-colors" onclick="stepOffset(10)">
+<span class="material-symbols-outlined text-[14px]">skip_next</span> +10s
+          </button>
+<button class="px-space-xs py-space-2xs bg-surface-container rounded hover:bg-surface-variant active:bg-surface-bright text-primary flex items-center gap-1 ml-space-sm transition-colors" onclick="stepNextPacket()">
+<span class="material-symbols-outlined text-[14px]">bookmark</span> STEP NEXT PACKET
+          </button>
+</div>
+<div class="flex items-center gap-space-md text-on-surface-variant">
+<span>START: <span class="text-on-surface">14:32:00.000000000</span></span>
+<span class="text-surface-variant">|</span>
+<span>END: <span class="text-on-surface">14:35:00.000000000</span></span>
+<span class="text-surface-variant">|</span>
+<span>BURST MSG COUNT: <span class="text-primary font-semibold" id="burstMsgCount">4,440,000</span></span>
+</div>
+</div>
+</div>
+</div>
+<!-- SECTION 2: ORDER LIFECYCLE GRANULAR DECOMPOSITION (NANOSECOND WATERFALL) -->
+<div class="flex flex-col bg-surface-container-low rounded p-space-md shadow-md gap-space-md">
+<div class="flex flex-wrap items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-secondary text-[20px]">reorder</span>
+<div>
+<h2 class="font-headline-sm text-headline-sm uppercase text-on-surface tracking-wide">Nanosecond Order Lifecycle Decomposition</h2>
+<p class="font-label-caps text-label-caps text-on-surface-variant">Trace ID: 0x9F4D883A_BTC_PERP_AGG_SWEEP // End-to-End Latency: 44.55 µs</p>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<span class="font-label-caps text-label-caps text-on-surface-variant">P99 TARGET: &lt;50.00µs</span>
+<span class="px-space-xs py-space-2xs bg-secondary/10 text-secondary font-mono-micro text-mono-micro rounded font-semibold uppercase">PASS (IN SPEC)</span>
+</div>
+</div>
+<!-- Waterfall Graphic & Steps -->
+<div class="grid grid-cols-1 xl:grid-cols-6 gap-space-sm">
+<!-- Stage 0 -->
+<div class="flex flex-col bg-surface-container-lowest p-space-sm rounded border-l-2 border-primary gap-space-2xs relative">
+<div class="flex items-center justify-between">
+<span class="font-mono-micro text-mono-micro text-primary font-semibold">T0: 0.00 µs</span>
+<span class="material-symbols-outlined text-primary text-[14px]">notifications_active</span>
+</div>
+<div class="font-headline-sm text-headline-sm text-on-surface leading-tight">Signal Trigger</div>
+<div class="font-mono-table text-mono-table text-on-surface-variant">Tick: BBO Ask Drop</div>
+<div class="mt-space-2xs pt-space-2xs border-t border-surface-variant/30 flex justify-between items-center text-mono-micro">
+<span class="text-on-surface-variant">DELTA</span>
+<span class="text-primary font-medium">BASELINE</span>
+</div>
+</div>
+<!-- Stage 1 -->
+<div class="flex flex-col bg-surface-container-lowest p-space-sm rounded border-l-2 border-primary gap-space-2xs relative">
+<div class="flex items-center justify-between">
+<span class="font-mono-micro text-mono-micro text-primary font-semibold">T1: +0.48 µs</span>
+<span class="material-symbols-outlined text-primary text-[14px]">calculate</span>
+</div>
+<div class="font-headline-sm text-headline-sm text-on-surface leading-tight">Strategy Calc</div>
+<div class="font-mono-table text-mono-table text-on-surface-variant">Alpha Micro-Arb Eval</div>
+<div class="mt-space-2xs pt-space-2xs border-t border-surface-variant/30 flex justify-between items-center text-mono-micro">
+<span class="text-on-surface-variant">DELTA</span>
+<span class="text-secondary font-medium">+480 ns</span>
+</div>
+</div>
+<!-- Stage 2 -->
+<div class="flex flex-col bg-surface-container-lowest p-space-sm rounded border-l-2 border-secondary gap-space-2xs relative">
+<div class="flex items-center justify-between">
+<span class="font-mono-micro text-mono-micro text-secondary font-semibold">T2: +0.70 µs</span>
+<span class="material-symbols-outlined text-secondary text-[14px]">verified_user</span>
+</div>
+<div class="font-headline-sm text-headline-sm text-on-surface leading-tight">Internal Risk</div>
+<div class="font-mono-table text-mono-table text-on-surface-variant">Fat-Finger &amp; Margin Check</div>
+<div class="mt-space-2xs pt-space-2xs border-t border-surface-variant/30 flex justify-between items-center text-mono-micro">
+<span class="text-on-surface-variant">DELTA</span>
+<span class="text-secondary font-medium">+220 ns</span>
+</div>
+</div>
+<!-- Stage 3 -->
+<div class="flex flex-col bg-surface-container-lowest p-space-sm rounded border-l-2 border-primary gap-space-2xs relative">
+<div class="flex items-center justify-between">
+<span class="font-mono-micro text-mono-micro text-primary font-semibold">T3: +1.35 µs</span>
+<span class="material-symbols-outlined text-primary text-[14px]">alt_route</span>
+</div>
+<div class="font-headline-sm text-headline-sm text-on-surface leading-tight">SOR Egress</div>
+<div class="font-mono-table text-mono-table text-on-surface-variant">Venue Selection &amp; Split</div>
+<div class="mt-space-2xs pt-space-2xs border-t border-surface-variant/30 flex justify-between items-center text-mono-micro">
+<span class="text-on-surface-variant">DELTA</span>
+<span class="text-secondary font-medium">+650 ns</span>
+</div>
+</div>
+<!-- Stage 4 -->
+<div class="flex flex-col bg-surface-container-lowest p-space-sm rounded border-l-2 border-secondary-container gap-space-2xs relative">
+<div class="flex items-center justify-between">
+<span class="font-mono-micro text-mono-micro text-secondary font-semibold">T4: +2.45 µs</span>
+<span class="material-symbols-outlined text-secondary text-[14px]">electrical_services</span>
+</div>
+<div class="font-headline-sm text-headline-sm text-on-surface leading-tight">Wire Flight</div>
+<div class="font-mono-table text-mono-table text-on-surface-variant">Solarflare EF_VI DMA Out</div>
+<div class="mt-space-2xs pt-space-2xs border-t border-surface-variant/30 flex justify-between items-center text-mono-micro">
+<span class="text-on-surface-variant">DELTA</span>
+<span class="text-secondary font-medium">+1.10 µs</span>
+</div>
+</div>
+<!-- Stage 5 -->
+<div class="flex flex-col bg-surface-container-lowest p-space-sm rounded border-l-2 border-primary-container gap-space-2xs relative">
+<div class="flex items-center justify-between">
+<span class="font-mono-micro text-mono-micro text-primary-container font-semibold">T5: +44.55 µs</span>
+<span class="material-symbols-outlined text-primary-container text-[14px]">check_circle</span>
+</div>
+<div class="font-headline-sm text-headline-sm text-on-surface leading-tight">Engine Ack</div>
+<div class="font-mono-table text-mono-table text-on-surface-variant">CME Matching Order Ack</div>
+<div class="mt-space-2xs pt-space-2xs border-t border-surface-variant/30 flex justify-between items-center text-mono-micro">
+<span class="text-on-surface-variant">ENGINE TTF</span>
+<span class="text-primary font-medium">+42.10 µs</span>
+</div>
+</div>
+</div>
+<!-- Nanosecond Waterfall Bar Chart Visualization -->
+<div class="flex flex-col gap-space-2xs bg-surface-container-lowest p-space-sm rounded">
+<div class="flex justify-between items-center font-label-caps text-label-caps text-on-surface-variant">
+<span>CUMULATIVE EXECUTION LATENCY HORIZON (44.55 µs TOTAL)</span>
+<span>RESOLUTION: 1 PIXEL = ~45 NANOSECONDS</span>
+</div>
+<div class="w-full h-6 bg-surface-container rounded flex overflow-hidden">
+<div class="bg-primary hover:opacity-80 transition-opacity" style="width: 1.07%;" title="Signal Trigger: 0.00µs"></div>
+<div class="bg-primary-container hover:opacity-80 transition-opacity" style="width: 1.08%;" title="Strategy Calc: +0.48µs"></div>
+<div class="bg-secondary hover:opacity-80 transition-opacity" style="width: 0.49%;" title="Risk Check: +0.22µs"></div>
+<div class="bg-primary hover:opacity-80 transition-opacity" style="width: 1.46%;" title="SOR Egress: +0.65µs"></div>
+<div class="bg-secondary-container hover:opacity-80 transition-opacity" style="width: 2.47%;" title="Wire Flight: +1.10µs"></div>
+<div class="bg-surface-variant hover:bg-surface-bright transition-colors flex items-center px-space-xs" style="width: 93.43%;" title="CME Engine Matching &amp; Network Transit: +42.10µs">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant truncate">CME Exchange Engine Transit &amp; Matching (+42.10 µs)</span>
+</div>
+</div>
+<div class="flex justify-between font-mono-micro text-mono-micro text-on-surface-variant pt-space-2xs">
+<span>0 µs</span>
+<span>10 µs</span>
+<span>20 µs</span>
+<span>30 µs</span>
+<span>40 µs</span>
+<span>44.55 µs (ACK COMPLETE)</span>
+</div>
+</div>
+</div>
+<!-- SECTION 3: RAW FIX PROTOCOL & ITCH BINARY MESSAGE INSPECTOR -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-space-md">
+<!-- LEFT PANE: RAW FIX 4.4 / ITCH PACKET STREAM -->
+<div class="flex flex-col bg-surface-container-low rounded p-space-md shadow-md gap-space-sm">
+<div class="flex items-center justify-between pb-space-xs border-b border-surface-variant/40">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[18px]">terminal</span>
+<span class="font-headline-sm text-headline-sm uppercase text-on-surface">Raw FIX 4.4 / ITCH Stream</span>
+</div>
+<div class="flex items-center gap-space-2xs">
+<span class="font-mono-micro text-mono-micro bg-surface-container-high px-space-xs py-space-2xs rounded text-primary">HEX / SOH DELIMITED</span>
+<button class="font-mono-micro text-mono-micro bg-surface-container px-space-xs py-space-2xs rounded text-on-surface-variant hover:text-on-surface" id="pauseTapBtn" onclick="togglePlayPause()">PAUSE TAP</button>
+</div>
+</div>
+<!-- Raw Stream Container -->
+<div class="flex flex-col font-mono-table text-mono-table bg-surface-container-lowest p-space-sm rounded gap-space-xs h-72 overflow-y-auto" id="rawFixContainer">
+<!-- Dynamic Packets Rendered Here -->
+</div>
+<div class="flex items-center justify-between text-mono-micro text-on-surface-variant">
+<span>SOH CHAR: ASCII \x01 (HEX 01)</span>
+<span>BUFFER OVERRUN PROTECTION: RING BUFFER 64MB OK</span>
+</div>
+</div>
+<!-- RIGHT PANE: DECODED HUMAN-READABLE TRANSLATION -->
+<div class="flex flex-col bg-surface-container-low rounded p-space-md shadow-md gap-space-sm">
+<div class="flex items-center justify-between pb-space-xs border-b border-surface-variant/40">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-[18px]">data_object</span>
+<span class="font-headline-sm text-headline-sm uppercase text-on-surface">Decoded FIX Tag Field Translation</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="font-mono-micro text-mono-micro bg-secondary/10 text-secondary px-space-xs py-space-2xs rounded uppercase" id="decodedBadge">VALIDATED FIX 4.4 SPEC</span>
+</div>
+</div>
+<!-- Decoded Field Matrix Table -->
+<div class="overflow-x-auto bg-surface-container-lowest rounded h-72">
+<table class="w-full text-left font-mono-table text-mono-table border-collapse">
+<thead>
+<tr class="bg-surface-container text-on-surface-variant font-label-caps text-label-caps border-b border-surface-variant/40">
+<th class="p-space-xs">TAG</th>
+<th class="p-space-xs">FIELD NAME</th>
+<th class="p-space-xs">RAW VAL</th>
+<th class="p-space-xs">DECODED SEMANTIC MEANING</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-variant/20 text-on-surface" id="decodedTableBody">
+<!-- Rendered Dynamically via JS -->
+</tbody>
+</table>
+</div>
+<div class="flex items-center justify-between text-mono-micro text-on-surface-variant">
+<span>SESSION PROTOCOL: FIX 4.4 VIA TCP FASTOPEN</span>
+<span>DICTIONARY: CME_E_MINI_ILINK3_V12.XML</span>
+</div>
+</div>
+</div>
+<!-- SECTION 4: SMART ORDER ROUTING (SOR) SLIPPAGE & EXECUTION ATTRIBUTION -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-space-md">
+<!-- LEFT: SLIPPAGE VS ARRIVAL BENCHMARK (2 COLUMNS) -->
+<div class="lg:col-span-2 flex flex-col bg-surface-container-low rounded p-space-md shadow-md gap-space-md">
+<div class="flex flex-wrap items-center justify-between gap-space-sm pb-space-xs border-b border-surface-variant/40">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">ssid_chart</span>
+<div>
+<h2 class="font-headline-sm text-headline-sm uppercase text-on-surface tracking-wide">Smart Order Routing Execution Attribution</h2>
+<p class="font-label-caps text-label-caps text-on-surface-variant">Slippage vs. Mid-Price Arrival Benchmark Across Replay Interval</p>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="w-2.5 h-0.5 bg-secondary"></span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">ARRIVAL MID</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="w-2.5 h-0.5 bg-primary"></span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">EXEC PRICE</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="w-2.5 h-0.5 bg-tertiary"></span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">ADVERSE SELECTION</span>
+</div>
+</div>
+</div>
+<!-- Execution Performance Sparkline / Vector Graph -->
+<div class="relative w-full h-48 bg-surface-container-lowest rounded p-space-sm flex flex-col justify-between overflow-hidden">
+<!-- SVG Canvas for Execution Curves -->
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 800 160">
+<!-- Horizontal Grid Lines -->
+<line class="text-surface-variant/30" stroke="currentColor" stroke-dasharray="4,4" x1="0" x2="800" y1="40" y2="40"></line>
+<line class="text-surface-variant/30" stroke="currentColor" stroke-dasharray="4,4" x1="0" x2="800" y1="80" y2="80"></line>
+<line class="text-surface-variant/30" stroke="currentColor" stroke-dasharray="4,4" x1="0" x2="800" y1="120" y2="120"></line>
+<!-- Benchmark Arrival Curve (Secondary / Emerald) -->
+<path class="text-secondary" d="M0,90 Q100,85 200,95 T400,70 T600,105 T800,80" fill="none" stroke="currentColor" stroke-width="2"></path>
+<!-- Execution VWAP Curve (Primary / Cyan) -->
+<path class="text-primary" d="M0,92 Q100,88 200,94 T400,72 T600,102 T800,78" fill="none" stroke="currentColor" stroke-dasharray="6,3" stroke-width="2"></path>
+<!-- Adverse Slippage Deviation Area Fill -->
+<path class="text-tertiary/40" d="M400,70 Q500,88 600,105 L600,102 Q500,85 400,72 Z" fill="currentColor"></path>
+<!-- Marker points for executed child orders -->
+<circle class="text-primary fill-current" cx="120" cy="87" r="3"></circle>
+<circle class="text-primary fill-current" cx="280" cy="94" r="3"></circle>
+<circle class="text-secondary fill-current" cx="450" cy="74" r="4"></circle>
+<circle class="text-tertiary fill-current" cx="560" cy="98" r="3"></circle>
+<circle class="text-primary fill-current" cx="720" cy="84" r="4"></circle>
+</svg>
+<!-- Metric Floating Overlay Bar -->
+<div class="grid grid-cols-4 gap-space-sm pt-space-xs border-t border-surface-variant/30">
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">MEAN SLIPPAGE</span>
+<span class="font-mono-metric-lg text-mono-metric-lg text-secondary">-0.12 bps</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">IMPLEMENTATION SHORTFALL</span>
+<span class="font-mono-metric-lg text-mono-metric-lg text-primary">$184.20</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">PASSIVE FILL RATIO</span>
+<span class="font-mono-metric-lg text-mono-metric-lg text-on-surface">94.8%</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">VENUE TOXICITY RATING</span>
+<span class="font-mono-metric-lg text-mono-metric-lg text-secondary">LOW (0.04)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- RIGHT: VENUE FILL PROBABILITIES & REGULATORY COMPLIANCE EXPORT -->
+<div class="flex flex-col bg-surface-container-low rounded p-space-md shadow-md gap-space-md">
+<div class="flex items-center justify-between pb-space-xs border-b border-surface-variant/40">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">hub</span>
+<div>
+<h2 class="font-headline-sm text-headline-sm uppercase text-on-surface tracking-wide">Venue Fill Probabilities</h2>
+<p class="font-label-caps text-label-caps text-on-surface-variant">L3 Routing Allocation</p>
+</div>
+</div>
+</div>
+<!-- Venue Fill Bars -->
+<div class="flex flex-col gap-space-sm bg-surface-container-lowest p-space-sm rounded">
+<!-- CME NY4 -->
+<div class="flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center text-mono-table text-mono-table">
+<span class="text-on-surface font-semibold">CME Chicago / NY4 Cross</span>
+<span class="text-secondary font-medium">98.4% Fill Rate</span>
+</div>
+<div class="w-full h-2 bg-surface-container rounded overflow-hidden">
+<div class="h-full bg-secondary rounded" style="width: 98.4%"></div>
+</div>
+<div class="flex justify-between text-mono-micro text-on-surface-variant">
+<span>Latency: 1.18 µs</span>
+<span>Alloc: 64%</span>
+</div>
+</div>
+<!-- BATS / CBOE EDGX -->
+<div class="flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center text-mono-table text-mono-table">
+<span class="text-on-surface font-semibold">CBOE EDGX (Secaucus NY4)</span>
+<span class="text-primary font-medium">92.1% Fill Rate</span>
+</div>
+<div class="w-full h-2 bg-surface-container rounded overflow-hidden">
+<div class="h-full bg-primary rounded" style="width: 92.1%"></div>
+</div>
+<div class="flex justify-between text-mono-micro text-on-surface-variant">
+<span>Latency: 1.45 µs</span>
+<span>Alloc: 22%</span>
+</div>
+</div>
+<!-- NASDAQ Carteret -->
+<div class="flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center text-mono-table text-mono-table">
+<span class="text-on-surface font-semibold">NASDAQ ITCH (Carteret NJ)</span>
+<span class="text-tertiary-container font-medium">84.7% Fill Rate</span>
+</div>
+<div class="w-full h-2 bg-surface-container rounded overflow-hidden">
+<div class="h-full bg-tertiary-container rounded" style="width: 84.7%"></div>
+</div>
+<div class="flex justify-between text-mono-micro text-on-surface-variant">
+<span>Latency: 3.82 µs (Dark Fiber)</span>
+<span>Alloc: 14%</span>
+</div>
+</div>
+</div>
+<!-- Action Export Bar -->
+<div class="flex flex-col gap-space-xs mt-auto">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">REGULATORY AUDIT EVIDENCE</span>
+<div class="grid grid-cols-2 gap-space-xs">
+<button class="flex items-center justify-center gap-space-xs px-space-xs py-space-sm rounded bg-surface-container text-primary font-mono-micro text-mono-micro font-semibold hover:bg-surface-variant transition-colors" onclick="triggerExport('CSV')">
+<span class="material-symbols-outlined text-[16px]">file_download</span>
+            EXPORT .CSV AUDIT
+          </button>
+<button class="flex items-center justify-center gap-space-xs px-space-xs py-space-sm rounded bg-primary text-on-primary font-mono-micro text-mono-micro font-bold hover:bg-primary-container transition-colors shadow-sm" onclick="triggerExport('PCAP')">
+<span class="material-symbols-outlined text-[16px]">sim_card_download</span>
+            EXPORT RAW .PCAP
+          </button>
+</div>
+</div>
+</div>
+</div>
+<!-- BOTTOM AUDIT SUMMARY BANNER -->
+<div class="flex flex-wrap items-center justify-between gap-space-md px-space-md py-space-xs bg-surface-container-lowest rounded text-on-surface-variant font-mono-micro text-mono-micro">
+<div class="flex items-center gap-space-md">
+<span class="text-secondary font-semibold">SEC RULE 611 / CFTC PART 43 COMPLIANT</span>
+<span>REPLAY HASH: SHA-256: 7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069</span>
+</div>
+<div class="flex items-center gap-space-sm">
+<span>ZILLERS FINANCIAL HARDWARE KERNEL v4.19-RT-PREEMPT</span>
+<span class="text-surface-variant">|</span>
+<span>FPGA XILINX ALVEO U50 ACCELERATION LOAD: 14.2%</span>
+</div>
+</div>
+</div>
+<!-- INTERACTIVE SCRIPTER & DYNAMIC REPLAY ENGINE -->
+<script>
+  // Global Replay State
+  const TOTAL_DURATION_SEC = 180; // 3 minutes: 14:32:00 to 14:35:00
+  const START_EPOCH_MS = 1710268320000; // 2024-03-12 14:32:00.000 EST
+  let currentOffset = 101.802914820; // Default offset in seconds
+  let isPlaying = true;
+  let currentSpeedMultiplier = 10.0;
+  let currentSpeedLabel = '10x';
+  let isDragging = false;
+  let selectedPacketIdx = 0;
+  let lastTimestamp = performance.now();
+
+  // Packet snapshots by timeline stage
+  const packetStages = [
+    {
+      range: [0, 45],
+      packets: [
+        {
+          id: 'PKT #141,802',
+          type: 'INBOUND ITCH ORDER_BOOK_STATE',
+          subSec: 104291,
+          raw: '8=FIX.4.4\x019=162\x0135=W\x0149=CME_PROD\x0156=ZILLERS_PROD\x0134=92140\x0152=20240312-19:32:14.104\x0155=BTC-PERP\x01268=2\x01269=0\x01270=72150.00\x01271=18.500\x0110=044\x01',
+          decoded: [
+            { tag: '35', name: 'MsgType', val: 'W', desc: 'MARKET_DATA_SNAPSHOT_FULL_REFRESH' },
+            { tag: '55', name: 'Symbol', val: 'BTC-PERP', desc: 'Bitcoin Perpetual Derivative (NY4 Fast Feed)' },
+            { tag: '269', name: 'MDEntryType', val: '0', desc: 'BID (Top of Book Best Offer)' },
+            { tag: '270', name: 'MDEntryPx', val: '72150.00', desc: 'Consolidated BBO Bid Level' },
+            { tag: '271', name: 'MDEntrySize', val: '18.500000', desc: 'Aggregated Size (18.500 Contracts)' },
+            { tag: '10', name: 'CheckSum', val: '044', desc: 'Valid (Calculated Sum = 044)' }
+          ]
+        },
+        {
+          id: 'PKT #141,803',
+          type: 'OUTBOUND SOR_QUOTE',
+          subSec: 104450,
+          raw: '8=FIX.4.4\x019=174\x0135=S\x0149=ZILLERS_PROD\x0156=CME_PROD\x0134=92141\x0111=ZIL-20240312-00810A\x0155=BTC-PERP\x0154=2\x0138=10.0000\x0144=72152.00\x0110=118\x01',
+          decoded: [
+            { tag: '35', name: 'MsgType', val: 'S', desc: 'QUOTE (Maker Passive Liquidity Provision)' },
+            { tag: '11', name: 'ClOrdID', val: 'ZIL-20240312-00810A', desc: 'Tactical Quoting Peg' },
+            { tag: '54', name: 'Side', val: '2', desc: 'SELL / SHORT' },
+            { tag: '38', name: 'OrderQty', val: '10.000000', desc: 'Passive Order Allocation' },
+            { tag: '44', name: 'Price', val: '72152.00', desc: 'Offer Spread Pegged to Ask +0.5bps' },
+            { tag: '10', name: 'CheckSum', val: '118', desc: 'Valid (Sum = 118)' }
+          ]
+        },
+        {
+          id: 'PKT #141,804',
+          type: 'ITCH L3 ADD_ORDER',
+          subSec: 104712,
+          raw: 'ITCH50\x01A\x01LOC=NY4\x01SEQ=89012301\x01REFNUM=791024881\x01SHARES=5.2500\x01PX=72151.50\x01BUY\x01',
+          decoded: [
+            { tag: 'OP', name: 'ItchOp', val: 'A', desc: 'ADD_ORDER (L3 Microsecond Wire Event)' },
+            { tag: 'SEQ', name: 'Sequence', val: '89012301', desc: 'NY4 Micro Burst Packet ID' },
+            { tag: 'PX', name: 'Price', val: '72151.50', desc: 'New Micro Level Cross' },
+            { tag: 'SHARES', name: 'Volume', val: '5.2500', desc: 'Order Depth Contribution' },
+            { tag: 'FLAGS', name: 'State', val: '0x00', desc: 'Non-Display Passive Limit' }
+          ]
+        }
+      ]
+    },
+    {
+      range: [45, 80],
+      packets: [
+        {
+          id: 'PKT #145,210',
+          type: 'INBOUND FLASH_VOLATILITY_WARN',
+          subSec: 421008,
+          raw: '8=FIX.4.4\x019=180\x0135=B\x0149=CME_PROD\x0156=ZILLERS_PROD\x0134=93990\x0152=20240312-19:33:05.421\x0155=BTC-PERP\x01326=21\x01327=HIGH_VOLATILITY\x0110=192\x01',
+          decoded: [
+            { tag: '35', name: 'MsgType', val: 'B', desc: 'NEWS / MARKET_STATUS (Volatility Alert)' },
+            { tag: '55', name: 'Symbol', val: 'BTC-PERP', desc: 'Bitcoin Perpetual Derivative (NY4 Fast Feed)' },
+            { tag: '326', name: 'SecurityTradingStatus', val: '21', desc: 'PRE-OPEN / VOLATILITY INTERRUPT SAFEGUARD' },
+            { tag: '327', name: 'HaltReason', val: 'HIGH_VOLATILITY', desc: 'Band Swept > 85 bps in 200 ms' },
+            { tag: '10', name: 'CheckSum', val: '192', desc: 'Valid (Calculated Sum = 192)' }
+          ]
+        },
+        {
+          id: 'PKT #145,211',
+          type: 'CANCEL_REPLACE_BURST',
+          subSec: 421115,
+          raw: '8=FIX.4.4\x019=192\x0135=G\x0149=ZILLERS_PROD\x0156=CME_PROD\x0134=93991\x0141=ZIL-20240312-00810A\x0111=ZIL-20240312-00810B\x0138=10.000\x0144=71980.00\x0110=089\x01',
+          decoded: [
+            { tag: '35', name: 'MsgType', val: 'G', desc: 'ORDER_CANCEL_REPLACE_REQUEST' },
+            { tag: '41', name: 'OrigClOrdID', val: 'ZIL-20240312-00810A', desc: 'Rapid Pull Existing Bid' },
+            { tag: '11', name: 'ClOrdID', val: 'ZIL-20240312-00810B', desc: 'Reposition Defensive Spread' },
+            { tag: '44', name: 'Price', val: '71980.00', desc: 'Step Down -$172.00 (Peg Adjustment)' },
+            { tag: '10', name: 'CheckSum', val: '089', desc: 'Valid (Sum = 089)' }
+          ]
+        },
+        {
+          id: 'PKT #145,212',
+          type: 'ITCH L3 BOOK CANCEL',
+          subSec: 421290,
+          raw: 'ITCH50\x01X\x01LOC=NY4\x01SEQ=89421099\x01REFNUM=791024881\x01CANCELLED_SHARES=5.2500\x01',
+          decoded: [
+            { tag: 'OP', name: 'ItchOp', val: 'X', desc: 'ORDER_CANCEL (Mass Queue Evacuation)' },
+            { tag: 'SEQ', name: 'Sequence', val: '89421099', desc: 'NY4 Packet Timestamp Sync' },
+            { tag: 'CANCELLED_SHARES', name: 'Size', val: '5.2500', desc: 'BBO Book Thinning Detected' }
+          ]
+        }
+      ]
+    },
+    {
+      range: [80, 130],
+      packets: [
+        {
+          id: 'PKT #149,021',
+          type: 'INBOUND ITCH ADD_ORDER',
+          subSec: 802914801,
+          raw: '8=FIX.4.4\x019=178\x0135=D\x0149=ZILLERS_PROD\x0156=CME_PROD\x0134=94821\x0152=20240312-19:33:41.802\x0111=ZIL-20240312-00941A\x0155=BTC-PERP\x0154=1\x0138=25.000000\x0144=71840.50\x0140=2\x0159=1\x0110=184\x01',
+          decoded: [
+            { tag: '35', name: 'MsgType', val: 'D', desc: 'ORDER_SINGLE (New Order Single)' },
+            { tag: '11', name: 'ClOrdID', val: 'ZIL-20240312-00941A', desc: 'Internal Client Order Identifier' },
+            { tag: '55', name: 'Symbol', val: 'BTC-PERP', desc: 'Bitcoin Perpetual Derivative (NY4 Fast Feed)' },
+            { tag: '54', name: 'Side', val: '1', desc: 'BUY / LONG' },
+            { tag: '38', name: 'OrderQty', val: '25.000000', desc: '25.000 Contracts (2.500 BTC Notional)' },
+            { tag: '44', name: 'Price', val: '71840.50', desc: '$71,840.50 USD Limit Peg' },
+            { tag: '40', name: 'OrdType', val: '2', desc: 'LIMIT ORDER (Post-Only Enforced)' },
+            { tag: '59', name: 'TimeInForce', val: '1', desc: 'GOOD_TILL_CANCEL (GTC)' },
+            { tag: '10', name: 'CheckSum', val: '184', desc: 'Valid (Calculated Sum = 184)' }
+          ]
+        },
+        {
+          id: 'PKT #149,022',
+          type: 'OUTBOUND ACK 35=8',
+          subSec: 802956902,
+          raw: '8=FIX.4.4\x019=214\x0135=8\x0149=CME_PROD\x0156=ZILLERS_PROD\x0134=421890\x0111=ZIL-20240312-00941A\x0137=CME-ORD-8819203\x0139=0\x01150=0\x0155=BTC-PERP\x0154=1\x0138=25.000000\x0144=71840.50\x0132=0\x0131=0\x0110=092\x01',
+          decoded: [
+            { tag: '35', name: 'MsgType', val: '8', desc: 'EXECUTION_REPORT (Order Accepted in Engine)' },
+            { tag: '11', name: 'ClOrdID', val: 'ZIL-20240312-00941A', desc: 'Client Order ID Reference' },
+            { tag: '37', name: 'OrderID', val: 'CME-ORD-8819203', desc: 'Exchange Internal Match Engine Hash' },
+            { tag: '39', name: 'OrdStatus', val: '0', desc: 'NEW (Position Queued Top of Book)' },
+            { tag: '150', name: 'ExecType', val: '0', desc: 'NEW / ACCEPTED' },
+            { tag: '10', name: 'CheckSum', val: '092', desc: 'Valid (Sum = 092)' }
+          ]
+        },
+        {
+          id: 'PKT #149,023',
+          type: 'ITCH L3 MODIFY',
+          subSec: 803011244,
+          raw: 'ITCH50\x01M\x01LOC=NY4\x01SEQ=90841284\x01REFNUM=8183921002\x01NEW_SHARES=10.0000\x01NEW_PX=71840.00\x01FLAGS=0x01\x01',
+          decoded: [
+            { tag: 'OP', name: 'ItchOp', val: 'M', desc: 'ORDER_MODIFY (Liquidity Adjustment at NY4)' },
+            { tag: 'REFNUM', name: 'Reference', val: '8183921002', desc: 'Parent Book ID' },
+            { tag: 'NEW_PX', name: 'NewPrice', val: '71840.00', desc: 'Step Adjustment to Spread' },
+            { tag: 'NEW_SHARES', name: 'Size', val: '10.0000', desc: 'Active Depth Replenished' }
+          ]
+        },
+        {
+          id: 'PKT #149,024',
+          type: 'PARTIAL FILL 35=8',
+          subSec: 803189201,
+          raw: '8=FIX.4.4\x019=248\x0135=8\x0149=CME_PROD\x0156=ZILLERS_PROD\x0134=421891\x0111=ZIL-20240312-00941A\x0137=CME-ORD-8819203\x0139=1\x01150=F\x0132=15.000000\x0131=71840.50\x0114=15.000000\x016=71840.50\x0110=114\x01',
+          decoded: [
+            { tag: '35', name: 'MsgType', val: '8', desc: 'EXECUTION_REPORT (Partial Fill Match Event)' },
+            { tag: '39', name: 'OrdStatus', val: '1', desc: 'PARTIALLY_FILLED (15.00 Contracts Swept)' },
+            { tag: '32', name: 'LastShares', val: '15.000000', desc: 'Match Execution Quantity' },
+            { tag: '31', name: 'LastPx', val: '71840.50', desc: 'Match Price: $71,840.50 USD' },
+            { tag: '14', name: 'CumQty', val: '15.000000', desc: 'Cumulative Fills to Date' },
+            { tag: '10', name: 'CheckSum', val: '114', desc: 'Valid (Sum = 114)' }
+          ]
+        }
+      ]
+    },
+    {
+      range: [130, 180],
+      packets: [
+        {
+          id: 'PKT #152,408',
+          type: 'INBOUND FULL_FILL 35=8',
+          subSec: 911048,
+          raw: '8=FIX.4.4\x019=252\x0135=8\x0149=CME_PROD\x0156=ZILLERS_PROD\x0134=422998\x0111=ZIL-20240312-00941A\x0137=CME-ORD-8819203\x0139=2\x01150=F\x0132=10.000000\x0131=71840.50\x0114=25.000000\x016=71840.50\x0110=061\x01',
+          decoded: [
+            { tag: '35', name: 'MsgType', val: '8', desc: 'EXECUTION_REPORT (Order Completely Filled)' },
+            { tag: '39', name: 'OrdStatus', val: '2', desc: 'FILLED (Order Lifecycle Completed)' },
+            { tag: '32', name: 'LastShares', val: '10.000000', desc: 'Terminal Slice Executed' },
+            { tag: '14', name: 'CumQty', val: '25.000000', desc: '100% Notional Settled (25.000 Contracts)' },
+            { tag: '6', name: 'AvgPx', val: '71840.50', desc: 'Benchmark Execution VWAP' },
+            { tag: '10', name: 'CheckSum', val: '061', desc: 'Valid (Sum = 061)' }
+          ]
+        },
+        {
+          id: 'PKT #152,409',
+          type: 'ITCH L3 BOOK STEADY_STATE',
+          subSec: 912002,
+          raw: 'ITCH50\x01C\x01LOC=NY4\x01SEQ=91280010\x01REFNUM=8183921002\x01REMAINING=0.0000\x01STATUS=RECONCILED\x01',
+          decoded: [
+            { tag: 'OP', name: 'ItchOp', val: 'C', desc: 'ORDER_EXECUTED_COMPLETE' },
+            { tag: 'SEQ', name: 'Sequence', val: '91280010', desc: 'Microsecond Ring Reconciled' },
+            { tag: 'REMAINING', name: 'Leaves', val: '0.0000', desc: 'Queue Zeroed' }
+          ]
+        },
+        {
+          id: 'PKT #152,410',
+          type: 'OUTBOUND POSITION PnL UPDATE',
+          subSec: 913210,
+          raw: '8=FIX.4.4\x019=168\x0135=U1\x0149=ZILLERS_PROD\x0156=ZILLER_RISK\x0155=BTC-PERP\x01702=2.500\x01704=+8412.50\x0110=103\x01',
+          decoded: [
+            { tag: '35', name: 'MsgType', val: 'U1', desc: 'INTERNAL_RISK_BOOK_UPDATE (Proprietary Tag)' },
+            { tag: '702', name: 'NetPos', val: '+2.500 BTC', desc: 'Consolidated Delta Exposure' },
+            { tag: '704', name: 'RealizedPnL', val: '+$8,412.50 USD', desc: 'Net Alpha Capture' },
+            { tag: '10', name: 'CheckSum', val: '103', desc: 'Valid (Sum = 103)' }
+          ]
+        }
+      ]
+    }
+  ];
+
+  // DOM elements
+  const playBtn = document.getElementById('playPauseBtn');
+  const playIcon = document.getElementById('playPauseIcon');
+  const playText = document.getElementById('playPauseText');
+  const pauseTapBtn = document.getElementById('pauseTapBtn');
+  const statusText = document.getElementById('replayStatusText');
+  const statusDot = document.getElementById('statusDot');
+  const subsystemPulse = document.getElementById('subsystemPulse');
+  const subsystemLabel = document.getElementById('subsystemLabel');
+  const counter = document.getElementById('packetCounter');
+  const timelineBar = document.getElementById('timelineBar');
+  const progressFill = document.getElementById('timelineProgressFill');
+  const scrubHead = document.getElementById('scrubHead');
+  const cursorTimeDisplay = document.getElementById('cursorTimeDisplay');
+  const cursorOffsetDisplay = document.getElementById('cursorOffsetDisplay');
+  const progressPercentage = document.getElementById('progressPercentage');
+  const burstMsgCount = document.getElementById('burstMsgCount');
+  const replayBufferInfo = document.getElementById('replayBufferInfo');
+  const scrubTooltip = document.getElementById('scrubTooltip');
+  const tooltipTime = document.getElementById('tooltipTime');
+  const tooltipRate = document.getElementById('tooltipRate');
+  const tooltipVol = document.getElementById('tooltipVol');
+  const hoverGuideLine = document.getElementById('hoverGuideLine');
+  const rawContainer = document.getElementById('rawFixContainer');
+  const tableBody = document.getElementById('decodedTableBody');
+
+  // Format timestamp helper
+  function formatTimestamp(offsetSec) {
+    const totalMs = START_EPOCH_MS + Math.floor(offsetSec * 1000);
+    const date = new Date(totalMs);
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mm = String(date.getMinutes()).padStart(2, '0');
+    const ss = String(date.getSeconds()).padStart(2, '0');
+    const frac = (offsetSec % 1).toFixed(9).substring(2);
+    return `${hh}:${mm}:${ss}.${frac} EST`;
+  }
+
+  // Get active packet group based on offset
+  function getCurrentStage(offset) {
+    for (let stage of packetStages) {
+      if (offset >= stage.range[0] && offset <= stage.range[1]) {
+        return stage;
+      }
+    }
+    return packetStages[packetStages.length - 1];
+  }
+
+  // Render raw and decoded packets
+  function renderPackets(stage) {
+    if (selectedPacketIdx >= stage.packets.length) {
+      selectedPacketIdx = 0;
+    }
+    const currentPacket = stage.packets[selectedPacketIdx];
+
+    // Render raw items
+    rawContainer.innerHTML = '';
+    stage.packets.forEach((pkt, idx) => {
+      const isSelected = idx === selectedPacketIdx;
+      const pktDiv = document.createElement('div');
+      pktDiv.className = `p-space-xs rounded cursor-pointer transition-colors ${
+        isSelected
+          ? 'bg-surface-container border-l-2 border-primary'
+          : 'bg-surface-container-low hover:bg-surface-container'
+      }`;
+      pktDiv.onclick = () => {
+        selectedPacketIdx = idx;
+        renderPackets(stage);
+      };
+
+      // Header row
+      const headerDiv = document.createElement('div');
+      headerDiv.className = 'flex justify-between items-center text-mono-micro text-on-surface-variant mb-space-2xs';
+      headerDiv.innerHTML = `<span class="${isSelected ? 'text-primary font-semibold' : 'text-secondary font-semibold'}">${pkt.id} [${pkt.type}]</span><span>${formatTimestamp(currentOffset).split(' ')[0]}</span>`;
+
+      // Highlighted body
+      const bodyP = document.createElement('p');
+      bodyP.className = `${isSelected ? 'text-on-surface' : 'text-on-surface-variant'} break-all leading-relaxed text-body-sm font-mono-table`;
+
+      // Format FIX string with coloured tags
+      let rawText = pkt.raw;
+      const formatted = rawText.split('\x01').map(pair => {
+        if (!pair) return '';
+        const [tag, val] = pair.split('=');
+        if (tag === '35' || tag === '54') return `<span class="text-secondary font-bold">${tag}=${val}</span>\x01`;
+        if (tag === '11' || tag === '38' || tag === '44' || tag === '37') return `<span class="text-primary font-bold">${tag}=${val}</span>\x01`;
+        if (tag === '8' || tag === '9') return `<span class="text-primary">${tag}=${val}</span>\x01`;
+        return `<span class="text-on-surface-variant">${tag}=${val}</span>\x01`;
+      }).join('');
+
+      bodyP.innerHTML = formatted || pkt.raw;
+      pktDiv.appendChild(headerDiv);
+      pktDiv.appendChild(bodyP);
+      rawContainer.appendChild(pktDiv);
+    });
+
+    // Render decoded table
+    tableBody.innerHTML = '';
+    currentPacket.decoded.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-surface-container-high transition-colors';
+      tr.innerHTML = `
+        <td class="p-space-xs text-primary font-semibold">${row.tag}</td>
+        <td class="p-space-xs text-on-surface-variant">${row.name}</td>
+        <td class="p-space-xs ${row.tag === '35' || row.tag === '54' ? 'text-secondary font-semibold' : 'text-on-surface'}">${row.val}</td>
+        <td class="p-space-xs ${row.tag === '35' ? 'text-secondary font-semibold' : row.tag === '11' ? 'text-primary' : 'text-on-surface'}">${row.desc}</td>
+      `;
+      tableBody.appendChild(tr);
+    });
+  }
+
+  // Update visual timeline elements
+  function updateTimelineView() {
+    const pct = Math.max(0, Math.min(100, (currentOffset / TOTAL_DURATION_SEC) * 100));
+    progressFill.style.width = pct + '%';
+    scrubHead.style.left = pct + '%';
+
+    // Labels
+    cursorTimeDisplay.innerText = `CURSOR: ${formatTimestamp(currentOffset)}`;
+    cursorOffsetDisplay.innerText = `(OFFSET: +${currentOffset.toFixed(3)}s)`;
+    progressPercentage.innerText = pct.toFixed(2) + '%';
+
+    // Dynamic metrics calculated from offset
+    const intensity = Math.sin((pct / 100) * Math.PI) * 0.9 + 0.1;
+    const baseMsg = 4440000;
+    const currentBurstMsg = Math.floor(baseMsg * (0.6 + intensity * 0.4));
+    burstMsgCount.innerText = currentBurstMsg.toLocaleString();
+
+    const cachedGB = (3.88 + (pct / 100) * 2.99).toFixed(2);
+    replayBufferInfo.innerText = `${cachedGB} GB / 6.87 GB (100% CACHED)`;
+
+    // Packets refresh
+    const stage = getCurrentStage(currentOffset);
+    renderPackets(stage);
+  }
+
+  // Play / Pause toggle
+  function togglePlayPause() {
+    isPlaying = !isPlaying;
+    if (isPlaying) {
+      playIcon.innerText = 'pause';
+      playText.innerText = 'PAUSE';
+      playBtn.className = 'px-space-sm py-space-2xs bg-primary text-on-primary font-bold rounded flex items-center gap-1 transition-all shadow-[0_0_8px_rgba(56,189,248,0.4)]';
+      statusText.innerText = currentSpeedLabel === 'MAX' ? 'REPLAYING TAPE: MAX LINE RATE (2,410,000 MSGS/SEC)' : `REPLAYING TAPE: ${currentSpeedLabel} (${(parseFloat(currentSpeedMultiplier)*148000).toLocaleString()} MSGS/SEC)`;
+      statusDot.className = 'w-2 h-2 rounded-full bg-secondary-container';
+      subsystemPulse.classList.add('animate-pulse');
+      subsystemPulse.className = 'w-2 h-2 rounded-full bg-secondary animate-pulse';
+      subsystemLabel.innerText = 'TAP REPLAY SUBSYSTEM ACTIVE';
+      pauseTapBtn.innerText = 'PAUSE TAP';
+      pauseTapBtn.className = 'font-mono-micro text-mono-micro bg-surface-container px-space-xs py-space-2xs rounded text-on-surface-variant hover:text-on-surface';
+    } else {
+      playIcon.innerText = 'play_arrow';
+      playText.innerText = 'RESUME';
+      playBtn.className = 'px-space-sm py-space-2xs bg-secondary text-on-secondary font-bold rounded flex items-center gap-1 transition-all shadow-[0_0_8px_rgba(78,222,163,0.4)]';
+      statusText.innerText = 'TAPE PAUSED // HARDWARE CLOCK FROZEN';
+      statusDot.className = 'w-2 h-2 rounded-full bg-surface-variant';
+      subsystemPulse.classList.remove('animate-pulse');
+      subsystemPulse.className = 'w-2 h-2 rounded-full bg-surface-variant';
+      subsystemLabel.innerText = 'TAP REPLAY SUBSYSTEM FROZEN (STANDBY)';
+      pauseTapBtn.innerText = 'RESUME TAP';
+      pauseTapBtn.className = 'font-mono-micro text-mono-micro bg-primary-container px-space-xs py-space-2xs rounded text-on-primary-container font-semibold';
+    }
+  }
+
+  // Step offset in seconds
+  function stepOffset(deltaSec) {
+    currentOffset = Math.max(0, Math.min(TOTAL_DURATION_SEC, currentOffset + deltaSec));
+    updateTimelineView();
+  }
+
+  // Step packet index
+  function stepNextPacket() {
+    const stage = getCurrentStage(currentOffset);
+    selectedPacketIdx = (selectedPacketIdx + 1) % stage.packets.length;
+    currentOffset = Math.min(TOTAL_DURATION_SEC, currentOffset + 0.05);
+    updateTimelineView();
+  }
+
+  // Speed selector
+  function setSpeed(speed) {
+    currentSpeedLabel = speed;
+    const buttons = document.querySelectorAll('.speed-btn');
+    buttons.forEach(btn => {
+      btn.classList.remove('bg-primary-container', 'text-on-primary-container', 'font-semibold');
+      btn.classList.add('hover:bg-surface-container', 'text-on-surface-variant');
+    });
+
+    const activeBtn = document.querySelector(`.speed-btn[data-speed="${speed}"]`);
+    if (activeBtn) {
+      activeBtn.classList.add('bg-primary-container', 'text-on-primary-container', 'font-semibold');
+      activeBtn.classList.remove('hover:bg-surface-container', 'text-on-surface-variant');
+    }
+
+    if (speed === 'MAX') {
+      currentSpeedMultiplier = 250.0;
+      if (isPlaying) statusText.innerText = 'REPLAYING TAPE: MAX LINE RATE (2,410,000 MSGS/SEC)';
+    } else {
+      currentSpeedMultiplier = parseFloat(speed);
+      if (isPlaying) statusText.innerText = `REPLAYING TAPE: ${speed} (${(currentSpeedMultiplier * 148000).toLocaleString()} MSGS/SEC)`;
+    }
+  }
+
+  // Interactive Drag & Hover handling on timelineBar
+  function calculateOffsetFromEvent(e) {
+    const rect = timelineBar.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
+    const ratio = x / rect.width;
+    return ratio * TOTAL_DURATION_SEC;
+  }
+
+  function updateTooltip(e, offset) {
+    const rect = timelineBar.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
+    const ratio = x / rect.width;
+
+    scrubTooltip.style.left = `${x}px`;
+    scrubTooltip.classList.remove('hidden');
+    hoverGuideLine.style.left = `${x}px`;
+    hoverGuideLine.classList.remove('hidden');
+
+    const ts = formatTimestamp(offset);
+    tooltipTime.innerText = ts.split(' ')[0];
+
+    const volPct = Math.round((Math.sin(ratio * Math.PI) * 0.8 + 0.2) * 100);
+    tooltipVol.innerText = `BURST INTENSITY: ${volPct}%`;
+    tooltipRate.innerText = `${(volPct * 0.02 + 0.4).toFixed(2)}M msg/s`;
+  }
+
+  timelineBar.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    currentOffset = calculateOffsetFromEvent(e);
+    updateTimelineView();
+    updateTooltip(e, currentOffset);
+  });
+
+  timelineBar.addEventListener('touchstart', (e) => {
+    isDragging = true;
+    currentOffset = calculateOffsetFromEvent(e);
+    updateTimelineView();
+    updateTooltip(e, currentOffset);
+  }, { passive: true });
+
+  window.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+      currentOffset = calculateOffsetFromEvent(e);
+      updateTimelineView();
+      updateTooltip(e, currentOffset);
+    } else {
+      const rect = timelineBar.getBoundingClientRect();
+      if (e.clientY >= rect.top && e.clientY <= rect.bottom && e.clientX >= rect.left && e.clientX <= rect.right) {
+        const hoverOffset = calculateOffsetFromEvent(e);
+        updateTooltip(e, hoverOffset);
+      } else {
+        scrubTooltip.classList.add('hidden');
+        hoverGuideLine.classList.add('hidden');
+      }
+    }
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      scrubTooltip.classList.add('hidden');
+      hoverGuideLine.classList.add('hidden');
+    }
+  });
+
+  timelineBar.addEventListener('mouseleave', () => {
+    if (!isDragging) {
+      scrubTooltip.classList.add('hidden');
+      hoverGuideLine.classList.add('hidden');
+    }
+  });
+
+  // RAF Continuous Loop
+  function animationLoop(now) {
+    const dt = (now - lastTimestamp) / 1000;
+    lastTimestamp = now;
+
+    if (isPlaying && !isDragging) {
+      currentOffset += dt * currentSpeedMultiplier;
+      if (currentOffset > TOTAL_DURATION_SEC) {
+        currentOffset = 0; // Seamless tape loop
+      }
+      updateTimelineView();
+
+      // Continuous packet counter increment
+      let currentVal = parseInt(counter.innerText.replace(/,/g, ''));
+      counter.innerText = (currentVal + Math.floor(dt * currentSpeedMultiplier * 148)).toLocaleString();
+    }
+
+    requestAnimationFrame(animationLoop);
+  }
+
+  // Export action handler
+  function triggerExport(format) {
+    const btn = event.currentTarget;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span> GENERATING...';
+    setTimeout(() => {
+      btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">done</span> VERIFIED & DOWNLOADED';
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+      }, 2000);
+    }, 900);
+  }
+
+  // Initialize view
+  updateTimelineView();
+  requestAnimationFrame(animationLoop);
+</script>
+</main></div></body></html>

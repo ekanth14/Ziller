@@ -1,0 +1,39 @@
+{
+  "order": "09",
+  "folder": "09-zillers-kill-switch-risk-governor",
+  "id": "9386b6f06f3b4423b75364fbf7091854",
+  "title": "ZILLERS - Master Emergency Kill-Switch & Risk Governor",
+  "resourceName": "projects/11951265260504602280/screens/9386b6f06f3b4423b75364fbf7091854",
+  "width": "3716",
+  "height": "2654",
+  "htmlCode": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/9386b6f06f3b4423b75364fbf7091854:download",
+    "mimeType": "text/html",
+    "name": "projects/11951265260504602280/screens/9386b6f06f3b4423b75364fbf7091854/fileEntries/html"
+  },
+  "screenshot": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f2353d2d30c02a9a2cee528bfb6:download",
+    "mimeType": "image/png",
+    "name": "projects/11951265260504602280/screens/9386b6f06f3b4423b75364fbf7091854/fileEntries/screenshot"
+  },
+  "imageOnly": false,
+  "files": [
+    {
+      "name": "preview.png",
+      "bytes": 1342838,
+      "mimeType": "image/png",
+      "sha256": "dc20fa74f76f57633bf143c3cab096f9a63352893ab0ab35d881b8affe62cd05"
+    },
+    {
+      "name": "index.html",
+      "bytes": 46628,
+      "mimeType": "text/html",
+      "sha256": "71bf996402551dd46e43d912ad21c7fd8183338d18bd830f81dba2a8ca254909"
+    }
+  ],
+  "preview": "preview.png",
+  "verifiedImageDimensions": {
+    "width": 3716,
+    "height": 2654
+  }
+}

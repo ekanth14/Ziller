@@ -1,0 +1,39 @@
+{
+  "order": "03",
+  "folder": "03-zillers-footprint-depth-heatmap",
+  "id": "aeef46e2bc454f69bc3a76305fc25e96",
+  "title": "ZILLERS - Order Book, Footprint & Depth Heatmap",
+  "resourceName": "projects/11951265260504602280/screens/aeef46e2bc454f69bc3a76305fc25e96",
+  "width": "2560",
+  "height": "2302",
+  "htmlCode": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/337597370399759311:download",
+    "mimeType": "text/html",
+    "name": "projects/11951265260504602280/files/337597370399759311"
+  },
+  "screenshot": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/10133703532570347670:download",
+    "mimeType": "image/jpeg",
+    "name": "projects/11951265260504602280/files/10133703532570347670"
+  },
+  "imageOnly": false,
+  "files": [
+    {
+      "name": "preview.jpg",
+      "bytes": 596636,
+      "mimeType": "image/jpeg",
+      "sha256": "37bc7b3c759e123d7df5f5da56d8641336a15ba4c7960dc63bea970b9c2f5404"
+    },
+    {
+      "name": "index.html",
+      "bytes": 74637,
+      "mimeType": "text/html",
+      "sha256": "23d435a0d81b8a63eca49b33385837fdcaeffe018800e4e65f25952c55dbb590"
+    }
+  ],
+  "preview": "preview.jpg",
+  "verifiedImageDimensions": {
+    "width": 2560,
+    "height": 2302
+  }
+}

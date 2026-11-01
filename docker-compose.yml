@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  zillers-terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zillers-terminal
+    restart: unless-stopped
+    ports:
+      - "8900:8900"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8900
+      - ADMIN_INITIAL_PASSWORD=${ADMIN_INITIAL_PASSWORD:-ChangeMeOnFirstLogin123!}
+      - SIGNUP_MODE=${SIGNUP_MODE:-open}
+      - INVITE_CODE=${INVITE_CODE:-ZILLERS-2026}
+      - TRUST_PROXY=${TRUST_PROXY:-false}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=gemma4:12b
+    volumes:
+      - terminal_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8900/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  terminal_data:
+    driver: local

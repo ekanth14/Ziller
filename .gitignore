@@ -1,20 +1,53 @@
-# Python Bytecode & Cache
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-.pytest_cache/
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
 
-# Runtime SQLite Databases & Sensitive Backups
-work/runtime/*.db
-work/runtime/*.db-wal
-work/runtime/*.db-shm
-work/backups/*
+# Databases & Backups (Rule 9: Non-negotiable)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+work/
+work/backups/
+data/snapshots/*.db
 
-# Local Environment Secrets
+# Secrets & Environment variables (Rule 9: Non-negotiable)
 .env
-*.local
+.env.local
+.env.*.local
+!.env.example
 
-# OS Generated Files
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Large weights, checkpoints & models
+*.safetensors
+*.bin
+*.pt
+*.onnx
+checkpoints/
+data/models/
+
+# OS specific
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Logs & Temporary Workspaces
+*.log
+logs/
+.system_generated/

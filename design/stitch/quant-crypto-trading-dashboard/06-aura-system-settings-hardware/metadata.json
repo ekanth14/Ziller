@@ -1,0 +1,39 @@
+{
+  "order": "06",
+  "folder": "06-zillers-system-settings-hardware",
+  "id": "4ce4c5349c91453bb20c466096c58dfb",
+  "title": "ZILLERS - System Settings & Colocation Hardware",
+  "resourceName": "projects/11951265260504602280/screens/4ce4c5349c91453bb20c466096c58dfb",
+  "width": "2560",
+  "height": "2388",
+  "htmlCode": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/7442100994564322839:download",
+    "mimeType": "text/html",
+    "name": "projects/11951265260504602280/files/7442100994564322839"
+  },
+  "screenshot": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/12228142326236736865:download",
+    "mimeType": "image/jpeg",
+    "name": "projects/11951265260504602280/files/12228142326236736865"
+  },
+  "imageOnly": false,
+  "files": [
+    {
+      "name": "preview.jpg",
+      "bytes": 610055,
+      "mimeType": "image/jpeg",
+      "sha256": "e3963e8ffcdb4953d05ea80a6a6ed136e99b98e23147f7536b5e56b63e6cf502"
+    },
+    {
+      "name": "index.html",
+      "bytes": 62750,
+      "mimeType": "text/html",
+      "sha256": "e171444a0d755b2eba241baf7cc1afa39529107a0e61e0ceaad68dc47736c9df"
+    }
+  ],
+  "preview": "preview.jpg",
+  "verifiedImageDimensions": {
+    "width": 2560,
+    "height": 2364
+  }
+}

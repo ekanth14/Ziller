@@ -1,0 +1,39 @@
+{
+  "order": "10",
+  "folder": "10-zillers-ptp-optical-network",
+  "id": "544c530bedc245969dcbcc19b72edad4",
+  "title": "ZILLERS - PTP Clock Grandmaster & Optical Network Hub",
+  "resourceName": "projects/11951265260504602280/screens/544c530bedc245969dcbcc19b72edad4",
+  "width": "3730",
+  "height": "2172",
+  "htmlCode": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/544c530bedc245969dcbcc19b72edad4:download",
+    "mimeType": "text/html",
+    "name": "projects/11951265260504602280/screens/544c530bedc245969dcbcc19b72edad4/fileEntries/html"
+  },
+  "screenshot": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f235392e36e0522a021fe3042a6:download",
+    "mimeType": "image/png",
+    "name": "projects/11951265260504602280/screens/544c530bedc245969dcbcc19b72edad4/fileEntries/screenshot"
+  },
+  "imageOnly": false,
+  "files": [
+    {
+      "name": "preview.png",
+      "bytes": 807763,
+      "mimeType": "image/png",
+      "sha256": "7a077de5ee1d066d0d90263338f672f8afeeda3109255249ab98aa21bb8b91a2"
+    },
+    {
+      "name": "index.html",
+      "bytes": 47433,
+      "mimeType": "text/html",
+      "sha256": "5de049c133fe989732bce94aac67c65e9885e84f9062ae82d9152acb0503b3a9"
+    }
+  ],
+  "preview": "preview.png",
+  "verifiedImageDimensions": {
+    "width": 3730,
+    "height": 2172
+  }
+}

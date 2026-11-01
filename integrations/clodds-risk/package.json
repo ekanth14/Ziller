@@ -1,0 +1,14 @@
+{
+  "name": "zien-clodds-risk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Selected MIT CloddsBot risk modules; offline only",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test tests/risk.test.mjs",
+    "verify": "node cli.mjs --demo"
+  }
+}
