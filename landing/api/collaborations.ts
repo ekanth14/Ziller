@@ -194,7 +194,7 @@ function renderLockedScreenHtml(): string {
     </form>
 
     <div class="footer-link">
-      <a href="/landing/#collaborate">← Return to Public Showcase</a>
+      <a href="https://zillers.zienorganisation.online/collaborate">← Return to Public Showcase</a>
     </div>
   </div>
 
@@ -547,7 +547,7 @@ function renderUnlockedDashboardHtml(records: Array<Record<string, any>>): strin
           <span class="status-dot"></span>
           <span>${totalCount} RECORDED</span>
         </span>
-        <a href="/landing/#collaborate" class="btn">← Back to Showcase</a>
+        <a href="https://zillers.zienorganisation.online/collaborate" class="btn">← Back to Showcase</a>
         <button class="btn" onclick="exportCSV()">Export CSV</button>
         <button class="btn" onclick="exportJSON()">Export JSON</button>
         <button class="btn btn-danger" onclick="handleLogout()">Lock Desk</button>

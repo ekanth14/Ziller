@@ -3,12 +3,39 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": ".*\\.vercel\\.app"
+        }
+      ],
+      "destination": "https://zillers.zienorganisation.online/collaborate",
+      "permanent": false
+    }
+  ],
   "rewrites": [
-    { "source": "/collaborations", "destination": "/api/collaborations" },
-    { "source": "/collaborate/submissions", "destination": "/api/collaborations" },
-    { "source": "/api/collaborate/list", "destination": "/api/collaborate" },
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/((?!api/|assets/|favicon.ico).*)", "destination": "/index.html" }
+    {
+      "source": "/collaborations",
+      "destination": "/api/collaborations"
+    },
+    {
+      "source": "/collaborate/submissions",
+      "destination": "/api/collaborations"
+    },
+    {
+      "source": "/api/collaborate/list",
+      "destination": "/api/collaborate"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
