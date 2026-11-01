@@ -55,7 +55,7 @@ class CoinGeckoService:
             "per_page": str(per_page),
             "page": "1",
             "sparkline": "true",
-            "price_change_percentage": "1h,24h,7d",
+            "price_change_percentage": "1h,24h,7d,30d",
         }
         url = f"{self.BASE_URL}/coins/markets?" + urlencode(params)
         headers = {"User-Agent": "ZILLERS-Terminal/4.2 (Research Aggregator)"}
@@ -85,6 +85,7 @@ class CoinGeckoService:
                         "price_change_percentage_1h": float(row.get("price_change_percentage_1h_in_currency") or 0.0),
                         "price_change_percentage_24h": float(row.get("price_change_percentage_24h") or 0.0),
                         "price_change_percentage_7d": float(row.get("price_change_percentage_7d_in_currency") or 0.0),
+                        "price_change_percentage_30d": float(row.get("price_change_percentage_30d_in_currency") or 0.0),
                         "sparkline_7d": sparkline_data[-24:] if len(sparkline_data) >= 24 else sparkline_data,
                         "circulating_supply": float(row.get("circulating_supply") or 0.0),
                         "source": "coingecko",

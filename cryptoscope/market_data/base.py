@@ -19,9 +19,10 @@ class NormalisedTicker:
     high_24h: Optional[float] = None
     low_24h: Optional[float] = None
     volume_24h: Optional[float] = None
-    change_24h_pct: Optional[float] = None
     change_1h_pct: Optional[float] = None
+    change_24h_pct: Optional[float] = None
     change_7d_pct: Optional[float] = None
+    change_30d_pct: Optional[float] = None
     market_cap: Optional[float] = None
     rank: Optional[int] = None
     source: str = ""              # 'binance', 'coinbase', 'kraken', 'coingecko'
@@ -40,9 +41,10 @@ class NormalisedTicker:
             "high_24h": self.high_24h,
             "low_24h": self.low_24h,
             "volume_24h": self.volume_24h,
-            "change_24h_pct": self.change_24h_pct,
             "change_1h_pct": self.change_1h_pct,
+            "change_24h_pct": self.change_24h_pct,
             "change_7d_pct": self.change_7d_pct,
+            "change_30d_pct": self.change_30d_pct,
             "market_cap": self.market_cap,
             "rank": self.rank,
             "source": self.source,
