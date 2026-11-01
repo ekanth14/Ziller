@@ -89,7 +89,7 @@ export const Hero: React.FC = () => {
                   <div className="w-2.5 h-2.5 rounded-full bg-[#38383C]" />
                   <div className="w-2.5 h-2.5 rounded-full bg-[#38383C]" />
                   <span className="ml-3 font-mono text-[10px] tracking-wider text-[#A2A2A8] uppercase">
-                    ZILLERS // QUANTITATIVE DESK V4.2
+                    ZILLERS // QUANTITATIVE DESK
                   </span>
                 </div>
                 <div className="flex items-center gap-3 font-mono text-[10px] text-[#A2A2A8]">

@@ -85,7 +85,6 @@ export const Footer: React.FC = () => {
           </p>
           <div className="pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-[#A2A2A8]">
             <span>© 2026 ZILLERS. A unit of Zien Organisation. All rights reserved.</span>
-            <span>Version: 4.2 Monochrome Edition</span>
           </div>
         </div>
       </div>
