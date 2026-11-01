@@ -329,9 +329,74 @@ These optional research packages are decoupled from the core real-time autonomou
 
 ---
 
+
+---
+
+## Phase 12: GUI Overhaul & Dark Institutional Color Theme Alignment
+
+### 1. Root Cause & Visual Defect Analysis
+- **White Dropdown Popup Bug on Windows Chrome:**
+  - In Chromium on Windows, clicking `<select id="symbol">` triggered the operating system's native light window overlay with a glaring white background (`#ffffff`). Because `<select>` styling inherited `--text: #f8fafc`, the option labels were rendered as invisible white text on white background (only highlighted rows like `BNBUSDT · BNB` were legible in light blue).
+  - The `:root` palette was missing the `--surface-mid` token (`#191b21`), causing elements referencing `var(--surface-mid)` to fall back to invalid/transparent backgrounds.
+  - Scrollbars lacked custom styling, causing Windows to render standard light grey scrollbars that visually disrupted the dark terminal aesthetic.
+
+### 2. Solutions Implemented
+1. **Design System & Palette Alignment:**
+   - Standardized all `:root` design tokens:
+     ```css
+     --bg: #080a0f;
+     --bg-darker: #05070a;
+     --surface-lowest: rgba(12, 14, 19, 0.94);
+     --surface-low: #111319;
+     --surface-mid: #191b21;
+     --surface: #191b21;
+     --surface-high: #1e2028;
+     --surface-highest: #282c38;
+     --border: #1a202c;
+     --border-light: rgba(255, 255, 255, 0.08);
+     --border-accent: rgba(56, 189, 248, 0.35);
+     --primary-cyan: #38bdf8;
+     --secondary-emerald: #10b981;
+     --secondary-green: #10b981;
+     --danger-rose: #f43f5e;
+     --warning-amber: #f5a623;
+     ```
+2. **Universal Dark Scrollbars:**
+   - Configured custom WebKit scrollbars (`::-webkit-scrollbar`) with `#283344` thumb and `#111319` track, along with standard Firefox CSS properties (`scrollbar-width: thin; scrollbar-color: #283344 var(--surface-low);`).
+3. **Form Controls & Native Select Styling:**
+   - Applied `color-scheme: dark !important;` to all form controls.
+   - Replaced native Windows browser dropdown styling on `select` with custom SVG chevron chevrons and enforced dark option backgrounds:
+     ```css
+     select option, select optgroup {
+       background-color: #111319 !important;
+       color: #f8fafc !important;
+       color-scheme: dark !important;
+       padding: 8px 12px;
+     }
+     select option:checked, select option:hover {
+       background-color: #1e2028 !important;
+       color: #38bdf8 !important;
+     }
+     ```
+   - Covers all selects across the terminal: `#workspace`, `#symbol`, `#status-filter`, and `#listings-sort`.
+4. **Custom Institutional Cryptocurrency Dropdown Component:**
+   - Designed a Bloomberg/TradingView-grade floating dropdown popover (`.symbol-picker-container`, `.symbol-picker-dropdown`):
+     - **Trigger Button:** Displays active token badge icon, formatted symbol/name (e.g., `Ξ ETHUSDT · Ethereum`), and rotating chevron caret.
+     - **Search Filter:** Instant keystroke search across 100+ cryptocurrencies by ticker (e.g. `btc`, `sol`) or project name (`bitcoin`, `solana`).
+     - **Category Filter Pills:** Quick filters for `ALL`, `MAJORS` (BTC, ETH, SOL, BNB, XRP), `L1/L2` (ADA, AVAX, NEAR, SUI, DOT...), `DEFI` (LINK, UNI, AAVE, MKR...), and `MEME` (DOGE, SHIB, PEPE, WIF...).
+     - **Live Market Telemetry:** Each token row displays the crypto icon, ticker, full name, live price, and colored 24h percentage change (`+3.42%` green, `-1.20%` rose).
+     - **Dual Synchronization:** Kept the underlying `<select id="symbol">` in the DOM and bidirectional synchronized so all existing event listeners, automated tests, and helper functions (`selectSymbolForResearch(sym)`) remain 100% operational.
+     - **Keyboard & Click-Outside Handlers:** Closes cleanly on outside click or `Escape` key, with scroll-into-view on navigation.
+
+### 3. Verification & Test Suite
+- Ran full test suite (`pytest -v`): **109 passed, 7 skipped, 31 subtests passed in 20.12s**.
+- Tested static asset endpoints (`/`, `/static/style.css`, `/static/app.js`) to verify token definitions and script validity.
+
 ## 5. Git Commit Audit Trail
 
 ```
+425c258 fix(gui): dark institutional color theme and custom cryptocurrency picker
+1fd775c docs: update TRANSFORMATION_CHANGES.md with Phase 11 candlestick chart and multi-asset streaming
 21ada0b feat(ui): implement candlestick bars, multi-asset chart switcher, fix crypto listings, and enable real-time SSE streaming
 03c7202 fix(review-pass-2): add scrypt semaphore, gate 3 trade timestamp derivation, testnet withdrawal blocking, and laya selftest
 1cf4279 docs: update TRANSFORMATION_CHANGES.md with review pass, test suite counts, and commit audit
