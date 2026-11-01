@@ -10,24 +10,27 @@ from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("cryptoscope.auth.security")
 
-SCRYPT_N = 16384
+SCRYPT_N = 131072  # 2^17
 SCRYPT_R = 8
 SCRYPT_P = 1
+SCRYPT_MAXMEM = 256 * 1024 * 1024  # 256 MB to support N=2^17
 LOCKOUT_THRESHOLD = 5
 LOCKOUT_DURATION_SECONDS = 15 * 60  # 15 minutes
+MAX_LOCKOUT_DURATION_SECONDS = 60 * 60  # 1 hour cap (never permanent)
 
 
-def hash_password(password: str) -> str:
-    """Hash password using scrypt with random 32-byte salt."""
+def hash_password(password: str, n: int = SCRYPT_N, r: int = SCRYPT_R, p: int = SCRYPT_P) -> str:
+    """Hash password using scrypt with random 32-byte salt and explicit parameters stored in hash."""
     if not password or len(password) < 8:
         raise ValueError("Password must be at least 8 characters")
     salt = secrets.token_bytes(32)
-    key = hashlib.scrypt(password.encode("utf-8"), salt=salt, n=SCRYPT_N, r=SCRYPT_R, p=SCRYPT_P)
-    return f"scrypt${SCRYPT_N}${SCRYPT_R}${SCRYPT_P}${salt.hex()}${key.hex()}"
+    maxmem = max(SCRYPT_MAXMEM, 128 * n * r * 2)
+    key = hashlib.scrypt(password.encode("utf-8"), salt=salt, n=n, r=r, p=p, maxmem=maxmem)
+    return f"scrypt${n}${r}${p}${salt.hex()}${key.hex()}"
 
 
 def verify_password(password: str, stored_hash: str) -> bool:
-    """Constant-time verification of password against stored scrypt hash."""
+    """Constant-time verification of password against stored scrypt hash with dynamic parameters."""
     if not password or not stored_hash:
         return False
     try:
@@ -37,11 +40,26 @@ def verify_password(password: str, stored_hash: str) -> bool:
         n, r, p = int(parts[1]), int(parts[2]), int(parts[3])
         salt = bytes.fromhex(parts[4])
         expected_key = bytes.fromhex(parts[5])
-        key = hashlib.scrypt(password.encode("utf-8"), salt=salt, n=n, r=r, p=p)
+        maxmem = max(SCRYPT_MAXMEM, 128 * n * r * 2)
+        key = hashlib.scrypt(password.encode("utf-8"), salt=salt, n=n, r=r, p=p, maxmem=maxmem)
         return hmac.compare_digest(key, expected_key)
     except Exception as e:
         logger.debug("Password verification error: %s", e)
         return False
+
+
+def needs_rehash(stored_hash: str) -> bool:
+    """Return True if stored hash does not match current target scrypt parameters (N=2^17, r=8, p=1)."""
+    if not stored_hash:
+        return True
+    try:
+        parts = stored_hash.split("$")
+        if len(parts) != 6 or parts[0] != "scrypt":
+            return True
+        n, r, p = int(parts[1]), int(parts[2]), int(parts[3])
+        return n != SCRYPT_N or r != SCRYPT_R or p != SCRYPT_P
+    except Exception:
+        return True
 
 
 def hash_token(token: str) -> str:
@@ -103,16 +121,17 @@ class RateLimiter:
 
 
 class AccountLockoutManager:
-    """Tracks consecutive failed logins per account with exponential backoff:
+    """Tracks consecutive failed logins per account with temporary exponential backoff:
     - 3 failed logins -> 1 min (60s)
     - 5 failed logins -> 15 min (900s)
-    - 10 failed logins -> permanent lock until admin reset
+    - 10+ failed logins -> 1 hour (3600s max cap, NEVER permanent)
+    Lockout expires automatically after the duration or via admin CLI unlock.
     """
     def __init__(self, threshold: Optional[int] = None, duration: Optional[int] = None, tiered: Optional[bool] = None):
         self.tiered = (tiered is True) or (threshold is None and tiered is not False)
         self.threshold = threshold or LOCKOUT_THRESHOLD
-        self.duration = duration or LOCKOUT_DURATION_SECONDS
-        # email -> {"failures": int, "locked_until": float, "admin_locked": bool}
+        self.duration = min(duration or LOCKOUT_DURATION_SECONDS, MAX_LOCKOUT_DURATION_SECONDS)
+        # email -> {"failures": int, "locked_until": float}
         self.accounts: Dict[str, Dict[str, Any]] = {}
         self._lock = threading.Lock()
 
@@ -123,8 +142,6 @@ class AccountLockoutManager:
             rec = self.accounts.get(normalized)
             if not rec:
                 return False, 0
-            if rec.get("admin_locked"):
-                return True, -1  # indicates permanent lock until admin reset
             locked_until = rec.get("locked_until", 0.0)
             if now < locked_until:
                 rem = max(1, int(locked_until - now))
@@ -138,39 +155,51 @@ class AccountLockoutManager:
         normalized = email.strip().lower()
         now = time.time()
         with self._lock:
-            rec = self.accounts.setdefault(normalized, {"failures": 0, "locked_until": 0.0, "admin_locked": False})
+            rec = self.accounts.setdefault(normalized, {"failures": 0, "locked_until": 0.0})
             rec["failures"] += 1
             fails = rec["failures"]
 
             if self.tiered:
                 if fails >= 10:
-                    rec["admin_locked"] = True
-                    rec["locked_until"] = now + 31536000
-                    logger.warning("Account %s permanently locked (10+ failures), admin reset required", normalized)
-                    return True, -1
+                    lock_time = MAX_LOCKOUT_DURATION_SECONDS  # 1 hour cap, temporary, never permanent
+                    rec["locked_until"] = now + lock_time
+                    logger.warning("Account %s locked for 1 hour (10+ failures, capped at 1h)", normalized)
+                    return True, lock_time
                 elif fails >= 5:
-                    rec["locked_until"] = now + 900
+                    lock_time = 900
+                    rec["locked_until"] = now + lock_time
                     logger.warning("Account %s locked for 15 min (>=5 failures)", normalized)
-                    return True, 900
+                    return True, lock_time
                 elif fails >= 3:
-                    rec["locked_until"] = now + 60
+                    lock_time = 60
+                    rec["locked_until"] = now + lock_time
                     logger.warning("Account %s locked for 1 min (>=3 failures)", normalized)
-                    return True, 60
+                    return True, lock_time
                 return False, 0
             else:
                 if fails >= self.threshold:
-                    rec["locked_until"] = now + self.duration
+                    lock_time = min(self.duration, MAX_LOCKOUT_DURATION_SECONDS)
+                    rec["locked_until"] = now + lock_time
                     logger.warning("Account %s locked out due to %d consecutive failed logins", normalized, fails)
-                    return True, self.duration
+                    return True, lock_time
                 return False, 0
 
     def record_success(self, email: str):
         normalized = email.strip().lower()
         with self._lock:
-            if normalized in self.accounts and not self.accounts[normalized].get("admin_locked"):
-                self.accounts[normalized] = {"failures": 0, "locked_until": 0.0, "admin_locked": False}
+            if normalized in self.accounts:
+                self.accounts[normalized] = {"failures": 0, "locked_until": 0.0}
 
-    def admin_unlock(self, email: str):
+    def admin_unlock(self, email: str) -> bool:
+        """Unlock an account immediately, resetting failures and clearing lock expiration."""
         normalized = email.strip().lower()
         with self._lock:
-            self.accounts[normalized] = {"failures": 0, "locked_until": 0.0, "admin_locked": False}
+            self.accounts[normalized] = {"failures": 0, "locked_until": 0.0}
+            logger.info("Account %s unlocked by administrator", normalized)
+            return True
+
+    def unlock_all(self):
+        """Unlock all tracked accounts."""
+        with self._lock:
+            self.accounts.clear()
+            logger.info("All account lockouts cleared")

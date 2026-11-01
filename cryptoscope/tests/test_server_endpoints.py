@@ -59,6 +59,13 @@ class ServerEndpointTests(unittest.TestCase):
             self.assertEqual(data["status"], "healthy")
             self.assertEqual(data["terminal"], "ZILLERS")
 
+            # Validate institutional security headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options)
+            headers = dict(resp.headers)
+            self.assertIn("Content-Security-Policy", headers)
+            self.assertIn("Strict-Transport-Security", headers)
+            self.assertEqual(headers.get("X-Frame-Options"), "DENY")
+            self.assertEqual(headers.get("X-Content-Type-Options"), "nosniff")
+
         with urlopen(f"{self.base_url}/ready") as resp:
             self.assertEqual(resp.status, 200)
             data = json.load(resp)

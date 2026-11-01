@@ -1,16 +1,22 @@
-"""Institutional crypto spot cost model and Indian tax regime (Section 115BBH / 194S).
+"""Institutional crypto spot cost model and Indian tax regime.
+
+Statutory Framework Mapping:
+- FY 2025-26 (Income-tax Act, 1961):
+  * Section 2(47A): Definition of Virtual Digital Assets (VDA - crypto, tokens).
+  * Section 115BBH: 31.2% flat tax (30% base + 4% health & education cess) on gross gains.
+    Strict ZERO loss set-off: losses on one trade cannot offset gains on another.
+  * Section 194S: 1.0% TDS deducted on entire gross transfer/sale consideration.
+  * 18.0% GST applied to domestic exchange transaction brokerage/fees.
+- FY 2026-27 onward (Income-tax Act, 2025):
+  * Direct Tax Code alignment: Preserves identical VDA taxation principles under the restructured
+    digital assets schedule (30% + cess flat gain tax, zero loss set-off, and 1% source withholding).
 
 Features:
 - Configurable maker/taker exchange fees (default 0.1%).
 - Volatility and asset-class aware slippage (5 bps for BTC/ETH, 15 bps for alts).
-- Indian Tax Regime (Section 115BBH / Section 194S):
-  * 31.2% flat tax (30% + 4% cess) on gross gains per profitable trade.
-  * ZERO loss set-off: losses on one trade cannot offset gains on another.
-  * 1.0% TDS deducted on entire gross sale consideration.
-  * 18.0% GST applied to exchange transaction fees.
 - Pre-tax vs post-tax performance attribution (CAGR, Sharpe, Max Drawdown).
 - Deflated Sharpe Ratio (Bailey & Lopez de Prado 2014) for multiple-testing bias correction.
-- Schedule VDA compliant CSV trade ledger export.
+- Schedule VDA Computation Helper CSV export (subject to Chartered Accountant / tax professional review).
 """
 
 import csv
@@ -113,13 +119,16 @@ class CryptoCostModel:
         }
 
     def generate_schedule_vda_csv(self, trades: List[Dict[str, Any]]) -> str:
-        """Export trade ledger formatted for Indian Tax Schedule VDA reporting."""
+        """Export trade ledger as a Schedule VDA Computation Helper (Subject to CA Verification)."""
         output = io.StringIO()
         output.write("# =========================================================================\n")
-        output.write("# ZILLERS QUANT TERMINAL - SCHEDULE VDA TRADE LEDGER EXPORT\n")
+        output.write("# ZILLERS QUANT TERMINAL - SCHEDULE VDA TRADE LEDGER EXPORT (COMPUTATION HELPER)\n")
         output.write("# DISCLAIMER: FOR TAX ESTIMATION ONLY, NOT OFFICIAL FILING. NOT TAX ADVICE.\n")
-        output.write("# Section 115BBH applies 30% + 4% cess flat on gains with NO loss set-off.\n")
-        output.write("# Section 194S requires 1% TDS on entire gross sale consideration.\n")
+        output.write("# SUBJECT TO VERIFICATION BY A LICENSED CHARTERED ACCOUNTANT (CA).\n")
+        output.write("# Statutory Law Mapping:\n")
+        output.write("# - FY2025-26 (Income-tax Act, 1961): Section 115BBH (31.2% flat tax on gains, zero loss set-off),\n")
+        output.write("#   Section 194S (1% TDS on total consideration), Section 2(47A) (VDA definition).\n")
+        output.write("# - FY2026-27+ (Income-tax Act, 2025): Unified Direct Tax Code VDA provisions.\n")
         output.write("# =========================================================================\n")
 
         writer = csv.writer(output)

@@ -35,7 +35,7 @@ class CoinGeckoService:
             # Paginate in memory from top list
             start = (page - 1) * per_page
             end = start + per_page
-            items = self.cached_listings[start:end]
+            items = [dict(it, snapshot_age_seconds=round(age, 1) if age else None) for it in self.cached_listings[start:end]]
 
             return {
                 "items": items,

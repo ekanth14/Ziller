@@ -9,25 +9,35 @@ from unittest.mock import patch
 from cryptoscope.auth.security import (
     hash_password,
     verify_password,
+    needs_rehash,
     hash_token,
     RateLimiter,
     AccountLockoutManager,
     extract_client_ip,
 )
 from cryptoscope.auth.store import AuthStore
+from cryptoscope.auth.cli import cmd_unlock, cmd_list_users
 
 
 class AuthSecurityTests(unittest.TestCase):
     def test_scrypt_hashing_and_verification(self):
         pwd = "InstitutionalPassword123!"
         hashed = hash_password(pwd)
-        self.assertTrue(hashed.startswith("scrypt$16384$8$1$"))
+        self.assertTrue(hashed.startswith("scrypt$131072$8$1$"))
         parts = hashed.split("$")
         # Ensure 32-byte salt (64 hex characters)
         self.assertEqual(len(parts[4]), 64)
         self.assertTrue(verify_password(pwd, hashed))
         self.assertFalse(verify_password("WrongPassword123!", hashed))
         self.assertFalse(verify_password("", hashed))
+        self.assertFalse(needs_rehash(hashed))
+
+    def test_needs_rehash_on_legacy_parameters(self):
+        pwd = "LegacyPassword123!"
+        legacy_hash = hash_password(pwd, n=16384, r=8, p=1)
+        self.assertTrue(legacy_hash.startswith("scrypt$16384$8$1$"))
+        self.assertTrue(verify_password(pwd, legacy_hash))
+        self.assertTrue(needs_rehash(legacy_hash))
 
     def test_password_length_constraint(self):
         with self.assertRaises(ValueError):
@@ -87,16 +97,37 @@ class AuthSecurityTests(unittest.TestCase):
         self.assertGreater(rem5, 60)
         self.assertLessEqual(rem5, 900)
 
-        # Up to 10 failures: permanent admin lock
+        # Up to 10 failures: temporary 1 hour cap (NEVER permanent)
         for _ in range(4):
             mgr.record_failure(email)
         locked10, rem10 = mgr.record_failure(email)
         self.assertTrue(locked10)
-        self.assertEqual(rem10, -1)  # Permanent lock flag
+        self.assertGreater(rem10, 900)
+        self.assertLessEqual(rem10, 3600)  # Capped at 1 hour
 
         # Admin unlock releases the account
         mgr.admin_unlock(email)
         self.assertFalse(mgr.is_locked(email)[0])
+
+    def test_cli_account_unlock(self):
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "test_users.db"
+            store = AuthStore(db_path)
+            with patch.dict(os.environ, {"ADMIN_INITIAL_PASSWORD": "AdminSecurePassword123!"}):
+                store.bootstrap_admin()
+            # Disable user
+            with store._lock:
+                conn = store._get_connection()
+                conn.execute("UPDATE users SET disabled = 1 WHERE email = 'admin@zillers.local'")
+                conn.commit()
+                conn.close()
+            user_disabled = store.get_user_by_email("admin@zillers.local")
+            self.assertEqual(user_disabled["disabled"], 1)
+
+            # Use CLI unlock command
+            cmd_unlock("admin@zillers.local", db_path=str(db_path))
+            user_active = store.get_user_by_email("admin@zillers.local")
+            self.assertEqual(user_active["disabled"], 0)
 
     def test_proxy_header_trust_only_when_configured(self):
         headers = {"X-Forwarded-For": "203.0.113.195, 70.41.3.18"}

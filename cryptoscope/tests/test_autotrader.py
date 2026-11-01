@@ -365,3 +365,18 @@ class AutoTraderTests(unittest.TestCase):
         # When Tier 2 does not confirm, decision is strictly STAND_ASIDE
         if not decision['tier2']['agreed']:
             self.assertEqual(decision['final_action'], 'STAND_ASIDE')
+
+    def test_laya_status_and_timeout_exceeded_reporting(self):
+        from cryptoscope.autotrader.decision import LayaTier2Evaluator
+        evaluator = LayaTier2Evaluator(timeout_ms=50.0)
+        status = evaluator.get_status()
+        self.assertIn("status", status)
+        self.assertIn("pinned_threads", status)
+        self.assertEqual(status["max_timeout_ms"], 50.0)
+
+        # When evaluation exceeds timeout, status must be explicitly TIMEOUT_EXCEEDED
+        dummy_t1 = {"action": "LONG", "discrete_encoding": "SMC:BULL_OB"}
+        res = evaluator.evaluate(dummy_t1, simulate_delay_ms=80.0)
+        self.assertEqual(res["status"], "TIMEOUT_EXCEEDED")
+        self.assertFalse(res["agreed"])
+        self.assertIn("exceeded", res["reason"])

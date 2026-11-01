@@ -56,7 +56,12 @@ except ImportError:
     backtester = None
 
 
-@unittest.skipIf(backtester is None, 'Use the optional backtesting environment for QuantJourney tests')
+# SKIPPED TESTS AUDIT: The following 4 integration tests require 'quantjourney-bt' (git-pinned in requirements-backtest.txt),
+# an optional specialized backtesting simulator separate from the standard lightweight ZILLERS runtime.
+@unittest.skipIf(
+    backtester is None,
+    "Requires optional 'quantjourney-bt' backtesting engine (git-pinned in requirements-backtest.txt); standard runtime uses stdlib-only backtesting"
+)
 class BacktestIntegrationTests(unittest.TestCase):
     def setUp(self):
         self.snapshot = demo_snapshot()

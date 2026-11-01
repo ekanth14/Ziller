@@ -671,14 +671,21 @@ if ($('kill-switch-btn')) {
         notice(`Resume failed: ${err.message}`);
       }
     } else {
-      if (confirm('ENGAGE MASTER EMERGENCY KILL-SWITCH?\n\nThis will immediately cancel all open orders across all venues, flatten active positions via market orders, and transition the autonomous bot into HALTED state.')) {
-        try {
-          const res = await postJson('/api/governor/kill_switch');
-          notice(`MASTER KILL-SWITCH ENGAGED! Canceled ${res.orders_canceled || 0} orders, flattened ${res.positions_flattened || 0} positions.`);
-          await fetchGovernorStatus();
-        } catch (err) {
-          notice(`Kill-switch execution error: ${err.message}`);
+      const chooseHalt = confirm('ENGAGE MASTER EMERGENCY KILL-SWITCH?\n\nClick OK to HALT (cancels active working orders, but PRESERVES open positions and protective stop-losses).\n\nClick Cancel for HALT + FLATTEN option.');
+      let action = 'HALT';
+      if (!chooseHalt) {
+        if (confirm('Select HALT + FLATTEN?\n\nWARNING: This will cancel all open orders AND market-flatten all open positions immediately.')) {
+          action = 'HALT_FLATTEN';
+        } else {
+          return; // Aborted
         }
+      }
+      try {
+        const res = await postJson('/api/governor/kill_switch', { action: action });
+        notice(`MASTER KILL-SWITCH [${action}] ENGAGED! Canceled ${res.orders_canceled || 0} orders, flattened ${res.positions_flattened || 0} positions.`);
+        await fetchGovernorStatus();
+      } catch (err) {
+        notice(`Kill-switch execution error: ${err.message}`);
       }
     }
   });
@@ -700,6 +707,24 @@ async function fetchGovernorStatus() {
       btn.style.color = '';
       btn.innerHTML = '<span>⚠</span> KILL-SWITCH';
       btn.title = `Master Emergency Kill Switch (Mode: ${res.mode || 'PAPER'})`;
+    }
+  } catch (e) {}
+}
+
+async function fetchLayaStatus() {
+  try {
+    const res = await request('/api/laya/status');
+    const pill = $('laya-status-pill');
+    if (pill && res) {
+      pill.textContent = res.status;
+      if (res.status === 'ACTIVE') {
+        pill.className = 'val ok';
+      } else if (res.status.includes('OLLAMA')) {
+        pill.className = 'val warn';
+      } else {
+        pill.className = 'val dim';
+      }
+      pill.title = `Package: ${res.package_loaded ? 'Yes' : 'No'} | Checkpoint: ${res.checkpoint_loaded ? 'Yes' : 'No'} | Threads: ${res.pinned_threads} | Timeout: ${res.max_timeout_ms}ms`;
     }
   } catch (e) {}
 }
@@ -1078,7 +1103,8 @@ function renderListings() {
         verificationBadge = `<span class="badge-status stale" title="Feed data is older than freshness threshold">STALE (${ticker.age_seconds || 0}s)</span>`;
       }
     } else {
-      verificationBadge = `<span class="badge-status single-source" title="CoinGecko Public API snapshot">COINGECKO SNAP</span>`;
+      const snapAge = (item.snapshot_age_seconds !== undefined && item.snapshot_age_seconds !== null) ? ` (${Math.round(item.snapshot_age_seconds)}s)` : '';
+      verificationBadge = `<span class="badge-status single-source" title="CoinGecko Public API snapshot (Age: ${item.snapshot_age_seconds || 0}s)">COINGECKO${snapAge}</span>`;
     }
 
     const sparklineSvg = generateSparklineSvg(item.sparkline_7d || item.sparkline_in_7d?.price, (d7Change ?? h24Change ?? 0) >= 0);
@@ -1287,6 +1313,7 @@ setInterval(()=>{
     fetchListings();
     fetchFxRate();
     fetchGovernorStatus();
+    fetchLayaStatus();
   }
 }, 5000);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden && $('auto-refresh')?.checked) { refresh(); fetchListings(); } });
@@ -1323,6 +1350,7 @@ refresh();
 fetchFxRate();
 fetchAuthStatus();
 fetchGovernorStatus();
+fetchLayaStatus();
 fetchListings();
 loadFeatures();
 initSseStream();

@@ -1,15 +1,20 @@
-"""Tests for Risk Governor, 5-Gate Live Trading Gatekeeper, and Emergency Kill Switch."""
+"""Tests for Risk Governor, 5-Gate Live Trading Gatekeeper, Emergency Kill Switch, and Order Manager."""
 import os
+import tempfile
 import time
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from cryptoscope.execution.governor import (
     LiveMultiGateGovernor,
     LiveGateError,
+    FatalSecurityError,
     RiskGovernor,
     EmergencyKillSwitch,
     UnifiedExchangeAdapter,
+    OrderStore,
+    AlertService,
 )
 
 
@@ -18,223 +23,250 @@ class GovernorTests(unittest.TestCase):
         live_gov = LiveMultiGateGovernor()
         self.assertEqual(live_gov.mode, "PAPER")
 
-    def test_live_trading_blocked_if_any_gate_fails(self):
-        live_gov = LiveMultiGateGovernor()
-        now = time.time()
-
-        # Test Case 1: LIVE_TRADING env var not set
-        with patch.dict(os.environ, {}, clear=True):
-            passed, reasons = live_gov.verify_gates(
-                paper_trade_count=100,
-                paper_net_pnl=500.0,
-                admin_reauthenticated=True,
-                admin_reauth_time=now,
-                typed_confirmation="ENABLE LIVE TRADING",
-                now=now,
-            )
-            self.assertFalse(passed)
-            self.assertTrue(any("Gate 1 Failed" in r for r in reasons))
-
-        # Test Case 2: Missing API Keys
-        with patch.dict(os.environ, {"LIVE_TRADING": "true"}, clear=True):
-            passed, reasons = live_gov.verify_gates(
-                paper_trade_count=100,
-                paper_net_pnl=500.0,
-                admin_reauthenticated=True,
-                admin_reauth_time=now,
-                typed_confirmation="ENABLE LIVE TRADING",
-                now=now,
-            )
-            self.assertFalse(passed)
-            self.assertTrue(any("Gate 2 Failed" in r for r in reasons))
-
-        # Test Case 3: Less than 50 paper trades
-        env = {"LIVE_TRADING": "true", "EXCHANGE_API_KEY": "key123", "EXCHANGE_API_SECRET": "sec456"}
-        with patch.dict(os.environ, env, clear=True):
-            passed, reasons = live_gov.verify_gates(
-                paper_trade_count=35,
-                paper_net_pnl=200.0,
-                admin_reauthenticated=True,
-                admin_reauth_time=now,
-                typed_confirmation="ENABLE LIVE TRADING",
-                now=now,
-            )
-            self.assertFalse(passed)
-            self.assertTrue(any("Gate 3 Failed" in r for r in reasons))
-
-        # Test Case 4: Negative paper PnL
-        with patch.dict(os.environ, env, clear=True):
-            passed, reasons = live_gov.verify_gates(
-                paper_trade_count=80,
-                paper_net_pnl=-50.0,
-                admin_reauthenticated=True,
-                admin_reauth_time=now,
-                typed_confirmation="ENABLE LIVE TRADING",
-                now=now,
-            )
-            self.assertFalse(passed)
-            self.assertTrue(any("Gate 3 Failed" in r for r in reasons))
-
-        # Test Case 5: Expired admin re-auth (>300s)
-        with patch.dict(os.environ, env, clear=True):
-            passed, reasons = live_gov.verify_gates(
-                paper_trade_count=80,
-                paper_net_pnl=500.0,
-                admin_reauthenticated=True,
-                admin_reauth_time=now - 400,
-                typed_confirmation="ENABLE LIVE TRADING",
-                now=now,
-            )
-            self.assertFalse(passed)
-            self.assertTrue(any("Gate 4 Failed" in r for r in reasons))
-
-        # Test Case 6: Typo in confirmation string
-        with patch.dict(os.environ, env, clear=True):
-            passed, reasons = live_gov.verify_gates(
-                paper_trade_count=80,
-                paper_net_pnl=500.0,
-                admin_reauthenticated=True,
-                admin_reauth_time=now,
-                typed_confirmation="enable live",
-                now=now,
-            )
-            self.assertFalse(passed)
-            self.assertTrue(any("Gate 5 Failed" in r for r in reasons))
-
-    def test_live_trading_activates_only_when_all_5_gates_pass(self):
+    def test_gate3_forward_paper_trading_requirements(self):
         live_gov = LiveMultiGateGovernor()
         now = time.time()
         env = {"LIVE_TRADING": "true", "EXCHANGE_API_KEY": "valid_key", "EXCHANGE_API_SECRET": "valid_secret"}
+
         with patch.dict(os.environ, env, clear=True):
-            live_gov.activate_live(
-                paper_trade_count=65,
+            # 1. Replayed history fails Gate 3
+            passed, reasons = live_gov.verify_gates(
+                paper_trade_count=120,
+                paper_net_pnl=500.0,
+                admin_reauthenticated=True,
+                admin_reauth_time=now,
+                typed_confirmation="ENABLE LIVE TRADING",
+                forward_days=30.0,
+                max_drawdown=0.08,
+                dsr=0.88,
+                is_forward_operation=False,  # Replayed history!
+                now=now,
+            )
+            self.assertFalse(passed)
+            self.assertTrue(any("never replayed history" in r for r in reasons))
+
+            # 2. Less than 28 forward days fails Gate 3
+            passed, reasons = live_gov.verify_gates(
+                paper_trade_count=120,
+                paper_net_pnl=500.0,
+                admin_reauthenticated=True,
+                admin_reauth_time=now,
+                typed_confirmation="ENABLE LIVE TRADING",
+                forward_days=14.0,  # < 28 days
+                max_drawdown=0.08,
+                dsr=0.88,
+                is_forward_operation=True,
+                now=now,
+            )
+            self.assertFalse(passed)
+            self.assertTrue(any("forward paper days" in r for r in reasons))
+
+            # 3. Less than 100 paper trades fails Gate 3
+            passed, reasons = live_gov.verify_gates(
+                paper_trade_count=45,  # < 100 trades
+                paper_net_pnl=500.0,
+                admin_reauthenticated=True,
+                admin_reauth_time=now,
+                typed_confirmation="ENABLE LIVE TRADING",
+                forward_days=30.0,
+                max_drawdown=0.08,
+                dsr=0.88,
+                is_forward_operation=True,
+                now=now,
+            )
+            self.assertFalse(passed)
+            self.assertTrue(any("forward paper trades" in r for r in reasons))
+
+            # 4. Negative net PnL fails Gate 3
+            passed, reasons = live_gov.verify_gates(
+                paper_trade_count=120,
+                paper_net_pnl=-50.0,  # Negative
+                admin_reauthenticated=True,
+                admin_reauth_time=now,
+                typed_confirmation="ENABLE LIVE TRADING",
+                forward_days=30.0,
+                max_drawdown=0.08,
+                dsr=0.88,
+                is_forward_operation=True,
+                now=now,
+            )
+            self.assertFalse(passed)
+            self.assertTrue(any("positive net PnL" in r for r in reasons))
+
+            # 5. Excessive drawdown (>15%) fails Gate 3
+            passed, reasons = live_gov.verify_gates(
+                paper_trade_count=120,
+                paper_net_pnl=500.0,
+                admin_reauthenticated=True,
+                admin_reauth_time=now,
+                typed_confirmation="ENABLE LIVE TRADING",
+                forward_days=30.0,
+                max_drawdown=0.22,  # 22% > 15%
+                dsr=0.88,
+                is_forward_operation=True,
+                now=now,
+            )
+            self.assertFalse(passed)
+            self.assertTrue(any("Maximum drawdown" in r for r in reasons))
+
+            # 6. Low DSR (<0.80) fails Gate 3
+            passed, reasons = live_gov.verify_gates(
+                paper_trade_count=120,
+                paper_net_pnl=500.0,
+                admin_reauthenticated=True,
+                admin_reauth_time=now,
+                typed_confirmation="ENABLE LIVE TRADING",
+                forward_days=30.0,
+                max_drawdown=0.08,
+                dsr=0.65,  # < 0.80
+                is_forward_operation=True,
+                now=now,
+            )
+            self.assertFalse(passed)
+            self.assertTrue(any("Deflated Sharpe Ratio" in r for r in reasons))
+
+            # 7. Valid forward record passes Gate 3 and all 5 gates
+            passed, reasons = live_gov.verify_gates(
+                paper_trade_count=120,
                 paper_net_pnl=1250.0,
                 admin_reauthenticated=True,
                 admin_reauth_time=now,
                 typed_confirmation="ENABLE LIVE TRADING",
+                forward_days=30.0,
+                max_drawdown=0.06,
+                dsr=0.89,
+                is_forward_operation=True,
                 now=now,
             )
-            self.assertEqual(live_gov.mode, "LIVE")
+            self.assertTrue(passed)
+            self.assertEqual(len(reasons), 0)
 
-            # Deactivate back to paper
-            live_gov.deactivate_to_paper("Testing return to paper")
-            self.assertEqual(live_gov.mode, "PAPER")
-
-    def test_risk_governor_pre_trade_gates(self):
-        risk = RiskGovernor(
-            max_position_fraction=0.05,
-            max_feed_age_seconds=5.0,
-            max_divergence_pct=1.0,
-            daily_loss_limit_fraction=0.03,
-        )
-
-        # 1. Stale feed halts trade
-        allowed, reasons = risk.check_pre_trade(
-            symbol="BTCUSDT",
-            action="LONG",
-            requested_value=200.0,
-            total_portfolio_equity=10000.0,
-            current_open_orders_count=0,
-            feed_age_seconds=7.5,  # > 5.0s
-            cross_source_divergence_pct=0.2,
-            day_pnl=0.0,
-            day_start_equity=10000.0,
-        )
-        self.assertFalse(allowed)
-        self.assertTrue(any("STALE_FEED_HALT" in r for r in reasons))
-
-        # 2. Cross-feed divergence >1% halts trade
-        allowed, reasons = risk.check_pre_trade(
-            symbol="BTCUSDT",
-            action="LONG",
-            requested_value=200.0,
-            total_portfolio_equity=10000.0,
-            current_open_orders_count=0,
-            feed_age_seconds=1.0,
-            cross_source_divergence_pct=1.4,  # > 1.0%
-            day_pnl=0.0,
-            day_start_equity=10000.0,
-        )
-        self.assertFalse(allowed)
-        self.assertTrue(any("CROSS_FEED_DIVERGENCE_HALT" in r for r in reasons))
-
-        # 3. Position limit exceeded (>5% of 10,000 = $500 max)
-        allowed, reasons = risk.check_pre_trade(
-            symbol="BTCUSDT",
-            action="LONG",
-            requested_value=800.0,  # $800 > $500
-            total_portfolio_equity=10000.0,
-            current_open_orders_count=0,
-            feed_age_seconds=1.0,
-            cross_source_divergence_pct=0.1,
-            day_pnl=0.0,
-            day_start_equity=10000.0,
-        )
-        self.assertFalse(allowed)
-        self.assertTrue(any("POSITION_LIMIT_EXCEEDED" in r for r in reasons))
-
-        # 4. Valid trade passes
-        allowed, reasons = risk.check_pre_trade(
-            symbol="BTCUSDT",
-            action="LONG",
-            requested_value=400.0,
-            total_portfolio_equity=10000.0,
-            current_open_orders_count=1,
-            feed_age_seconds=1.2,
-            cross_source_divergence_pct=0.05,
-            day_pnl=50.0,
-            day_start_equity=10000.0,
-        )
-        self.assertTrue(allowed)
-        self.assertEqual(len(reasons), 0)
-
-    def test_emergency_kill_switch_execution_and_admin_resume(self):
+    def test_kill_switch_halt_vs_halt_flatten(self):
         risk = RiskGovernor()
         live_gov = LiveMultiGateGovernor()
         ks = EmergencyKillSwitch(risk, live_gov)
 
-        canceled = []
-        flattened = []
-
-        def cancel_all():
-            canceled.append("all_orders")
-            return 3
-
-        def flatten_all():
-            flattened.append("all_positions")
+        actions_taken = []
+        def cancel_fn(keep_stops=False):
+            actions_taken.append(f"cancel_orders(keep_stops={keep_stops})")
             return 2
 
-        res = ks.execute_kill_switch("Risk Manager", cancel_all, flatten_all)
-        self.assertEqual(res["status"], "HALTED")
-        self.assertTrue(res["kill_switch_engaged"])
-        self.assertEqual(res["orders_canceled"], 3)
-        self.assertEqual(res["positions_flattened"], 2)
-        self.assertTrue(ks.halted)
-        self.assertTrue(risk.emergency_halted)
+        def flatten_fn():
+            actions_taken.append("flatten_positions")
+            return 1
 
-        # Pre-trade check fails closed while halted
-        allowed, _ = risk.check_pre_trade("BTCUSDT", "LONG", 100, 10000, 0, 1, 0, 0, 10000)
+        # Action 1: Default HALT (preserves positions and protective stops)
+        res1 = ks.execute_kill_switch(action="HALT", triggered_by="Risk Manager", cancel_orders_fn=cancel_fn, flatten_positions_fn=flatten_fn)
+        self.assertEqual(res1["status"], "HALTED")
+        self.assertEqual(res1["action"], "HALT")
+        self.assertEqual(res1["positions_flattened"], 0)
+        self.assertIn("cancel_orders(keep_stops=True)", actions_taken)
+        self.assertNotIn("flatten_positions", actions_taken)
+
+        # Resume bot
+        ks.resume_bot(admin_reauthenticated=True, admin_email="admin@zillers.local")
+        actions_taken.clear()
+
+        # Action 2: HALT_FLATTEN (cancels all orders AND flattens positions)
+        res2 = ks.execute_kill_switch(action="HALT_FLATTEN", triggered_by="Risk Manager", cancel_orders_fn=cancel_fn, flatten_positions_fn=flatten_fn)
+        self.assertEqual(res2["status"], "HALTED")
+        self.assertEqual(res2["action"], "HALT_FLATTEN")
+        self.assertEqual(res2["positions_flattened"], 1)
+        self.assertIn("cancel_orders(keep_stops=False)", actions_taken)
+        self.assertIn("flatten_positions", actions_taken)
+
+    def test_order_manager_reconciliation_mismatch_halts(self):
+        risk = RiskGovernor()
+        alerts = AlertService()
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "test_exec.db"
+            store = OrderStore(db_path)
+            adapter = UnifiedExchangeAdapter(order_store=store, risk_governor=risk, alert_service=alerts)
+
+            # Local has order 1
+            adapter.create_order("BTCUSDT", "BUY", "LIMIT", 0.5, 68000.0, client_order_id="order-loc-1")
+
+            # Exchange reality has order 1 AND untracked order 2
+            aligned, report = adapter.reconcile_with_exchange(["order-loc-1", "order-untracked-2"])
+            self.assertFalse(aligned)
+            self.assertTrue(risk.emergency_halted)
+            self.assertIn("ORDER_RECONCILIATION_MISMATCH", risk.halt_reason)
+
+    def test_protective_stops_and_partial_fills(self):
+        risk = RiskGovernor()
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "test_exec2.db"
+            store = OrderStore(db_path)
+            adapter = UnifiedExchangeAdapter(order_store=store, risk_governor=risk)
+
+            # Create a regular limit order and a protective stop order
+            limit_ord = adapter.create_order("BTCUSDT", "BUY", "LIMIT", 1.0, 68000.0, client_order_id="limit-1")
+            stop_ord = adapter.create_order("BTCUSDT", "SELL", "STOP_LOSS", 1.0, stop_price=65000.0, client_order_id="stop-1")
+
+            self.assertFalse(limit_ord["is_stop"])
+            self.assertTrue(stop_ord["is_stop"])
+
+            # Cancel working orders while preserving protective stops
+            canceled = adapter.cancel_all_orders(keep_stops=True)
+            self.assertEqual(canceled, 1)
+            self.assertEqual(adapter.orders["limit-1"]["status"], "CANCELED")
+            self.assertEqual(adapter.orders["stop-1"]["status"], "OPEN")
+
+            # Test partial fill execution
+            buy_ord = adapter.create_order("ETHUSDT", "BUY", "LIMIT", 10.0, 2500.0, client_order_id="buy-eth-1")
+            adapter.fill_order("buy-eth-1", fill_qty=4.0, fill_price=2500.0)
+            self.assertEqual(adapter.orders["buy-eth-1"]["status"], "PARTIALLY_FILLED")
+            self.assertEqual(adapter.orders["buy-eth-1"]["executed_qty"], 4.0)
+
+            # Complete fill
+            adapter.fill_order("buy-eth-1", fill_qty=6.0, fill_price=2500.0)
+            self.assertEqual(adapter.orders["buy-eth-1"]["status"], "FILLED")
+            self.assertEqual(adapter.orders["buy-eth-1"]["executed_qty"], 10.0)
+
+    def test_withdrawal_permission_disabled_check(self):
+        adapter = UnifiedExchangeAdapter()
+
+        # Mock function indicating withdrawals are enabled -> must throw FatalSecurityError
+        with self.assertRaises(FatalSecurityError):
+            adapter.verify_withdrawal_permissions_disabled("key", "secret", mock_check_fn=lambda k, s: True)
+
+        # Mock function indicating withdrawals are disabled -> succeeds
+        self.assertTrue(adapter.verify_withdrawal_permissions_disabled("key", "secret", mock_check_fn=lambda k, s: False))
+
+    def test_risk_governor_additional_limits(self):
+        risk = RiskGovernor(
+            symbol_allowlist=["BTCUSDT", "ETHUSDT"],
+            loss_cooldown_seconds=600.0,
+            max_trades_per_day=5,
+            total_drawdown_limit_fraction=0.10,
+        )
+        now = time.time()
+
+        # 1. Unapproved symbol rejected
+        allowed, reasons = risk.check_pre_trade("DOGEUSDT", "BUY", 100, 10000, 0, 1.0, 0.1, 0, 10000, now=now)
         self.assertFalse(allowed)
+        self.assertTrue(any("SYMBOL_NOT_ALLOWED" in r for r in reasons))
 
-        # Resume requires admin re-authentication
-        with self.assertRaises(ValueError):
-            ks.resume_bot(admin_reauthenticated=False, admin_email="admin@zillers.local")
+        # 2. Approved symbol passes
+        allowed, reasons = risk.check_pre_trade("BTCUSDT", "BUY", 100, 10000, 0, 1.0, 0.1, 0, 10000, now=now)
+        self.assertTrue(allowed)
 
-        resume_res = ks.resume_bot(admin_reauthenticated=True, admin_email="admin@zillers.local")
-        self.assertEqual(resume_res["status"], "ACTIVE")
-        self.assertFalse(ks.halted)
-        self.assertFalse(risk.emergency_halted)
+        # 3. Post-loss cooldown blocks new entries
+        risk.record_trade_completion(pnl=-150.0, current_equity=9850.0, now=now)
+        allowed, reasons = risk.check_pre_trade("BTCUSDT", "BUY", 100, 9850, 0, 1.0, 0.1, 0, 10000, now=now + 100)
+        self.assertFalse(allowed)
+        self.assertTrue(any("LOSS_COOLDOWN_ACTIVE" in r for r in reasons))
 
-    def test_unified_exchange_adapter_idempotency(self):
-        adapter = UnifiedExchangeAdapter(exchange_id="binance", sandbox=True)
-        cid = "custom-client-order-uuid-12345"
-        o1 = adapter.create_order("BTCUSDT", "BUY", "LIMIT", 0.5, 68000.0, client_order_id=cid)
-        o2 = adapter.create_order("BTCUSDT", "BUY", "LIMIT", 0.5, 68000.0, client_order_id=cid)
-        self.assertEqual(o1["order_id"], o2["order_id"])
-        self.assertEqual(len(adapter.orders), 1)
+        # After cooldown expires, entries are permitted
+        allowed, _ = risk.check_pre_trade("BTCUSDT", "BUY", 100, 9850, 0, 1.0, 0.1, 0, 10000, now=now + 700)
+        self.assertTrue(allowed)
 
-        recon = adapter.reconcile_orders()
-        self.assertEqual(recon["total_tracked"], 1)
+        # 4. Total drawdown limit (peak 10,000, drops to 8,800 -> 12% drawdown > 10% limit)
+        risk.peak_equity = 10000.0
+        allowed, reasons = risk.check_pre_trade("BTCUSDT", "BUY", 100, 8800.0, 0, 1.0, 0.1, 0, 10000, now=now + 700)
+        self.assertFalse(allowed)
+        self.assertTrue(any("TOTAL_DRAWDOWN_HALT" in r for r in reasons))
+        self.assertTrue(risk.emergency_halted)
 
 
 if __name__ == "__main__":

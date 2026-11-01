@@ -214,6 +214,8 @@ class BinanceFeedTests(unittest.TestCase):
 
         self.assertEqual(feed.active_rest_host, BinanceFeed.FALLBACK_REST)
         self.assertIn("data-api.binance.vision", feed.active_rest_host)
+        feed.active_ws_host = BinanceFeed.FALLBACK_WS
+        self.assertEqual(feed.active_ws_host, "data-stream.binance.vision:9443")
 
 
 class CandleStoreTests(unittest.TestCase):
@@ -277,6 +279,12 @@ class CoinGeckoServiceTests(unittest.TestCase):
             self.assertEqual(btc["price_change_percentage_30d"], 8.50)
             self.assertIn("CoinGecko", res["attribution"])
             self.assertFalse(res["stale"])
+            self.assertIn("snapshot_age_seconds", btc)
+
+    def test_per_field_freshness_thresholds(self):
+        from cryptoscope.market_data.base import LIVE_PRICE_FRESHNESS_SECONDS, METADATA_FRESHNESS_SECONDS
+        self.assertEqual(LIVE_PRICE_FRESHNESS_SECONDS, 5.0)
+        self.assertEqual(METADATA_FRESHNESS_SECONDS, 120.0)
 
 
 if __name__ == "__main__":

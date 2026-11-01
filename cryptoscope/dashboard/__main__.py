@@ -14,6 +14,8 @@ from cryptoscope.auth.security import (
     RateLimiter,
     extract_client_ip,
     verify_password,
+    hash_password,
+    needs_rehash,
 )
 from cryptoscope.auth.store import AuthStore
 from cryptoscope.dashboard.data import DashboardData
@@ -24,13 +26,14 @@ from cryptoscope.market_data.coinbase_feed import CoinbaseFeed
 from cryptoscope.market_data.kraken_feed import KrakenFeed
 from cryptoscope.market_data.coingecko import CoinGeckoService
 from cryptoscope.execution.governor import LiveMultiGateGovernor, RiskGovernor, EmergencyKillSwitch, LiveGateError
+from cryptoscope.autotrader.decision import LayaTier2Evaluator
 from cryptoscope.research.settings import ROOT, load_config
 
 logger = logging.getLogger("cryptoscope.server")
 STATIC = Path(__file__).parent / "static"
 
 
-def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_service=None, market_aggregator=None, coingecko_service=None, risk_governor=None, live_governor=None, kill_switch=None):
+def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_service=None, market_aggregator=None, coingecko_service=None, risk_governor=None, live_governor=None, kill_switch=None, laya_evaluator=None):
     auth_store = auth_store or AuthStore()
     rate_limiter = rate_limiter or RateLimiter()
     lockout_mgr = lockout_mgr or AccountLockoutManager()
@@ -40,6 +43,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
     risk_governor = risk_governor or RiskGovernor()
     live_governor = live_governor or LiveMultiGateGovernor()
     kill_switch = kill_switch or EmergencyKillSwitch(risk_governor, live_governor)
+    laya_evaluator = laya_evaluator or LayaTier2Evaluator()
 
     class Handler(BaseHTTPRequestHandler):
         def send(self, status, content, kind, download=None, cookies=None):
@@ -49,6 +53,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("X-Frame-Options", "DENY")
+            self.send_header("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
             self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
             self.send_header(
                 "Content-Security-Policy",
@@ -168,11 +173,17 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 return self.json(200, {
                     "mode": live_governor.mode,
                     "kill_switch_engaged": kill_switch.halted,
+                    "action": getattr(kill_switch, "action", "HALT"),
                     "emergency_halted": risk_governor.emergency_halted,
                     "halt_reason": risk_governor.halt_reason,
                     "halted_at": kill_switch.halted_at,
                     "halted_by": kill_switch.halted_by,
+                    "target_exchange": "Binance Spot",
                 })
+
+            # Laya Tier 2 Engine Status
+            if url.path == "/api/laya/status":
+                return self.json(200, laya_evaluator.get_status())
 
             # Auth session inspection
             if url.path == "/api/auth/me":
@@ -267,18 +278,20 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
 
                 is_locked, rem = lockout_mgr.is_locked(email)
                 if is_locked:
-                    if rem < 0:
-                        return self.json(423, {"error": "Account permanently locked due to repeated failed logins. Contact administrator."})
                     return self.json(423, {"error": f"Account temporarily locked due to failed logins. Try again in {rem} seconds."})
 
                 user = auth_store.get_user_by_email(email)
                 if not user or not verify_password(password, user["password_hash"]):
                     locked, rem_lock = lockout_mgr.record_failure(email)
                     if locked:
-                        if rem_lock < 0:
-                            return self.json(423, {"error": "Account permanently locked due to repeated failed logins. Contact administrator."})
-                        return self.json(423, {"error": f"Account locked for {rem_lock} seconds due to consecutive failed logins."})
+                        return self.json(423, {"error": f"Account temporarily locked for {rem_lock} seconds due to consecutive failed logins."})
                     return self.json(401, {"error": "Invalid credentials"})
+
+                # Auto-upgrade password hash if using older scrypt parameters
+                if needs_rehash(user["password_hash"]):
+                    new_hash = hash_password(password)
+                    auth_store.update_password_hash(user["id"], new_hash)
+                    logger.info("Automatically upgraded scrypt password hash to N=2^17 for user %s", email)
 
                 lockout_mgr.record_success(email)
                 auth_store.record_login(user["id"])
@@ -401,10 +414,11 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 auth_store.update_settings(session["user_id"], currency, theme)
                 return self.json(200, {"status": "ok", "settings": {"display_currency": currency, "theme": theme}})
 
-            # Master Emergency Kill Switch
+            # Master Emergency Kill Switch (supports HALT and HALT_FLATTEN)
             if url.path == "/api/governor/kill_switch":
                 operator = session.get("email", "Operator")
-                result = kill_switch.execute_kill_switch(triggered_by=operator)
+                action = str(body.get("action", "HALT")).strip().upper()
+                result = kill_switch.execute_kill_switch(action=action, triggered_by=operator)
                 return self.json(200, result)
 
             # Resume from Emergency Kill Switch (Requires Admin Password)

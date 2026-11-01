@@ -268,6 +268,31 @@ class AuthStore:
             finally:
                 conn.close()
 
+    def update_password_hash(self, user_id: int, new_hash: str):
+        """Update password hash for a user (used for automatic rehashing on login)."""
+        now = time.time()
+        with self._lock:
+            conn = self._get_connection()
+            try:
+                conn.execute("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?", (new_hash, now, user_id))
+                conn.commit()
+            finally:
+                conn.close()
+
+    def unlock_user_by_email(self, email: str) -> bool:
+        """Unlock an account by email, resetting disabled flag and updating timestamp."""
+        normalized = email.strip().lower()
+        now = time.time()
+        with self._lock:
+            conn = self._get_connection()
+            try:
+                cur = conn.cursor()
+                cur.execute("UPDATE users SET disabled = 0, updated_at = ? WHERE lower(email) = ?", (now, normalized))
+                conn.commit()
+                return cur.rowcount > 0
+            finally:
+                conn.close()
+
     def change_password(self, user_id: int, new_password: str):
         phash = hash_password(new_password)
         now = time.time()
