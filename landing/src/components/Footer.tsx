@@ -31,8 +31,8 @@ export const Footer: React.FC = () => {
             <div className="flex items-center gap-2.5">
               <img
                 src="./assets/emblem.png"
-                alt="Zillers Emblem"
-                className="w-5 h-5 object-contain"
+                alt="ZILLERS Emblem"
+                className="w-6 h-6 object-contain rounded-md"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = 'none';
                 }}
@@ -42,7 +42,16 @@ export const Footer: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-[#A2A2A8] font-mono">
-              A Zien Organisation Company · FinTech & Quantitative Trading
+              Built by{' '}
+              <a
+                href="https://github.com/ekanth14"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white font-semibold underline underline-offset-2 hover:text-[#D8D8DC] transition-colors"
+              >
+                Ekanth B S
+              </a>{' '}
+              · A Zien Organisation Company
             </p>
           </div>
 
@@ -87,7 +96,7 @@ export const Footer: React.FC = () => {
             Historical backtests and simulated performance metrics do not predict future results.
           </p>
           <div className="pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-[#A2A2A8]">
-            <span>© 2026 ZILLERS. A unit of Zien Organisation. All rights reserved.</span>
+            <span>© 2026 ZILLERS. Built by <a href="https://github.com/ekanth14" target="_blank" rel="noopener noreferrer" className="text-[#D8D8DC] hover:text-white underline">Ekanth B S</a> · A unit of Zien Organisation. All rights reserved.</span>
           </div>
         </div>
       </div>

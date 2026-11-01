@@ -35,8 +35,8 @@ export const Navigation: React.FC = () => {
         <a href="#" className="flex items-center gap-2.5 pl-2 group">
           <img
             src="./assets/emblem.png"
-            alt="Zillers"
-            className="w-5 h-5 object-contain opacity-90 group-hover:opacity-100 transition-opacity"
+            alt="ZILLERS"
+            className="w-6 h-6 object-contain rounded-md opacity-90 group-hover:opacity-100 transition-opacity"
             onError={(e) => {
               (e.target as HTMLElement).style.display = 'none';
             }}

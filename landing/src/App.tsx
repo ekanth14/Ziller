@@ -64,8 +64,8 @@ export const App: React.FC = () => {
             <a href="#" onClick={navigateToHome} className="flex items-center gap-2 px-2">
               <img
                 src="./assets/emblem.png"
-                alt="Zillers"
-                className="w-4 h-4 object-contain opacity-90"
+                alt="ZILLERS"
+                className="w-5 h-5 object-contain rounded-md opacity-90"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = 'none';
                 }}

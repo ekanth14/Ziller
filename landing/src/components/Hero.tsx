@@ -13,6 +13,21 @@ export const Hero: React.FC = () => {
 
         {/* Content Container */}
         <div className="relative z-10 pt-16 md:pt-24 px-6 md:px-12 flex flex-col items-center text-center">
+          {/* Official Metallic Logo Emblem */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6 }}
+            className="mb-6 relative"
+          >
+            <div className="absolute inset-0 bg-white/[0.08] blur-xl rounded-full pointer-events-none" />
+            <img
+              src="./assets/emblem.png"
+              alt="ZILLERS"
+              className="w-14 h-14 md:w-16 md:h-16 object-contain rounded-2xl border border-[#4D4D51] bg-[#090909] p-1.5 shadow-[0_10px_35px_rgba(0,0,0,0.8)] relative z-10 hover:scale-105 transition-transform duration-200"
+            />
+          </motion.div>
+
           {/* Eyebrow Label */}
           <motion.div
             initial={{ opacity: 0, y: 15 }}
