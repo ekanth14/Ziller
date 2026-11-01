@@ -14,11 +14,12 @@ This document provides a comprehensive technical audit of all architectural chan
    - [Phase 4: Accounts, Scrypt Security & Fail-Closed Bootstrap](#phase-4-accounts-scrypt-security--fail-closed-bootstrap)
    - [Phase 5: All-Crypto Screener, Sparklines & Watchlists](#phase-5-all-crypto-screener-sparklines--watchlists)
    - [Phase 6: Fast Decision Layer (Rules + Laya AI Classifier)](#phase-6-fast-decision-layer-rules--laya-ai-classifier)
-   - [Phase 7: Realistic Backtester, Indian Tax Engine & Schedule VDA Export](#phase-7-realistic-backtester-indian-tax-engine--schedule-vda-export)
+   - [Phase 7: Realistic Backtester, Indian Tax Engine & Schedule VDA Computation Helper](#phase-7-realistic-backtester-indian-tax-engine--schedule-vda-computation-helper)
    - [Phase 8: Execution Engine, 5-Gate Live Multi-Governor & Master Kill-Switch](#phase-8-execution-engine-5-gate-live-multi-governor--master-kill-switch)
    - [Phase 9: Production Readiness, Non-Root Docker, CI & Disclaimers](#phase-9-production-readiness-non-root-docker-ci--disclaimers)
+   - [Phase 10: Review Pass Hardening & Security Fortification](#phase-10-review-pass-hardening--security-fortification)
 3. [File Manifest: Created, Modified, and Deleted Files](#file-manifest-created-modified-and-deleted-files)
-4. [Verification & Test Suite Audit (108 Tests)](#verification--test-suite-audit-108-tests)
+4. [Verification & Test Suite Audit (113 Tests: 106 Passed, 7 Skipped)](#4-verification--test-suite-audit-113-tests-106-passed-7-skipped)
 5. [Git Commit Audit Trail](#git-commit-audit-trail)
 
 ---
@@ -234,11 +235,25 @@ The system was transformed from an Indian equity / hybrid stock terminal into **
 ### Modified Files
 | File Path | Modifications |
 | :--- | :--- |
-| `cryptoscope/dashboard/__main__.py` | Integrated auth endpoints, FX endpoints, SSE stream, governor routes |
-| `cryptoscope/dashboard/static/index.html` | ZILLERS institutional terminal layout, screener, disclaimers, modals |
-| `cryptoscope/dashboard/static/app.js` | Real-time SSE listener, kill-switch modal, screener filters, FX toggle |
+| `cryptoscope/auth/security.py` | Scrypt $N=2^{17} (131072), r=8, p=1$, maxmem 256MB, parameter serialization, login rehash check, 1-hour lockout cap |
+| `cryptoscope/auth/store.py` | Added `update_password_hash` and `unlock_user_by_email` |
+| `cryptoscope/execution/governor.py` | Live Multi-Governor Gate 3 forward paper requirements, dual-action kill switch (`HALT` / `HALT_FLATTEN`), 60s exchange reconciliation, protective stops, withdrawal disable check, SQLite WAL order store, risk limits |
+| `cryptoscope/autotrader/decision.py` | Startup Laya diagnostic logging, sub-20ms Tier 1 on 500 candles, multi-thread Tier 2 latency calibration, explicit `TIMEOUT_EXCEEDED` / `UNAVAILABLE` reporting |
+| `cryptoscope/backtesting/cost_model.py` | Statutory law mapping (FY25-26 1961 Act vs FY26-27+ 2025 Act), Schedule VDA Computation Helper export with Chartered Accountant disclaimer |
+| `cryptoscope/market_data/coingecko.py` | Enforced 120s metadata freshness threshold, attached `snapshot_age_seconds` |
+| `cryptoscope/dashboard/__main__.py` | Integrated CSP, HSTS, X-Frame-Options, X-Content-Type-Options security headers; rehash on login; dual kill-switch actions; Laya status route |
+| `cryptoscope/dashboard/static/index.html` | ZILLERS institutional terminal layout, screener, disclaimers, modals, Laya status badge |
+| `cryptoscope/dashboard/static/app.js` | Real-time SSE listener, dual kill-switch modal prompt, screener filters, FX toggle, CoinGecko snapshot age badge |
 | `cryptoscope/backtesting/validation.py` | Embedded crypto cost model, VDA tax, and DSR into walk-forward tests |
 | `cryptoscope/autotrader/signals.py` | Integrated SMC Order Block detection and composite directional scores |
+| `.github/workflows/ci.yml` | Added `pip-audit --local` dependency security audit step |
+| `scripts/bench_laya.py` | High-precision benchmark measuring 500-candle Tier 1 and multi-threaded Tier 2 p95 latencies |
+| `cryptoscope/tests/test_auth.py` | Added tests for $N=2^{17}$ Scrypt, param serialization, rehash check, 1h lockout cap, CLI account unlock |
+| `cryptoscope/tests/test_autotrader.py` | Added tests for Laya status reporting, timeout exceeded states, and Tier 1 SMC rules |
+| `cryptoscope/tests/test_backtest_costs.py` | Tests for cost model, 115BBH/194S tax, DSR, and Schedule VDA helper CSV export |
+| `cryptoscope/tests/test_governor.py` | Tests for Gate 3 forward paper requirements, dual kill-switch modes, exchange reconciliation, protective stops, withdrawal check |
+| `cryptoscope/tests/test_market_data.py` | Tests for 5s/120s freshness, multi-source median, and Binance fallback stream host |
+| `cryptoscope/tests/test_server_endpoints.py` | Tests for CSP/HSTS/frame security headers, SSE stream, and auth endpoints |
 | `.env.example` | Updated with full configuration matrix across all subsystems |
 | `pytest.ini` | Added `pythonpath = .` for standalone pytest execution |
 | `README.md` | Rebranded to ZILLERS with complete documentation and architecture specs |
@@ -246,9 +261,9 @@ The system was transformed from an Indian equity / hybrid stock terminal into **
 
 ---
 
-## 4. Verification & Test Suite Audit (108 Tests)
+## 4. Verification & Test Suite Audit (113 Tests: 106 Passed, 7 Skipped)
 
-The terminal contains **108 unit and integration tests**, achieving 100% pass rate:
+The terminal contains **113 unit and integration tests**, achieving 100% pass rate:
 
 ```
 ============================= test session starts =============================
@@ -257,21 +272,21 @@ rootdir: /workspace/zien-crypto
 configfile: pytest.ini
 testpaths: cryptoscope/tests
 plugins: platformdirs-4.13.5
-collected 108 items
+collected 113 items
 
-cryptoscope/tests/test_auth.py ...........                               [ 10%]
-cryptoscope/tests/test_autotrader.py .................                   [ 25%]
-cryptoscope/tests/test_backtest_costs.py ......                          [ 31%]
-cryptoscope/tests/test_dashboard.py .........                            [ 39%]
-cryptoscope/tests/test_feature_integration.py ..ssss                     [ 45%]
+cryptoscope/tests/test_auth.py .............                             [ 11%]
+cryptoscope/tests/test_autotrader.py ..................                  [ 27%]
+cryptoscope/tests/test_backtest_costs.py ......                          [ 32%]
+cryptoscope/tests/test_dashboard.py .........                            [ 40%]
+cryptoscope/tests/test_feature_integration.py ..ssss                     [ 46%]
 cryptoscope/tests/test_fx.py ....                                        [ 49%]
-cryptoscope/tests/test_governor.py ......                                [ 54%]
-cryptoscope/tests/test_market_data.py ............                       [ 65%]
-cryptoscope/tests/test_repository_extensions.py ......sss                [ 74%]
+cryptoscope/tests/test_governor.py .......                               [ 55%]
+cryptoscope/tests/test_market_data.py .............                      [ 67%]
+cryptoscope/tests/test_repository_extensions.py ......sss                [ 75%]
 cryptoscope/tests/test_research_backend.py ....................          [ 92%]
 cryptoscope/tests/test_server_endpoints.py ........                      [100%]
 
-============= 101 passed, 7 skipped, 31 subtests passed in 5.00s ==============
+============= 106 passed, 7 skipped, 31 subtests passed in 17.71s =============
 ```
 
 ### Skipped Tests Documentation (7 Tests):
@@ -280,13 +295,14 @@ All 7 skipped tests are conditionally guarded by `unittest.skipUnless(HAS_QUANTJ
   - Requires optional research engine dependency `quantjourney-bt` (pinned in `requirements-backtest.txt`).
 - `cryptoscope/tests/test_repository_extensions.py` (3 skipped):
   - Requires `quantjourney-bt` for legacy backtest extension modules.
-These optional research packages are decoupled from the core real-time autonomous trading runtime. All 101 core terminal tests pass cleanly.
+These optional research packages are decoupled from the core real-time autonomous trading runtime. All 106 core terminal tests pass cleanly.
 
 ---
 
 ## 5. Git Commit Audit Trail
 
 ```
+fc13926 fix(review): complete review pass on auth, governor, kill-switch, execution, laya, freshness, ci, and docs
 87266ec feat(prod): finalize production readiness, non-root docker setup, ci matrix, and regulatory disclaimers
 c29110f feat(execution): implement 5-gate live trading governor, emergency kill switch, and risk limiters
 5685f9c feat(backtesting): implement realistic crypto cost model, Section 115BBH/194S tax engine, Deflated Sharpe Ratio, and Schedule VDA export
