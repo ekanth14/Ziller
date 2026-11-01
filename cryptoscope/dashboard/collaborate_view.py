@@ -2,6 +2,7 @@
 HTML template renderer for ZILLERS Collaboration Submissions Desk.
 Provides an institutional, dark-themed dashboard to view, search, and export
 research collaboration proposals logged from the public showcase.
+Secured with operator passcode challenge.
 """
 
 from __future__ import annotations
@@ -11,7 +12,231 @@ import json
 from typing import Any, List
 
 
-def render_collaborations_html(records: List[dict[str, Any]] | None = None) -> str:
+def render_locked_screen_html() -> str:
+    return """<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Restricted Access | ZILLERS Research Desk</title>
+  <link rel="icon" type="image/png" href="/assets/emblem.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #050505;
+      color: #F4F4F5;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      width: 100%;
+      max-width: 440px;
+      background: #09090A;
+      border: 1px solid #38383C;
+      border-radius: 24px;
+      padding: 36px 32px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .halo {
+      position: absolute;
+      top: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 260px;
+      height: 120px;
+      background: rgba(229, 192, 123, 0.08);
+      filter: blur(40px);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .crest-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px;
+      height: 64px;
+      background: #151515;
+      border: 1px solid #4D4D51;
+      border-radius: 18px;
+      margin-bottom: 20px;
+    }
+    .crest-wrap img {
+      width: 38px;
+      height: 38px;
+      object-fit: contain;
+    }
+    .eyebrow {
+      font-family: ui-monospace, monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: #A2A2A8;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #FFFFFF;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    p.desc {
+      font-size: 13px;
+      color: #888890;
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }
+    .form-group {
+      margin-bottom: 18px;
+      text-align: left;
+    }
+    label {
+      display: block;
+      font-size: 11px;
+      font-family: ui-monospace, monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #A2A2A8;
+      margin-bottom: 6px;
+    }
+    .input-wrap {
+      position: relative;
+    }
+    input[type="password"], input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #151515;
+      border: 1px solid #38383C;
+      color: #FFFFFF;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s;
+    }
+    input:focus {
+      border-color: #D8D8DC;
+      box-shadow: 0 0 0 1px #D8D8DC;
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      background: #F4F4F5;
+      color: #050505;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-submit:hover {
+      background: #FFFFFF;
+      transform: translateY(-1px);
+    }
+    .error-msg {
+      margin-top: 14px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #F87171;
+      font-size: 12px;
+      display: none;
+    }
+    .footer-link {
+      margin-top: 24px;
+      font-size: 12px;
+    }
+    .footer-link a {
+      color: #A2A2A8;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .footer-link a:hover {
+      color: #FFF;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="halo"></div>
+    <div class="crest-wrap">
+      <img src="/assets/emblem.png" alt="ZILLERS" onerror="this.src='/assets/logo.png'">
+    </div>
+    <div class="eyebrow">ZIEN ORGANISATION · RESEARCH DESK</div>
+    <h1>Restricted Access</h1>
+    <p class="desc">Enter the verified operator passcode to unlock and view the ZILLERS Collaboration Proposals Dossiers.</p>
+
+    <form id="auth-form" onsubmit="handleUnlock(event)">
+      <div class="form-group">
+        <label for="passcode">Desk Operator Passcode</label>
+        <div class="input-wrap">
+          <input type="password" id="passcode" placeholder="Enter passcode..." autocomplete="current-password" required autofocus />
+        </div>
+      </div>
+
+      <button type="submit" id="btn-unlock" class="btn-submit">Unlock Proposals Desk</button>
+      <div id="error-box" class="error-msg"></div>
+    </form>
+
+    <div class="footer-link">
+      <a href="/landing/#collaborate">← Return to Public Showcase</a>
+    </div>
+  </div>
+
+  <script>
+    async function handleUnlock(e) {
+      e.preventDefault();
+      const code = document.getElementById('passcode').value;
+      const btn = document.getElementById('btn-unlock');
+      const errBox = document.getElementById('error-box');
+
+      btn.disabled = true;
+      btn.textContent = 'Verifying Passcode...';
+      errBox.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/collaborate/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ passcode: code })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          btn.textContent = 'Passcode Verified! Loading...';
+          window.location.reload();
+        } else {
+          errBox.textContent = data.error || 'Incorrect passcode. Access denied.';
+          errBox.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Unlock Proposals Desk';
+        }
+      } catch (err) {
+        errBox.textContent = 'Connection error. Please try again.';
+        errBox.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Unlock Proposals Desk';
+      }
+    }
+  </script>
+</body>
+</html>"""
+
+
+def render_collaborations_html(records: List[dict[str, Any]] | None = None, is_authenticated: bool = True) -> str:
+    if not is_authenticated:
+        return render_locked_screen_html()
+
     if records is None:
         records = []
 
@@ -137,6 +362,16 @@ def render_collaborations_html(records: List[dict[str, Any]] | None = None) -> s
       background: #FFF;
       color: #000;
       transform: translateY(-1px);
+    }}
+    .btn-danger {{
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #F87171;
+    }}
+    .btn-danger:hover {{
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #F87171;
+      color: #FFF;
     }}
     .status-badge {{
       display: inline-flex;
@@ -417,11 +652,6 @@ def render_collaborations_html(records: List[dict[str, Any]] | None = None) -> s
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
       display: none;
       z-index: 1000;
-      animation: fadeIn 0.2s ease-out;
-    }}
-    @keyframes fadeIn {{
-      from {{ opacity: 0; transform: translateY(10px); }}
-      to {{ opacity: 1; transform: translateY(0); }}
     }}
   </style>
 </head>
@@ -430,7 +660,7 @@ def render_collaborations_html(records: List[dict[str, Any]] | None = None) -> s
     <!-- Header -->
     <header class="header">
       <div class="brand-group">
-        <img src="/assets/emblem.png" alt="ZILLERS" class="brand-logo" onerror="this.style.display='none'">
+        <img src="/assets/emblem.png" alt="ZILLERS" class="brand-logo" onerror="this.src='/assets/logo.png'">
         <div class="brand-titles">
           <h1>ZILLERS Collaboration Proposals Desk</h1>
           <p>Supervised under <a href="https://ziennexus.app/" target="_blank" rel="noopener noreferrer">Zien Organisation</a> · Research Intakes</p>
@@ -445,7 +675,7 @@ def render_collaborations_html(records: List[dict[str, Any]] | None = None) -> s
         <a href="/landing/#collaborate" class="btn">← Back to Showcase</a>
         <button class="btn" onclick="exportCSV()">Export CSV</button>
         <button class="btn" onclick="exportJSON()">Export JSON</button>
-        <button class="btn btn-primary" onclick="window.location.reload()">Refresh Feed</button>
+        <button class="btn btn-danger" onclick="handleLogout()">Lock Desk</button>
       </div>
     </header>
 
@@ -460,8 +690,8 @@ def render_collaborations_html(records: List[dict[str, Any]] | None = None) -> s
         <div class="value">{len(track_counts)}</div>
       </div>
       <div class="stat-card">
-        <div class="label">Code-Sharing Verified</div>
-        <div class="value">{total_count} / {total_count}</div>
+        <div class="label">Access Status</div>
+        <div class="value" style="font-size: 16px; color: #E5C07B; margin-top: 4px;">OPERATOR VERIFIED</div>
       </div>
       <div class="stat-card">
         <div class="label">Database Location</div>
@@ -518,6 +748,24 @@ def render_collaborations_html(records: List[dict[str, Any]] | None = None) -> s
       }}).catch(() => {{
         showToast('Failed to copy');
       }});
+    }}
+
+    function copyProposalById(id) {{
+      const match = allRecords.find(item => item.id === id);
+      if (match && match.message) {{
+        copyToClipboard(match.message, 'Proposal Statement');
+      }} else {{
+        showToast('No statement text to copy');
+      }}
+    }}
+
+    async function handleLogout() {{
+      await fetch('/api/collaborate/auth', {{
+        method: 'POST',
+        headers: {{ 'Content-Type': 'application/json' }},
+        body: JSON.stringify({{ action: 'logout' }})
+      }});
+      window.location.reload();
     }}
 
     // Setup Track Filter Tabs
@@ -634,10 +882,6 @@ def render_collaborations_html(records: List[dict[str, Any]] | None = None) -> s
 
     function escapeAttr(str) {{
       return (str || '').replace(/"/g, '&quot;');
-    }}
-
-    function escapeJs(str) {{
-      return (str || '').replace(/\\\\/g, '\\\\\\\\').replace(/`/g, '\\\\`').replace(/\\$/g, '\\\\$');
     }}
 
     function exportJSON() {{

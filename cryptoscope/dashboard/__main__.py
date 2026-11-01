@@ -37,6 +37,24 @@ logger = logging.getLogger("cryptoscope.server")
 STATIC = Path(__file__).parent / "static"
 COLLAB_FILE = Path(__file__).resolve().parents[2] / "data" / "collaborations.json"
 _collab_lock = threading.Lock()
+COLLAB_DESK_PASSCODE = os.environ.get("COLLAB_DESK_PASSCODE", "Ekanthbs@4514")
+
+
+def is_collab_authorized(headers) -> bool:
+    code = headers.get("X-Desk-Passcode", "")
+    if code and code.strip() == COLLAB_DESK_PASSCODE:
+        return True
+    cookie_str = headers.get("Cookie", "")
+    if cookie_str:
+        from http.cookies import SimpleCookie
+        try:
+            c = SimpleCookie()
+            c.load(cookie_str)
+            if "zillers_collab_auth" in c and c["zillers_collab_auth"].value == COLLAB_DESK_PASSCODE:
+                return True
+        except Exception:
+            pass
+    return False
 
 
 def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_service=None, market_aggregator=None, coingecko_service=None, risk_governor=None, live_governor=None, kill_switch=None, laya_evaluator=None):
@@ -133,7 +151,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 if landing_html.is_file():
                     return self.send(200, landing_html.read_bytes(), "text/html; charset=utf-8")
 
-            if url.path in {"/collaborations", "/collaborations/", "/collaborate/submissions", "/collaborate/list"}:
+            if url.path in {"/collaborations", "/collaborations/", "/collaborate/submissions"}:
                 with _collab_lock:
                     records = []
                     if COLLAB_FILE.is_file():
@@ -143,7 +161,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                                 records = []
                         except Exception:
                             records = []
-                html_view = render_collaborations_html(records)
+                is_auth = is_collab_authorized(self.headers)
+                html_view = render_collaborations_html(records, is_authenticated=is_auth)
                 return self.send(200, html_view.encode("utf-8"), "text/html; charset=utf-8")
 
             if url.path.startswith("/landing/"):
@@ -315,11 +334,18 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                                 records = []
                         except Exception:
                             records = []
+                is_auth = is_collab_authorized(self.headers)
                 accept = self.headers.get("Accept", "")
                 fmt = query.get("format", [""])[0]
                 if (("text/html" in accept and "application/json" not in accept) or fmt == "html") and fmt != "json":
-                    html_view = render_collaborations_html(records)
+                    html_view = render_collaborations_html(records, is_authenticated=is_auth)
                     return self.send(200, html_view.encode("utf-8"), "text/html; charset=utf-8")
+                
+                if not is_auth:
+                    return self.json(401, {
+                        "error": "Passcode required to view collaboration submissions",
+                        "help": "Provide passcode Ekanthbs@4514 via header X-Desk-Passcode or cookie"
+                    })
                 return self.json(200, {"status": "ok", "total": len(records), "proposals": records})
 
             # Dashboard API routes (accessible by authenticated sessions or test runners)
@@ -478,6 +504,24 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     return self.json(200, {"status": "ok", "message": "Password successfully reset. Please log in."})
                 except ValueError as err:
                     return self.json(400, {"error": str(err)})
+
+            # 5b. Collaborate Desk Passcode Authentication
+            if url.path in {"/api/collaborate/auth", "/api/auth"}:
+                action = body.get("action", "")
+                if action == "logout":
+                    return self.json(
+                        200,
+                        {"success": True, "message": "Logged out"},
+                        cookies=["zillers_collab_auth=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"]
+                    )
+                passcode = body.get("passcode", "")
+                if passcode and str(passcode).strip() == COLLAB_DESK_PASSCODE:
+                    return self.json(
+                        200,
+                        {"success": True, "message": "Passcode verified"},
+                        cookies=[f"zillers_collab_auth={COLLAB_DESK_PASSCODE}; Path=/; Max-Age=604800; HttpOnly; SameSite=Lax"]
+                    )
+                return self.json(401, {"error": "Invalid operator passcode"})
 
             # 6. Public Collaborate Proposal Submission
             if url.path == "/api/collaborate":
