@@ -22,6 +22,7 @@ from cryptoscope.auth.security import (
 )
 from cryptoscope.auth.store import AuthStore
 from cryptoscope.dashboard.data import DashboardData
+from cryptoscope.dashboard.collaborate_view import render_collaborations_html
 from cryptoscope.fx.rate_service import FxRateService
 from cryptoscope.market_data.aggregator import MarketDataAggregator
 from cryptoscope.market_data.binance_feed import BinanceFeed
@@ -131,6 +132,19 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 landing_html = STATIC / "landing" / "index.html"
                 if landing_html.is_file():
                     return self.send(200, landing_html.read_bytes(), "text/html; charset=utf-8")
+
+            if url.path in {"/collaborations", "/collaborations/", "/collaborate/submissions", "/collaborate/list"}:
+                with _collab_lock:
+                    records = []
+                    if COLLAB_FILE.is_file():
+                        try:
+                            records = json.loads(COLLAB_FILE.read_text(encoding="utf-8"))
+                            if not isinstance(records, list):
+                                records = []
+                        except Exception:
+                            records = []
+                html_view = render_collaborations_html(records)
+                return self.send(200, html_view.encode("utf-8"), "text/html; charset=utf-8")
 
             if url.path.startswith("/landing/"):
                 subpath = url.path[len("/landing/"):].lstrip("/")
@@ -291,7 +305,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     return self.json(401, {"error": "Authentication required"})
                 return self.json(200, auth_store.get_settings(session["user_id"]))
 
-            if url.path == "/api/collaborate/list":
+            if url.path in {"/api/collaborate", "/api/collaborate/list"}:
                 with _collab_lock:
                     records = []
                     if COLLAB_FILE.is_file():
@@ -301,7 +315,12 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                                 records = []
                         except Exception:
                             records = []
-                    return self.json(200, {"status": "ok", "total": len(records), "proposals": records})
+                accept = self.headers.get("Accept", "")
+                fmt = query.get("format", [""])[0]
+                if (("text/html" in accept and "application/json" not in accept) or fmt == "html") and fmt != "json":
+                    html_view = render_collaborations_html(records)
+                    return self.send(200, html_view.encode("utf-8"), "text/html; charset=utf-8")
+                return self.json(200, {"status": "ok", "total": len(records), "proposals": records})
 
             # Dashboard API routes (accessible by authenticated sessions or test runners)
             workspace = query.get("workspace", ["research"])[0]

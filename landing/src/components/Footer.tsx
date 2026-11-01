@@ -57,7 +57,7 @@ export const Footer: React.FC = () => {
                 href="https://ziennexus.app/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white hover:text-[#D8D8DC] hover:underline underline-offset-2 transition-colors"
+                className="text-white hover:text-[#D8D8DC] font-semibold transition-colors"
                 title="Visit Zien Organisation (ziennexus.app)"
               >
                 Zien Organisation
@@ -110,7 +110,7 @@ export const Footer: React.FC = () => {
             Historical backtests and simulated performance metrics do not predict future results.
           </p>
           <div className="pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-[#A2A2A8]">
-            <span>© 2026 ZILLERS. Built by <a href="https://github.com/ekanth14" target="_blank" rel="noopener noreferrer" className="text-white hover:text-[#D8D8DC] font-bold transition-colors">Ekanth B S</a> · A unit of <a href="https://ziennexus.app/" target="_blank" rel="noopener noreferrer" className="text-white hover:text-[#D8D8DC] hover:underline underline-offset-2 transition-colors" title="Visit Zien Organisation (ziennexus.app)">Zien Organisation</a>. All rights reserved.</span>
+            <span>© 2026 ZILLERS. Built by <a href="https://github.com/ekanth14" target="_blank" rel="noopener noreferrer" className="text-white hover:text-[#D8D8DC] font-bold transition-colors">Ekanth B S</a> · A unit of <a href="https://ziennexus.app/" target="_blank" rel="noopener noreferrer" className="text-white hover:text-[#D8D8DC] font-semibold transition-colors" title="Visit Zien Organisation (ziennexus.app)">Zien Organisation</a>. All rights reserved.</span>
           </div>
         </div>
       </div>

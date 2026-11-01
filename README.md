@@ -5,6 +5,16 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Terminal GUI](https://img.shields.io/badge/GUI-Institutional_Dark-080a0f.svg)](#)
 
+<p align="center">
+  <img src="docs/images/zillers-brand-hero.png" alt="ZILLERS — Quantitative Cryptocurrency Trading Architecture" width="100%" />
+</p>
+
+<p align="center">
+  <strong>Institutional Quantitative Cryptocurrency Trading, Real-Time Market Depth & Deterministic Risk Governance</strong><br />
+  <em>Conceived, engineered, and built by <strong><a href="https://github.com/ekanth14">Ekanth B S</a></strong> · Under <strong><a href="https://ziennexus.app/">Zien Organisation</a></strong></em>
+</p>
+
+
 > **ZILLERS** is an institutional quantitative trading, multi-source crypto market aggregation, and autonomous decision terminal engineered for 24/7 continuous digital asset markets. Built with zero unpinned external runtime dependencies, deterministic risk gating, Smart Money Concept (SMC) order block analytics, and strictly grounded local AI deliberation via Ollama.
 
 ---
@@ -16,6 +26,62 @@
 > **Schedule VDA Notice:** When Indian Tax Mode is toggled, statutory deductions strictly conform to Section 115BBH (31.2% flat tax on gains without inter-asset loss set-off), Section 194S (1% TDS on gross consideration), and GST on exchange commissions. Always consult a licensed financial advisor and tax professional.
 
 ---
+
+## 🖼️ Trading Platform Visuals & Operational Showcase
+
+Explore the core user interface modules and telemetry dashboards engineered for ZILLERS:
+
+### 1. Tactical Trading Terminal & Execution Workspace
+High-frequency execution console featuring sub-20ms deterministic execution, aggregated multi-exchange ticker feeds, live candlestick charting, and real-time execution audit logs.
+
+<p align="center">
+  <img src="docs/images/01-tactical-trading-terminal.png" alt="ZILLERS Tactical Trading Terminal" width="100%" />
+</p>
+
+---
+
+### 2. Level-3 Market Depth & Multi-Venue Liquidity Heatmap
+Real-time streaming order book depth matrix tracking composite spread imbalances, volume profiles, and liquidity sweeps across Binance, Coinbase, and Kraken.
+
+<p align="center">
+  <img src="docs/images/02-orderbook-liquidity-heatmap.png" alt="Level-3 Market Depth & Liquidity Heatmap" width="100%" />
+</p>
+
+---
+
+### 3. Algorithmic Strategy Engine & Smart Money Concepts
+Deterministic rule evaluation engine tracking Smart Money Concepts (SMC) order blocks, Fair Value Gaps (FVG), VWAP mean reversion, and walk-forward Deflated Sharpe Ratio (DSR) model validation.
+
+<p align="center">
+  <img src="docs/images/03-algorithmic-strategy-engine.jpg" alt="Algorithmic Strategy Engine" width="100%" />
+</p>
+
+---
+
+### 4. 5-Gate Risk Governor & Multi-Tier Emergency Kill-Switch
+Fail-safe institutional risk mitigation protocol enforcing 5 mandatory gates before live execution, 3% daily maximum loss halts, 5-second feed staleness aborts, and dual-action position flattening.
+
+<p align="center">
+  <img src="docs/images/04-5gate-risk-governor-killswitch.png" alt="5-Gate Risk Governor & Kill-Switch" width="100%" />
+</p>
+
+---
+
+### 5. Automated Bot Fleet Portfolio & Strategy Execution
+Multi-strategy quantitative bot manager governing risk allocation, paper trade validation, and autonomous market execution cycles across 100+ digital asset pairs.
+
+<p align="center">
+  <img src="docs/images/05-automated-bot-fleet.png" alt="Automated Bot Fleet Portfolio" width="100%" />
+</p>
+
+---
+
+### 6. Hardware Diagnostics & Sub-Millisecond PTP Telemetry
+Hardware telemetry profiling CPU affinity pinning, zero-copy buffer allocations, and sub-millisecond event loop dispatch latency (p50: 0.089ms, p99: 0.304ms).
+
+<p align="center">
+  <img src="docs/images/06-sub-ms-performance-telemetry.png" alt="Hardware Diagnostics & Telemetry" width="100%" />
+</p>
 
 ## 🏛 Core Architectural Highlights
 
@@ -168,6 +234,21 @@ The 108 test cases cover:
 - `test_autotrader.py`: Pre-trade risk gates, order block detection, autonomous cycle evaluation.
 
 ---
+
+---
+
+## 🤝 Research Collaboration & Submissions Desk
+
+ZILLERS is engineered in the open under [Zien Organisation](https://ziennexus.app/). Quantitative researchers, machine learning engineers, and algorithmic traders can propose models, academic paper implementations, and strategy integrations:
+
+- **Web Showcase Form:** Navigate to `http://localhost:8900/landing/#collaborate`
+- **Submissions Desk UI:** Browse and filter all received proposals at `http://localhost:8900/collaborations`
+- **REST API:** `GET /api/collaborate/list` (or `/api/collaborate`)
+- **CLI Submissions Viewer:**
+  ```bash
+  python scripts/view_collaborations.py
+  ```
+- **Local Storage:** All verified proposals are logged to `data/collaborations.json`.
 
 ## 📄 License
 

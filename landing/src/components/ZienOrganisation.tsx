@@ -74,7 +74,7 @@ export const ZienOrganisation: React.FC = () => {
             href="https://ziennexus.app/"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-white underline underline-offset-8 decoration-[#E5C07B]/40 hover:decoration-[#E5C07B] transition-colors"
+            className="text-white font-semibold hover:text-[#E5C07B] transition-colors"
             title="Visit Zien Organisation (ziennexus.app)"
           >
             Zien Organisation
@@ -95,7 +95,7 @@ export const ZienOrganisation: React.FC = () => {
             href="https://ziennexus.app/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#F4F4F5] font-medium hover:text-[#E5C07B] underline underline-offset-4 decoration-[#4D4D51] hover:decoration-[#E5C07B] transition-colors"
+            className="text-[#F4F4F5] font-semibold hover:text-[#E5C07B] transition-colors"
             title="Visit Zien Organisation (ziennexus.app)"
           >
             Zien Organisation

@@ -220,12 +220,28 @@ class ServerEndpointTests(unittest.TestCase):
 
 
     def test_collaborate_list_endpoint(self):
-        req = Request(f"{self.base_url}/api/collaborate/list")
+        # 1. API JSON list request
+        req = Request(f"{self.base_url}/api/collaborate/list", headers={"Accept": "application/json"})
         with urlopen(req) as resp:
             self.assertEqual(resp.status, 200)
+            self.assertIn("application/json", resp.headers.get("Content-Type", ""))
             data = json.load(resp)
             self.assertEqual(data["status"], "ok")
             self.assertIn("proposals", data)
+
+        # 2. Browser HTML view for /collaborations
+        req_html = Request(f"{self.base_url}/collaborations", headers={"Accept": "text/html"})
+        with urlopen(req_html) as resp:
+            self.assertEqual(resp.status, 200)
+            self.assertIn("text/html", resp.headers.get("Content-Type", ""))
+            body = resp.read().decode("utf-8")
+            self.assertIn("ZILLERS Collaboration Proposals Desk", body)
+
+        # 3. Browser navigation to /api/collaborate/list returns HTML view
+        req_api_html = Request(f"{self.base_url}/api/collaborate/list", headers={"Accept": "text/html,application/xhtml+xml"})
+        with urlopen(req_api_html) as resp:
+            self.assertEqual(resp.status, 200)
+            self.assertIn("text/html", resp.headers.get("Content-Type", ""))
 
     def test_collaborate_proposal_submission(self):
         payload = {

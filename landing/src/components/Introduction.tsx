@@ -28,7 +28,7 @@ export const Introduction: React.FC = () => {
               href="https://ziennexus.app/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-white font-medium hover:text-[#D8D8DC] underline underline-offset-4 decoration-[#4D4D51] hover:decoration-white transition-colors"
+              className="text-white font-semibold hover:text-[#D8D8DC] transition-colors"
               title="Visit Zien Organisation (ziennexus.app)"
             >
               Zien Organisation
