@@ -1,4 +1,4 @@
-# ⚡ Zien Crypto Trading Software
+# ⚡ ZILLER-Quantitative research, algorithmic automation, and AI-powered market intelligence
 
 > **Institutional-Grade Quantitative Cryptocurrency Trading Terminal & Microstructure Execution Engine**  
 > *Zero External Python Dependencies • Pure Standard Library Backend • High-DPI HTML5 Canvas • SMC Order Blocks • Cumulative Volume Delta (CVD) • 4-Quadrant Leverage Matrix • Local Gemma-4 Laya Copilot*
