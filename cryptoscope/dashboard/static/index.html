@@ -276,9 +276,19 @@
             <span>Alpha PnL Attribution & Market Context</span>
           </div>
           <div class="panel-controls">
-            <select id="symbol" aria-label="Select asset" style="margin-right: 8px;">
-              <option value="BTCUSDT">BTCUSDT</option>
-              <option value="ETHUSDT">ETHUSDT</option>
+            <select id="symbol" aria-label="Select asset" style="margin-right: 8px; background: var(--surface-mid); color: #fff; border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-family: var(--font-mono); font-size: 11px;">
+              <option value="ETHUSDT" selected>ETHUSDT · Ethereum</option>
+              <option value="BTCUSDT">BTCUSDT · Bitcoin</option>
+              <option value="SOLUSDT">SOLUSDT · Solana</option>
+              <option value="BNBUSDT">BNBUSDT · BNB</option>
+              <option value="XRPUSDT">XRPUSDT · XRP</option>
+              <option value="DOGEUSDT">DOGEUSDT · Dogecoin</option>
+              <option value="ADAUSDT">ADAUSDT · Cardano</option>
+              <option value="AVAXUSDT">AVAXUSDT · Avalanche</option>
+              <option value="LINKUSDT">LINKUSDT · Chainlink</option>
+              <option value="SUIUSDT">SUIUSDT · Sui</option>
+              <option value="NEARUSDT">NEARUSDT · Near</option>
+              <option value="PEPEUSDT">PEPEUSDT · Pepe</option>
             </select>
             <div class="segmented" aria-label="Chart candle window">
               <button data-window="50" class="selected">50 BARS</button>
@@ -297,6 +307,22 @@
             <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-sub);">
               <span id="chart-interval">5m · Closed bars</span> · <span id="snapshot-time">Loading…</span>
             </div>
+          </div>
+
+          <!-- Candlestick Bar HUD (Open, High, Low, Close, Volume, Change) -->
+          <div id="candle-hud" style="font-family: var(--font-mono); font-size: 10px; color: var(--text-sub); margin-bottom: 6px; min-height: 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: rgba(17,19,25,0.7); padding: 4px 8px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.05);">
+            <span id="hud-date" style="color: #fff; font-weight: 600;">Hover candle for OHLCV</span>
+            <span>O: <strong id="hud-open" style="color: #fff;">—</strong></span>
+            <span>H: <strong id="hud-high" style="color: var(--secondary-emerald);">—</strong></span>
+            <span>L: <strong id="hud-low" style="color: var(--danger-rose);">—</strong></span>
+            <span>C: <strong id="hud-close" style="color: #fff;">—</strong></span>
+            <span>Vol: <strong id="hud-vol" style="color: var(--primary-cyan);">—</strong></span>
+            <span>Chg: <strong id="hud-chg" style="color: #fff;">—</strong></span>
+            <span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px;">
+              <span style="display:inline-flex; align-items:center; gap:3px;"><span style="display:inline-block;width:7px;height:7px;background:var(--secondary-emerald);border-radius:1px;"></span> Bull Bar</span>
+              <span style="display:inline-flex; align-items:center; gap:3px;"><span style="display:inline-block;width:7px;height:7px;background:var(--danger-rose);border-radius:1px;"></span> Bear Bar</span>
+              <span style="display:inline-flex; align-items:center; gap:3px;"><span style="display:inline-block;width:9px;height:2px;background:var(--primary-cyan);"></span> EMA 20</span>
+            </span>
           </div>
 
           <!-- Chart Canvas -->
@@ -753,7 +779,7 @@
     </section>
 
     <!-- All Crypto Listings Screener Section -->
-    <section class="panel" id="view-listings" style="margin-top: 16px;">
+    <section class="panel" id="listings" style="margin-top: 16px;">
       <div class="panel-header">
         <div class="panel-title">
           <span class="icon">🪙</span>

@@ -105,6 +105,38 @@ class DashboardData:
             snapshot = body.get("snapshot", {})
             if snapshot.get("symbol") not in snapshots and snapshot.get("candles"):
                 snapshots[snapshot["symbol"]] = snapshot
+
+        # Ensure active crypto symbols have snapshots populated from CandleStore or BinanceProvider
+        try:
+            from cryptoscope.market_data.candle_store import CandleStore
+            from cryptoscope.providers.binance import BinanceProvider
+            cs = CandleStore()
+            symbols_to_load = list(self.config.get("symbols", ["BTCUSDT", "ETHUSDT"]))
+            for s in ["BTCUSDT", "ETHUSDT", "SOLUSDT"]:
+                if s not in symbols_to_load:
+                    symbols_to_load.append(s)
+            for sym in symbols_to_load:
+                if sym not in snapshots or not snapshots[sym].get("candles"):
+                    interval = self.config.get("interval", "5m")
+                    candles = cs.load_candles(sym, interval, limit=100)
+                    if not candles or len(candles) < 20:
+                        try:
+                            snap = BinanceProvider().snapshot(sym, interval)
+                            if snap and snap.candles:
+                                cs.save_candles(sym, interval, snap.candles, source="binance")
+                                candles = cs.load_candles(sym, interval, limit=100)
+                        except Exception:
+                            pass
+                    if candles:
+                        snapshots[sym] = {
+                            "symbol": sym,
+                            "as_of": candles[-1].get("close_time", time.time()),
+                            "interval_seconds": 300,
+                            "candles": candles,
+                            "source": "binance_spot"
+                        }
+        except Exception:
+            pass
         return {"workspace": workspace, "server_time": time.time(), "model": self.model_health(),
                 'autotrader':self.autotrader() if workspace=='research' else None,
                 'forecast': self.latest_forecast(workspace, bodies), 'strategy': self.latest_strategy(workspace),

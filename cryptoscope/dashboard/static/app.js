@@ -2,6 +2,13 @@
 
 const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const DEFAULT_SYMBOLS = [
+  'ETHUSDT', 'BTCUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 
+  'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'LINKUSDT', 'SUIUSDT', 
+  'NEARUSDT', 'PEPEUSDT', 'SHIBUSDT', 'DOTUSDT', 'LTCUSDT', 
+  'UNIUSDT', 'APTUSDT', 'POLUSDT', 'FETUSDT', 'RENDERUSDT'
+];
+
 const state = {
   workspace: 'research',
   data: null,
@@ -21,7 +28,9 @@ const state = {
   user: null,
   filterFavoritesOnly: false,
   listingsSearch: '',
-  listingsSort: 'market_cap_desc'
+  listingsSort: 'market_cap_desc',
+  candlesBySymbol: {},
+  activeSymbol: 'ETHUSDT'
 };
 
 const money = value => {
@@ -126,11 +135,7 @@ function renderOverview() {
   if($('model-status')) $('model-status').textContent=({ready:'Laya ready',model_missing:'Laya model missing',unreachable:'Ollama unreachable',check_delayed:'Health check delayed',unchecked:'Checking Laya'})[data.model.status] || 'Laya status unknown';
   if($('system-dot')) $('system-dot').style.background=data.model.status==='ready'?'var(--secondary-emerald)':'#c7a77a';
   
-  if ($('symbol')) {
-    const previous=$('symbol').value;
-    $('symbol').innerHTML=data.settings.symbols.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
-    if(data.settings.symbols.includes(previous))$('symbol').value=previous;
-  }
+  updateSymbolDropdown(data.settings.symbols || []);
   
   renderRuns();
   renderPositions();
@@ -203,99 +208,308 @@ function renderPositions() {
   `).join(''):`<div style="padding:16px 0; font-family:var(--font-mono); font-size:11px; color:var(--text-sub); text-align:center;">All clear. Portfolio flat with zero open positions.</div>`;
 }
 
-function renderChart() {
-  if (!$('symbol') || !$('chart')) return;
-  const symbol = $('symbol').value;
-  const snapshot=state.data?.snapshots[symbol];
-  const candles=snapshot?.candles?.slice(-state.window).filter(c=>Number.isFinite(c.close)) || [];
-  if($('chart-tooltip')) $('chart-tooltip').hidden=true;
-  if($('chart-empty')) $('chart-empty').hidden=candles.length>1;
-  if(candles.length<2){
-    $('chart').innerHTML='';
-    if($('chart-empty')) $('chart-empty').textContent='Awaiting closed candle snapshot for '+symbol;
-    if($('market-price')) $('market-price').textContent='—';
-    if($('market-change')) $('market-change').textContent='—';
-    if($('chart-interval')) $('chart-interval').textContent='5m candles';
-    if($('snapshot-time')) $('snapshot-time').textContent='No snapshot available';
+function updateSymbolDropdown(customSymbols = []) {
+  if (!$('symbol')) return;
+  const currentVal = $('symbol').value || state.activeSymbol || 'ETHUSDT';
+  const set = new Set(DEFAULT_SYMBOLS);
+  customSymbols.forEach(s => set.add(s));
+  (state.listings || []).forEach(item => {
+    if (item.symbol) {
+      const sym = item.symbol.toUpperCase();
+      set.add(sym.endsWith('USDT') ? sym : sym + 'USDT');
+    }
+  });
+  const allSymbols = Array.from(set);
+  const optionsHtml = allSymbols.map(s => {
+    let name = s.replace('USDT', '');
+    const found = (state.listings || []).find(l => (l.symbol || '').toUpperCase() === s || (l.symbol || '').toUpperCase() + 'USDT' === s);
+    if (found && found.name) name = `${s} · ${found.name}`;
+    return `<option value="${escapeHtml(s)}"${s === currentVal ? ' selected' : ''}>${escapeHtml(name)}</option>`;
+  }).join('');
+  $('symbol').innerHTML = optionsHtml;
+  if (allSymbols.includes(currentVal)) {
+    $('symbol').value = currentVal;
+  }
+}
+
+async function loadCandlesForSymbol(symbol, force = false) {
+  if (!symbol) return;
+  state.activeSymbol = symbol;
+  if (!force && state.candlesBySymbol[symbol] && state.candlesBySymbol[symbol].length >= 10) {
+    renderChart();
     return;
   }
-  const values=candles.map(c=>c.close),min=Math.min(...values),max=Math.max(...values),padding=(max-min)*.15 || max*.001;
-  const low=min-padding,high=max+padding,x=i=>12+i/(values.length-1)*707,y=v=>185-(v-low)/(high-low)*170;
-  const points=values.map((v,i)=>`${x(i).toFixed(2)},${y(v).toFixed(2)}`).join(' ');
-  const first=values[0],last=values.at(-1),change=(last/first-1)*100;
-  if($('market-price')) $('market-price').textContent=money(last);
-  if($('market-change')) {
-    $('market-change').textContent=`${change>=0?'+':''}${number(change)}% 24h`;
-    $('market-change').className = `kpi-tag ${change>=0?'green':'rose'}`;
+  try {
+    const res = await request(`/api/market/candles?symbol=${encodeURIComponent(symbol)}&interval=5m&limit=200`);
+    if (res && Array.isArray(res.candles) && res.candles.length) {
+      state.candlesBySymbol[symbol] = res.candles;
+      if (!state.data) state.data = { snapshots: {} };
+      if (!state.data.snapshots) state.data.snapshots = {};
+      state.data.snapshots[symbol] = {
+        symbol: symbol,
+        interval_seconds: 300,
+        as_of: res.as_of || (Date.now() / 1000),
+        candles: res.candles,
+        source: res.source || 'binance_spot'
+      };
+    }
+  } catch (err) {
+    console.warn(`Could not load candles for ${symbol}:`, err.message);
+  } finally {
+    renderChart();
+    renderOrderBook();
   }
-  if($('chart-interval')) $('chart-interval').textContent=`${snapshot.interval_seconds/60}m · ${candles.length} closed bars`;
-  if($('snapshot-time')) $('snapshot-time').textContent=`Captured ${date(snapshot.as_of)} · ${age(snapshot.as_of)}`;
-  
-  const grid=[0,.25,.5,.75,1].map(f=>{
-    const value=low+(high-low)*f,py=y(value);
-    return `<line x1="0" y1="${py}" x2="730" y2="${py}" stroke="#1e293b" stroke-dasharray="3 5"/><text x="740" y="${py+3}" fill="#64748b" font-size="9" font-family="JetBrains Mono">${number(value,values[0]>1000?0:2)}</text>`;
-  }).join('');
-  
-  const labels=[0,Math.floor((candles.length-1)/2),candles.length-1].map((i,k)=>
-    `<text x="${x(i)}" y="215" text-anchor="${k===0?'start':k===2?'end':'middle'}" fill="#64748b" font-size="9" font-family="JetBrains Mono">${escapeHtml(new Date(candles[i].close_time*1000).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}))}</text>`
-  ).join('');
+}
 
-  $('chart').innerHTML=`
-    <defs>
-      <linearGradient id="chart-fill" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.28"/>
-        <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/>
-      </linearGradient>
-    </defs>
-    ${grid}
-    <polygon points="12,190 ${points} 719,190" fill="url(#chart-fill)"/>
-    <polyline points="${points}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linejoin="round"/>
-    <circle cx="719" cy="${y(last)}" r="4" fill="#38bdf8"/>
-    ${labels}
-    <line id="crosshair" x1="0" x2="0" y1="10" y2="190" stroke="#8ed5ff" stroke-dasharray="2 3" visibility="hidden"/>
-    <rect id="chart-hit" x="0" y="0" width="730" height="200" fill="transparent"/>
+function computeEma(values, period = 20) {
+  if (!values || values.length === 0) return [];
+  const k = 2 / (period + 1);
+  const ema = [values[0]];
+  for (let i = 1; i < values.length; i++) {
+    ema.push(values[i] * k + ema[i - 1] * (1 - k));
+  }
+  return ema;
+}
+
+function renderChart() {
+  if (!$('symbol') || !$('chart')) return;
+  const symbol = $('symbol').value || state.activeSymbol || 'ETHUSDT';
+  state.activeSymbol = symbol;
+  
+  // Get candles from cache or snapshot
+  let allCandles = state.candlesBySymbol[symbol] || state.data?.snapshots?.[symbol]?.candles || [];
+  allCandles = allCandles.filter(c => Number.isFinite(c.close) && Number.isFinite(c.open || c.close));
+
+  if (allCandles.length < 2) {
+    $('chart').innerHTML = '';
+    if ($('chart-empty')) {
+      $('chart-empty').hidden = false;
+      $('chart-empty').textContent = `Loading live candlestick feed for ${symbol}…`;
+    }
+    if ($('market-price')) $('market-price').textContent = '—';
+    if ($('market-change')) $('market-change').textContent = '—';
+    if ($('chart-interval')) $('chart-interval').textContent = '5m candles';
+    if ($('snapshot-time')) $('snapshot-time').textContent = 'Fetching market history…';
+    loadCandlesForSymbol(symbol);
+    return;
+  }
+
+  if ($('chart-empty')) $('chart-empty').hidden = true;
+  if ($('chart-tooltip')) $('chart-tooltip').hidden = true;
+
+  // Window slicing
+  const visible = allCandles.slice(-state.window);
+  const N = visible.length;
+  if (N < 2) return;
+
+  // Price range calculation with padding
+  const highs = visible.map(c => Number(c.high ?? c.close));
+  const lows = visible.map(c => Number(c.low ?? c.close));
+  const minPrice = Math.min(...lows);
+  const maxPrice = Math.max(...highs);
+  const padding = (maxPrice - minPrice) * 0.08 || maxPrice * 0.005;
+  const low = minPrice - padding;
+  const high = maxPrice + padding;
+
+  // SVG Chart bounds
+  const svgWidth = 800;
+  const svgHeight = 230;
+  const chartLeft = 14;
+  const chartRight = 724;
+  const chartWidth = chartRight - chartLeft;
+  const chartTop = 15;
+  const chartBottom = 190;
+  const chartHeight = chartBottom - chartTop;
+
+  const x = i => chartLeft + (i / (N - 1)) * chartWidth;
+  const y = p => chartBottom - ((p - low) / (high - low)) * chartHeight;
+
+  // Volume scale
+  const volumes = visible.map(c => Number(c.volume || 0));
+  const maxVol = Math.max(...volumes, 1);
+  const volY = v => 205 - ((v / maxVol) * 28);
+  const volH = v => Math.max(1.5, (v / maxVol) * 28);
+
+  // EMA 20 calculation across full series, sliced to visible
+  const allCloses = allCandles.map(c => Number(c.close));
+  const fullEma = computeEma(allCloses, 20);
+  const visibleEma = fullEma.slice(-state.window);
+  const emaPoints = visibleEma.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+
+  // Last candle metrics
+  const last = visible[visible.length - 1];
+  const first = visible[0];
+  const pctChange = ((last.close / first.close) - 1) * 100;
+  
+  if ($('market-price')) $('market-price').textContent = money(last.close);
+  if ($('market-change')) {
+    $('market-change').textContent = `${pctChange >= 0 ? '+' : ''}${pctChange.toFixed(2)}% (${N}b)`;
+    $('market-change').className = `kpi-tag ${pctChange >= 0 ? 'green' : 'rose'}`;
+  }
+  if ($('chart-interval')) $('chart-interval').textContent = `5m · ${N} Candlestick Bars`;
+  if ($('snapshot-time')) $('snapshot-time').textContent = `Live · ${new Date(last.close_time * 1000).toLocaleTimeString()}`;
+
+  // Default HUD values
+  updateHudValues(last);
+
+  // Price grid lines (horizontal)
+  const gridLevels = [0.0, 0.25, 0.5, 0.75, 1.0];
+  const gridSvg = gridLevels.map(f => {
+    const val = low + (high - low) * f;
+    const py = y(val);
+    const label = number(val, val > 1000 ? 2 : val > 1 ? 3 : 5);
+    return `<line x1="${chartLeft}" y1="${py.toFixed(1)}" x2="${chartRight}" y2="${py.toFixed(1)}" stroke="#1a202c" stroke-dasharray="3 4"/>
+            <text x="732" y="${(py + 3).toFixed(1)}" fill="#64748b" font-size="9" font-family="JetBrains Mono">${escapeHtml(label)}</text>`;
+  }).join('');
+
+  // Time grid labels (bottom X-axis)
+  const timeIndices = [0, Math.floor(N * 0.25), Math.floor(N * 0.5), Math.floor(N * 0.75), N - 1];
+  const timeLabels = timeIndices.map((idx, k) => {
+    const c = visible[idx];
+    if (!c) return '';
+    const tStr = new Date(c.close_time * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    const anchor = k === 0 ? 'start' : k === timeIndices.length - 1 ? 'end' : 'middle';
+    return `<text x="${x(idx).toFixed(1)}" y="222" text-anchor="${anchor}" fill="#64748b" font-size="9" font-family="JetBrains Mono">${escapeHtml(tStr)}</text>`;
+  }).join('');
+
+  // Render Candlestick Bars and Volume Bars
+  const step = chartWidth / (N - 1 || 1);
+  const barWidth = Math.max(2.5, Math.min(10, step * 0.72));
+
+  let candlesSvg = '';
+  visible.forEach((c, i) => {
+    const cx = x(i);
+    const isBull = c.close >= c.open;
+    const col = isBull ? 'var(--secondary-emerald)' : 'var(--danger-rose)';
+    const wickY1 = y(c.high);
+    const wickY2 = y(c.low);
+    const bodyTop = Math.min(y(c.open), y(c.close));
+    const bodyBottom = Math.max(y(c.open), y(c.close));
+    const bodyH = Math.max(1.5, bodyBottom - bodyTop);
+
+    // Wick line
+    const wick = `<line x1="${cx.toFixed(1)}" y1="${wickY1.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${wickY2.toFixed(1)}" stroke="${col}" stroke-width="1.2" opacity="0.9"/>`;
+    // Body rectangle
+    const body = `<rect x="${(cx - barWidth / 2).toFixed(1)}" y="${bodyTop.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${bodyH.toFixed(1)}" fill="${col}" stroke="${col}" stroke-width="0.8" rx="0.5"/>`;
+    // Volume bar
+    const vol = `<rect x="${(cx - barWidth / 2).toFixed(1)}" y="${volY(c.volume).toFixed(1)}" width="${barWidth.toFixed(1)}" height="${volH(c.volume).toFixed(1)}" fill="${isBull ? 'rgba(16,185,129,0.25)' : 'rgba(244,63,94,0.25)'}"/>`;
+    
+    candlesSvg += wick + body + vol;
+  });
+
+  // Current price reference line
+  const lastY = y(last.close);
+  const currentPriceDashed = `
+    <line x1="${chartLeft}" y1="${lastY.toFixed(1)}" x2="${chartRight}" y2="${lastY.toFixed(1)}" stroke="#38bdf8" stroke-dasharray="2 3" opacity="0.85"/>
+    <rect x="728" y="${(lastY - 7).toFixed(1)}" width="68" height="14" rx="2" fill="#0c1829" stroke="#38bdf8" stroke-width="0.8"/>
+    <text x="732" y="${(lastY + 3).toFixed(1)}" fill="#38bdf8" font-size="8.5" font-family="JetBrains Mono" font-weight="600">${number(last.close, last.close > 1000 ? 1 : 3)}</text>
   `;
 
-  $('chart').onpointermove=event=>{
-    const rect=$('chart').getBoundingClientRect(),px=(event.clientX-rect.left)/rect.width*800,index=Math.max(0,Math.min(candles.length-1,Math.round((px-12)/707*(candles.length-1))));
-    const line=$('crosshair');if(!line)return;
-    line.setAttribute('x1',x(index));line.setAttribute('x2',x(index));line.setAttribute('visibility','visible');
-    if($('chart-tooltip')) {
-      $('chart-tooltip').hidden=false;
-      $('chart-tooltip').textContent=`${date(candles[index].close_time)} · ${money(values[index])}`;
-    }
-  };
-  $('chart').onpointerleave=()=>{
-    $('crosshair')?.setAttribute('visibility','hidden');
-    if($('chart-tooltip')) $('chart-tooltip').hidden=true;
-  };
+  // EMA line
+  const emaSvg = `<polyline points="${emaPoints}" fill="none" stroke="var(--primary-cyan)" stroke-width="1.4" opacity="0.85" stroke-linecap="round"/>`;
+
+  // Final SVG assembly
+  $('chart').innerHTML = `
+    ${gridSvg}
+    ${candlesSvg}
+    ${emaSvg}
+    ${currentPriceDashed}
+    ${timeLabels}
+    <line id="crosshair-v" x1="0" x2="0" y1="${chartTop}" y2="${chartBottom}" stroke="#8ed5ff" stroke-dasharray="2 2" visibility="hidden"/>
+    <line id="crosshair-h" x1="${chartLeft}" x2="${chartRight}" y1="0" y2="0" stroke="#8ed5ff" stroke-dasharray="2 2" visibility="hidden"/>
+    <rect id="chart-hit" x="${chartLeft}" y="0" width="${chartWidth}" height="${svgHeight}" fill="transparent" style="cursor: crosshair;"/>
+  `;
+
+  // Interactive Crosshair & HUD
+  const hit = $('chart-hit');
+  if (hit) {
+    hit.onpointermove = event => {
+      const rect = $('chart').getBoundingClientRect();
+      const px = ((event.clientX - rect.left) / rect.width) * svgWidth;
+      const py = ((event.clientY - rect.top) / rect.height) * svgHeight;
+      const idx = Math.max(0, Math.min(N - 1, Math.round(((px - chartLeft) / chartWidth) * (N - 1))));
+      const c = visible[idx];
+      if (!c) return;
+
+      const crossV = $('crosshair-v');
+      const crossH = $('crosshair-h');
+      if (crossV) {
+        crossV.setAttribute('x1', x(idx).toFixed(1));
+        crossV.setAttribute('x2', x(idx).toFixed(1));
+        crossV.setAttribute('visibility', 'visible');
+      }
+      if (crossH) {
+        crossH.setAttribute('y1', py.toFixed(1));
+        crossH.setAttribute('y2', py.toFixed(1));
+        crossH.setAttribute('visibility', 'visible');
+      }
+
+      updateHudValues(c);
+    };
+
+    hit.onpointerleave = () => {
+      $('crosshair-v')?.setAttribute('visibility', 'hidden');
+      $('crosshair-h')?.setAttribute('visibility', 'hidden');
+      updateHudValues(last);
+    };
+  }
+}
+
+function updateHudValues(c) {
+  if (!c) return;
+  const isBull = c.close >= c.open;
+  const chg = c.open ? (((c.close / c.open) - 1) * 100) : 0;
+  if ($('hud-date')) $('hud-date').textContent = new Date(c.close_time * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if ($('hud-open')) $('hud-open').textContent = number(c.open, c.open > 1000 ? 2 : 4);
+  if ($('hud-high')) $('hud-high').textContent = number(c.high, c.high > 1000 ? 2 : 4);
+  if ($('hud-low')) $('hud-low').textContent = number(c.low, c.low > 1000 ? 2 : 4);
+  if ($('hud-close')) {
+    $('hud-close').textContent = number(c.close, c.close > 1000 ? 2 : 4);
+    $('hud-close').style.color = isBull ? 'var(--secondary-emerald)' : 'var(--danger-rose)';
+  }
+  if ($('hud-vol')) $('hud-vol').textContent = number(c.volume, 2);
+  if ($('hud-chg')) {
+    $('hud-chg').textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%`;
+    $('hud-chg').style.color = isBull ? 'var(--secondary-emerald)' : 'var(--danger-rose)';
+  }
 }
 
 function renderOrderBook() {
-  const bot=state.data?.autotrader;
-  const quotes=bot?.runtime?.quotes || {};
-  const currentSymbol = $('symbol')?.value || 'BTCUSDT';
-  const quote = quotes[currentSymbol];
-  if (!quote) return;
-  
-  const bid = quote.bid, ask = quote.ask;
-  const spread = ask - bid;
-  const spreadPct = (spread / bid) * 100;
-  const mid = (ask + bid) / 2;
-  
-  if ($('ob-spread')) $('ob-spread').textContent = `${spread.toFixed(2)} USDT (${spreadPct.toFixed(3)}%)`;
-  if ($('ob-midpoint')) $('ob-midpoint').textContent = `${mid.toFixed(2)} USDT`;
-  
-  const step = currentSymbol === 'BTCUSDT' ? 1.5 : 0.25;
-  if ($('ob-bid-1')) $('ob-bid-1').textContent = bid.toFixed(2);
-  if ($('ob-bid-2')) $('ob-bid-2').textContent = (bid - step).toFixed(2);
-  if ($('ob-bid-3')) $('ob-bid-3').textContent = (bid - step * 2).toFixed(2);
-  if ($('ob-bid-4')) $('ob-bid-4').textContent = (bid - step * 3).toFixed(2);
+  const currentSymbol = $('symbol')?.value || state.activeSymbol || 'ETHUSDT';
+  const ticker = state.tickers[currentSymbol];
+  const botQuotes = state.data?.autotrader?.runtime?.quotes || {};
+  const quote = botQuotes[currentSymbol];
 
-  if ($('ob-ask-1')) $('ob-ask-1').textContent = ask.toFixed(2);
-  if ($('ob-ask-2')) $('ob-ask-2').textContent = (ask + step).toFixed(2);
-  if ($('ob-ask-3')) $('ob-ask-3').textContent = (ask + step * 2).toFixed(2);
-  if ($('ob-ask-4')) $('ob-ask-4').textContent = (ask + step * 3).toFixed(2);
+  let bid = ticker?.bid ?? quote?.bid;
+  let ask = ticker?.ask ?? quote?.ask;
+
+  if (!bid || !ask) {
+    if (ticker?.price) {
+      const spreadStep = ticker.price > 1000 ? 0.5 : ticker.price > 10 ? 0.05 : 0.001;
+      bid = ticker.price - spreadStep;
+      ask = ticker.price + spreadStep;
+    } else {
+      return;
+    }
+  }
+
+  const spread = ask - bid;
+  const spreadPct = (spread / (bid || 1)) * 100;
+  const mid = (ask + bid) / 2;
+
+  if ($('ob-spread')) $('ob-spread').textContent = `${spread.toFixed(spread < 1 ? 4 : 2)} USDT (${spreadPct.toFixed(3)}%)`;
+  if ($('ob-midpoint')) $('ob-midpoint').textContent = `${mid.toFixed(mid < 1 ? 4 : 2)} USDT`;
+
+  const step = mid > 10000 ? 2.5 : mid > 1000 ? 0.25 : mid > 50 ? 0.05 : 0.001;
+  if ($('ob-bid-1')) $('ob-bid-1').textContent = bid.toFixed(mid < 1 ? 4 : 2);
+  if ($('ob-bid-2')) $('ob-bid-2').textContent = (bid - step).toFixed(mid < 1 ? 4 : 2);
+  if ($('ob-bid-3')) $('ob-bid-3').textContent = (bid - step * 2).toFixed(mid < 1 ? 4 : 2);
+  if ($('ob-bid-4')) $('ob-bid-4').textContent = (bid - step * 3).toFixed(mid < 1 ? 4 : 2);
+
+  if ($('ob-ask-1')) $('ob-ask-1').textContent = ask.toFixed(mid < 1 ? 4 : 2);
+  if ($('ob-ask-2')) $('ob-ask-2').textContent = (ask + step).toFixed(mid < 1 ? 4 : 2);
+  if ($('ob-ask-3')) $('ob-ask-3').textContent = (ask + step * 2).toFixed(mid < 1 ? 4 : 2);
+  if ($('ob-ask-4')) $('ob-ask-4').textContent = (ask + step * 3).toFixed(mid < 1 ? 4 : 2);
 }
 
 function renderAutoTrader(){
@@ -650,10 +864,22 @@ document.querySelectorAll('[data-window]').forEach(button=>button.addEventListen
   renderChart();
 }));
 
-document.querySelectorAll('.nav-tab, .sidebar-link').forEach(a=>{
-  a.addEventListener('click',()=>{
-    document.querySelectorAll('.nav-tab, .sidebar-link').forEach(b=>b.classList.remove('active'));
-    a.classList.add('active');
+document.querySelectorAll('.nav-tab, .sidebar-link').forEach(a => {
+  a.addEventListener('click', e => {
+    const href = a.getAttribute('href');
+    if (!href || !href.startsWith('#')) return;
+    const targetId = href.substring(1);
+    const targetEl = document.getElementById(targetId) || document.getElementById('view-' + targetId);
+    if (targetEl) {
+      e.preventDefault();
+      document.querySelectorAll('.nav-tab, .sidebar-link').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('href') === href);
+      });
+      targetEl.scrollIntoView({ behavior: 'smooth' });
+      if (targetId === 'listings' && (!state.listings || !state.listings.length)) {
+        fetchListings();
+      }
+    }
   });
 });
 
@@ -1018,11 +1244,21 @@ async function fetchListings() {
       request('/api/market/tickers')
     ]);
     state.listings = listingsRes.items || listingsRes.data || [];
-    state.tickers = tickersRes.tickers || {};
+    const tickerMap = {};
+    if (Array.isArray(tickersRes?.tickers)) {
+      tickersRes.tickers.forEach(t => {
+        if (t.symbol) tickerMap[t.symbol.toUpperCase()] = t;
+      });
+    } else if (tickersRes?.tickers && typeof tickersRes.tickers === 'object') {
+      Object.assign(tickerMap, tickersRes.tickers);
+    }
+    state.tickers = { ...state.tickers, ...tickerMap };
+    updateSymbolDropdown();
     renderListings();
   } catch (err) {
+    console.error("fetchListings error:", err);
     if ($('listings-body')) {
-      $('listings-body').innerHTML = `<tr><td colspan="12" style="text-align:center; padding:20px; color:var(--danger-rose);">Failed to load crypto listings: ${escapeHtml(err.message)}</td></tr>`;
+      $('listings-body').innerHTML = `<tr><td colspan="13" style="text-align:center; padding:20px; color:var(--danger-rose);">Failed to load crypto listings: ${escapeHtml(err.message)}</td></tr>`;
     }
   }
 }
@@ -1093,10 +1329,11 @@ function renderListings() {
     // Verification badge
     let verificationBadge = '';
     if (ticker) {
+      const srcList = ticker.sources_reporting || ticker.sources || ['Exchange'];
       if (ticker.status === 'verified') {
-        verificationBadge = `<span class="badge-status verified" title="Cross-checked across ${ticker.sources.join(', ')}">VERIFIED (${ticker.sources.join('+')})</span>`;
+        verificationBadge = `<span class="badge-status verified" title="Cross-checked across ${srcList.join(', ')}">VERIFIED (${srcList.join('+')})</span>`;
       } else if (ticker.status === 'single-source') {
-        verificationBadge = `<span class="badge-status single-source" title="Single source: ${ticker.sources[0]}">SINGLE-SRC (${ticker.sources[0]})</span>`;
+        verificationBadge = `<span class="badge-status single-source" title="Single source: ${srcList[0]}">SINGLE-SRC (${srcList[0]})</span>`;
       } else if (ticker.status === 'unverified') {
         verificationBadge = `<span class="badge-status unverified" title="Cross-source price deviation exceeds 1%">UNVERIFIED (&gt;1% DEV)</span>`;
       } else if (ticker.status === 'stale') {
@@ -1266,11 +1503,14 @@ window.selectSymbolForResearch = function(symbol) {
       $('symbol').appendChild(opt);
     }
     $('symbol').value = symbol;
-    renderChart();
+    state.activeSymbol = symbol;
+    loadCandlesForSymbol(symbol, true);
     renderOrderBook();
   }
-  const researchLink = document.querySelector('a[href="#research"]');
-  if (researchLink) researchLink.click();
+  const chartEl = $('overview') || $('chart-wrap');
+  if (chartEl) {
+    chartEl.scrollIntoView({ behavior: 'smooth' });
+  }
 };
 
 if ($('close-coin-dialog')) $('close-coin-dialog').addEventListener('click', () => $('coin-dialog')?.close());
@@ -1322,15 +1562,71 @@ function initSseStream() {
   if (!window.EventSource) return;
   try {
     const sse = new EventSource('/api/market/stream');
+    sse.onopen = () => {
+      if ($('feed-status-dot')) $('feed-status-dot').style.background = 'var(--secondary-emerald)';
+      if ($('feed-status-text')) {
+        $('feed-status-text').textContent = 'LIVE STREAMING';
+        $('feed-status-text').className = 'val ok';
+      }
+    };
     sse.onmessage = e => {
       try {
         const payload = JSON.parse(e.data);
-        if (payload.tickers) {
+        if (payload.tickers && Array.isArray(payload.tickers)) {
           const map = {};
-          payload.tickers.forEach(t => { map[t.symbol] = t; });
+          payload.tickers.forEach(t => {
+            if (t.symbol) map[t.symbol.toUpperCase()] = t;
+          });
           state.tickers = { ...state.tickers, ...map };
+
+          // Real-time tick update for currently active chart symbol
+          const curSymbol = $('symbol')?.value || state.activeSymbol || 'ETHUSDT';
+          const curTicker = map[curSymbol];
+          if (curTicker && Number.isFinite(curTicker.price)) {
+            // Update market price display with tick flash
+            if ($('market-price')) {
+              const oldPrice = state.previousPrices[curSymbol];
+              $('market-price').textContent = money(curTicker.price);
+              if (oldPrice !== undefined) {
+                if (curTicker.price > oldPrice) {
+                  $('market-price').classList.remove('flash-down');
+                  $('market-price').classList.add('flash-up');
+                } else if (curTicker.price < oldPrice) {
+                  $('market-price').classList.remove('flash-up');
+                  $('market-price').classList.add('flash-down');
+                }
+                setTimeout(() => {
+                  $('market-price')?.classList.remove('flash-up', 'flash-down');
+                }, 500);
+              }
+              state.previousPrices[curSymbol] = curTicker.price;
+            }
+
+            // Update 24h change
+            if ($('market-change') && curTicker.change_24h_pct !== null && curTicker.change_24h_pct !== undefined) {
+              const chg = curTicker.change_24h_pct;
+              $('market-change').textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}% 24h`;
+              $('market-change').className = `kpi-tag ${chg >= 0 ? 'green' : 'rose'}`;
+            }
+
+            // Real-time update of latest candle in chart
+            const candles = state.candlesBySymbol[curSymbol] || state.data?.snapshots?.[curSymbol]?.candles;
+            if (candles && candles.length) {
+              const lastCandle = candles[candles.length - 1];
+              lastCandle.close = curTicker.price;
+              if (curTicker.price > (lastCandle.high || 0)) lastCandle.high = curTicker.price;
+              if (curTicker.price < (lastCandle.low || Infinity)) lastCandle.low = curTicker.price;
+              renderChart();
+            }
+
+            // Real-time update of Order Book
+            renderOrderBook();
+          }
+
+          // Real-time update of listings table rows
           renderListings();
         }
+
         if (payload.connections && $('sidebar-feed-status')) {
           const conn = payload.connections;
           const live = Object.entries(conn).filter(([_, s]) => s.state === 'connected').map(([k]) => k.toUpperCase());
@@ -1340,8 +1636,13 @@ function initSseStream() {
       } catch (err) {}
     };
     sse.onerror = () => {
+      if ($('feed-status-dot')) $('feed-status-dot').style.background = 'var(--danger-rose)';
+      if ($('feed-status-text')) {
+        $('feed-status-text').textContent = 'RECONNECTING';
+        $('feed-status-text').className = 'val warn';
+      }
       sse.close();
-      setTimeout(initSseStream, 5000);
+      setTimeout(initSseStream, 4000);
     };
   } catch (err) {}
 }
@@ -1354,3 +1655,12 @@ fetchLayaStatus();
 fetchListings();
 loadFeatures();
 initSseStream();
+
+if ($('symbol')) {
+  $('symbol').addEventListener('change', e => {
+    const sym = e.target.value;
+    state.activeSymbol = sym;
+    loadCandlesForSymbol(sym, true);
+    renderOrderBook();
+  });
+}

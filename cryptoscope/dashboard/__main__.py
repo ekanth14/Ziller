@@ -159,7 +159,72 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
 
             if url.path == "/api/market/ticker":
                 symbol = query.get("symbol", ["BTCUSDT"])[0].upper()
-                return self.json(200, market_aggregator.get_ticker(symbol))
+                ticker = market_aggregator.get_ticker(symbol)
+                if ticker.get("status") == "unavailable" or ticker.get("price") is None:
+                    try:
+                        from cryptoscope.providers.binance import BinanceProvider
+                        q = BinanceProvider().quote(symbol)
+                        if q and q.get("bid"):
+                            bid = float(q["bid"])
+                            ask = float(q["ask"])
+                            mid = round((bid + ask) / 2.0, 4 if bid < 10 else 2)
+                            ticker = {
+                                "symbol": symbol,
+                                "status": "single-source",
+                                "price": mid,
+                                "bid": bid,
+                                "ask": ask,
+                                "change_24h_pct": None,
+                                "volume_24h": None,
+                                "high_24h": None,
+                                "low_24h": None,
+                                "source": "binance_spot",
+                                "sources_reporting": ["binance"],
+                                "sources_dropped_stale": [],
+                                "age_seconds": round(time.time() - q["available_at"], 2),
+                                "median_price": mid,
+                                "max_deviation_pct": 0.0,
+                                "metadata": None
+                            }
+                    except Exception:
+                        pass
+                return self.json(200, ticker)
+
+            if url.path == "/api/market/candles":
+                symbol = query.get("symbol", ["BTCUSDT"])[0].upper()
+                interval = query.get("interval", ["5m"])[0]
+                limit = min(500, max(10, int(query.get("limit", [100])[0])))
+                candles = []
+                try:
+                    from cryptoscope.market_data.candle_store import CandleStore
+                    from cryptoscope.providers.binance import BinanceProvider
+                    cs = CandleStore()
+                    candles = cs.load_candles(symbol, interval, limit=limit)
+                    if not candles or len(candles) < 20:
+                        provider = BinanceProvider()
+                        snap = provider.snapshot(symbol, interval)
+                        if snap and snap.candles:
+                            cs.save_candles(symbol, interval, snap.candles, source="binance")
+                            candles = cs.load_candles(symbol, interval, limit=limit)
+                            if not candles:
+                                candles = snap.candles[-limit:]
+                    return self.json(200, {
+                        "symbol": symbol,
+                        "interval": interval,
+                        "candles": candles,
+                        "count": len(candles),
+                        "as_of": time.time(),
+                        "source": "binance_spot"
+                    })
+                except Exception as e:
+                    return self.json(200, {
+                        "symbol": symbol,
+                        "interval": interval,
+                        "candles": candles or [],
+                        "count": len(candles),
+                        "as_of": time.time(),
+                        "error": str(e)
+                    })
 
             if url.path == "/api/market/connections":
                 return self.json(200, market_aggregator.get_connection_status())
@@ -486,7 +551,7 @@ def main():
     rate_limiter = RateLimiter(limit=15, window_sec=60)
     lockout_mgr = AccountLockoutManager(threshold=5, duration=900)
     fx_service = FxRateService()
-    market_aggregator = MarketDataAggregator(["BTCUSDT", "ETHUSDT", "SOLUSDT"])
+    market_aggregator = MarketDataAggregator(["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "AVAXUSDT"])
     coingecko_service = CoinGeckoService()
     risk_governor = RiskGovernor()
     live_governor = LiveMultiGateGovernor()
@@ -497,7 +562,7 @@ def main():
     print(f"[ZILLERS AI] Laya Version: {laya_evaluator.laya_version} | Checkpoint: {laya_evaluator.checkpoint_path}", flush=True)
 
     # Start live exchange feeds in background
-    binance_feed = BinanceFeed(on_ticker=market_aggregator.record_ticker, symbols=["BTCUSDT", "ETHUSDT", "SOLUSDT"])
+    binance_feed = BinanceFeed(on_ticker=market_aggregator.record_ticker, symbols=["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "AVAXUSDT"])
     coinbase_feed = CoinbaseFeed(on_ticker=market_aggregator.record_ticker, symbols=["BTCUSDT", "ETHUSDT", "SOLUSDT"])
     kraken_feed = KrakenFeed(on_ticker=market_aggregator.record_ticker, symbols=["BTCUSDT", "ETHUSDT", "SOLUSDT"])
     binance_feed.start()

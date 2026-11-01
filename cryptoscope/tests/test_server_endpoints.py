@@ -194,6 +194,21 @@ class ServerEndpointTests(unittest.TestCase):
             self.assertIn("attribution", data)
             self.assertIn("CoinGecko", data["attribution"])
 
+    def test_market_candles_endpoint(self):
+        req = Request(f"{self.base_url}/api/market/candles?symbol=ETHUSDT&interval=5m&limit=10")
+        with urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.load(resp)
+            self.assertEqual(data["symbol"], "ETHUSDT")
+            self.assertEqual(data["interval"], "5m")
+            self.assertIn("candles", data)
+            self.assertIsInstance(data["candles"], list)
+            if data["candles"]:
+                c = data["candles"][-1]
+                for key in ("open", "high", "low", "close", "volume"):
+                    self.assertIn(key, c)
+
+
 
 if __name__ == "__main__":
     unittest.main()
