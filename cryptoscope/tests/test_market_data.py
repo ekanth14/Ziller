@@ -12,6 +12,7 @@ from cryptoscope.market_data.aggregator import MarketDataAggregator
 from cryptoscope.market_data.candle_store import CandleStore
 from cryptoscope.market_data.binance_feed import BinanceFeed
 from cryptoscope.market_data.kraken_feed import KrakenFeed
+from cryptoscope.market_data.coingecko import CoinGeckoService
 
 
 class MarketDataAggregatorTests(unittest.TestCase):
@@ -234,6 +235,48 @@ class CandleStoreTests(unittest.TestCase):
         self.assertEqual(len(loaded), 2)
         self.assertEqual(loaded[0]["open"], 50000.0)
         self.assertEqual(loaded[1]["close"], 50150.0)
+
+
+class CoinGeckoServiceTests(unittest.TestCase):
+    def test_cached_listings_and_schema(self):
+        cg = CoinGeckoService()
+        mock_data = [
+            {
+                "id": "bitcoin",
+                "symbol": "btc",
+                "name": "Bitcoin",
+                "image": "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",
+                "current_price": 68500.0,
+                "market_cap": 1350000000000.0,
+                "market_cap_rank": 1,
+                "total_volume": 35000000000.0,
+                "high_24h": 69200.0,
+                "low_24h": 67800.0,
+                "price_change_percentage_1h_in_currency": 0.45,
+                "price_change_percentage_24h": 2.15,
+                "price_change_percentage_7d_in_currency": -1.20,
+                "price_change_percentage_30d_in_currency": 8.50,
+                "sparkline_in_7d": {"price": [67000, 67500, 68000, 68500]},
+                "circulating_supply": 19700000.0,
+            }
+        ]
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps(mock_data).encode("utf-8")
+        mock_resp.__enter__.return_value = mock_resp
+        mock_resp.__exit__.return_value = None
+
+        with patch("cryptoscope.market_data.coingecko.urlopen", return_value=mock_resp):
+            res = cg.get_top_listings(per_page=10, page=1)
+            self.assertEqual(res["total"], 1)
+            self.assertEqual(len(res["items"]), 1)
+            btc = res["items"][0]
+            self.assertEqual(btc["symbol"], "BTCUSDT")
+            self.assertEqual(btc["name"], "Bitcoin")
+            self.assertEqual(btc["current_price"], 68500.0)
+            self.assertEqual(btc["price_change_percentage_30d"], 8.50)
+            self.assertIn("CoinGecko", res["attribution"])
+            self.assertFalse(res["stale"])
 
 
 if __name__ == "__main__":

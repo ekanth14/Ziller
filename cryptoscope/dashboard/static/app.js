@@ -979,18 +979,21 @@ function renderListings() {
     return true;
   });
 
-  // Sort
+  // Sort & Filter
   const sort = state.listingsSort;
+  if (sort === 'high_volume') {
+    list = list.filter(item => (item.total_volume || 0) >= 100000000);
+  }
   list.sort((a, b) => {
     if (sort === 'market_cap_desc') return (b.market_cap || 0) - (a.market_cap || 0);
-    if (sort === 'volume_desc') return (b.total_volume || 0) - (a.total_volume || 0);
+    if (sort === 'volume_desc' || sort === 'high_volume') return (b.total_volume || 0) - (a.total_volume || 0);
     if (sort === 'gainers') return (b.price_change_percentage_24h || 0) - (a.price_change_percentage_24h || 0);
     if (sort === 'losers') return (a.price_change_percentage_24h || 0) - (b.price_change_percentage_24h || 0);
     return 0;
   });
 
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; padding:24px; color:var(--text-sub);">No crypto assets match your criteria.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="13" style="text-align:center; padding:24px; color:var(--text-sub);">No crypto assets match your criteria.</td></tr>`;
     return;
   }
 
@@ -1015,10 +1018,12 @@ function renderListings() {
     const h1Change = item.price_change_percentage_1h ?? item.price_change_percentage_1h_in_currency ?? null;
     const h24Change = ticker ? ticker.change_24h : item.price_change_percentage_24h;
     const d7Change = item.price_change_percentage_7d ?? item.price_change_percentage_7d_in_currency ?? null;
+    const d30Change = item.price_change_percentage_30d ?? item.price_change_percentage_30d_in_currency ?? null;
 
     const h1Color = h1Change >= 0 ? 'var(--secondary-emerald)' : 'var(--danger-rose)';
     const h24Color = h24Change >= 0 ? 'var(--secondary-emerald)' : 'var(--danger-rose)';
     const d7Color = d7Change >= 0 ? 'var(--secondary-emerald)' : 'var(--danger-rose)';
+    const d30Color = d30Change >= 0 ? 'var(--secondary-emerald)' : 'var(--danger-rose)';
 
     // Verification badge
     let verificationBadge = '';
@@ -1047,11 +1052,11 @@ function renderListings() {
         </td>
         <td style="font-family: var(--font-mono); font-size: 10px; color: var(--text-sub);">${item.market_cap_rank || '—'}</td>
         <td>
-          <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; cursor: pointer;" onclick="selectSymbolForResearch('${escapeHtml(pairSymbol)}')">
             ${item.image ? `<img src="${escapeHtml(item.image)}" alt="" style="width: 18px; height: 18px; border-radius: 50%;">` : ''}
             <div>
-              <div style="font-weight: 600; color: #fff; font-size: 12px;">${escapeHtml(item.name || symUpper)}</div>
-              <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-sub); text-transform: uppercase;">${escapeHtml(symUpper)}</div>
+              <div style="font-weight: 600; color: #fff; font-size: 12px; hover: underline;">${escapeHtml(item.name || symUpper)}</div>
+              <div style="font-family: var(--font-mono); font-size: 9px; color: var(--primary-cyan); text-transform: uppercase;">${escapeHtml(symUpper)} ↗</div>
             </div>
           </div>
         </td>
@@ -1067,6 +1072,9 @@ function renderListings() {
         <td style="text-align: right; font-family: var(--font-mono); font-size: 10px; color: ${d7Color};">
           ${formatPercent(d7Change)}
         </td>
+        <td style="text-align: right; font-family: var(--font-mono); font-size: 10px; color: ${d30Color};">
+          ${formatPercent(d30Change)}
+        </td>
         <td style="text-align: right; font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);">
           ${escapeHtml(money(item.total_volume))}
         </td>
@@ -1080,7 +1088,10 @@ function renderListings() {
           ${verificationBadge}
         </td>
         <td style="text-align: center;">
-          <button class="button" style="padding: 2px 8px; font-size: 10px;" onclick="openCoinDetail('${escapeHtml(pairSymbol)}')">Analyze</button>
+          <div style="display: inline-flex; gap: 4px;">
+            <button class="button" style="padding: 2px 6px; font-size: 10px;" onclick="selectSymbolForResearch('${escapeHtml(pairSymbol)}')" title="Load into Main Chart & Order Book">Chart</button>
+            <button class="button button-primary" style="padding: 2px 6px; font-size: 10px;" onclick="openCoinDetail('${escapeHtml(pairSymbol)}')" title="Quant Order Block & Strategy Scan">Analyze</button>
+          </div>
         </td>
       </tr>
     `;

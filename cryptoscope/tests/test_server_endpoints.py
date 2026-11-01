@@ -175,6 +175,18 @@ class ServerEndpointTests(unittest.TestCase):
             data = json.load(resp)
             self.assertTrue(data["reauthenticated"])
 
+    def test_market_listings_endpoint(self):
+        req = Request(f"{self.base_url}/api/market/listings?page=1&per_page=10")
+        with urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.load(resp)
+            self.assertIn("items", data)
+            self.assertIn("total", data)
+            self.assertEqual(data["page"], 1)
+            self.assertEqual(data["per_page"], 10)
+            self.assertIn("attribution", data)
+            self.assertIn("CoinGecko", data["attribution"])
+
 
 if __name__ == "__main__":
     unittest.main()

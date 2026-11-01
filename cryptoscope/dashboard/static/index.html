@@ -775,6 +775,7 @@
               <option value="volume_desc">24h Volume (High → Low)</option>
               <option value="gainers">Top 24h Gainers</option>
               <option value="losers">Top 24h Losers</option>
+              <option value="high_volume">High Volume (> $100M)</option>
             </select>
             <button class="button" id="filter-favorites-btn" style="padding: 4px 8px;">★ Favorites Only</button>
           </div>
@@ -792,6 +793,7 @@
                 <th style="text-align: right;">1h %</th>
                 <th style="text-align: right;">24h %</th>
                 <th style="text-align: right;">7d %</th>
+                <th style="text-align: right;">30d %</th>
                 <th style="text-align: right;">24h Volume</th>
                 <th style="text-align: right;">Market Cap</th>
                 <th style="text-align: center; width: 100px;">7d Trend</th>
@@ -801,7 +803,7 @@
             </thead>
             <tbody id="listings-body">
               <tr>
-                <td colspan="12" style="text-align: center; padding: 24px; color: var(--text-sub);">
+                <td colspan="13" style="text-align: center; padding: 24px; color: var(--text-sub);">
                   Loading live crypto listings and order-block analytics...
                 </td>
               </tr>

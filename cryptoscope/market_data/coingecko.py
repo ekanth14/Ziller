@@ -65,7 +65,7 @@ class CoinGeckoService:
         req = Request(url, headers=headers)
         try:
             with urlopen(req, timeout=8.0) as resp:
-                data = json.load(resp)
+                data = json.loads(resp.read().decode("utf-8"))
             if isinstance(data, list):
                 parsed = []
                 for row in data:
