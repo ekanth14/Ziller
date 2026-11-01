@@ -340,3 +340,28 @@ class AutoTraderTests(unittest.TestCase):
             self.assertEqual(trade.symbol, 'BTCUSDT')
             self.assertGreater(trade.target, trade.entry)
             self.assertLess(trade.stop, trade.entry)
+
+    def test_fast_decision_layer_tier1_and_tier2_rules(self):
+        from cryptoscope.autotrader.decision import Tier1Engine, LayaTier2Evaluator, FastDecisionLayer
+        tier1 = Tier1Engine()
+        candles = self.snapshot.candles
+
+        # Tier 1 evaluation
+        t1_res = tier1.evaluate(candles, symbol='BTCUSDT')
+        self.assertIn(t1_res['action'], ['LONG', 'SHORT', 'STAND_ASIDE'])
+        self.assertIn('discrete_encoding', t1_res)
+        self.assertIn('trend=', t1_res['discrete_encoding'])
+        self.assertLess(t1_res['latency_ms'], 20.0)  # Sub-20ms requirement
+
+        # Fast Decision Layer with Laya Evaluator (fail-safe mode when laya uninstalled)
+        evaluator = LayaTier2Evaluator()
+        layer = FastDecisionLayer(evaluator)
+        decision = layer.decide(candles, symbol='BTCUSDT')
+
+        self.assertIn(decision['final_action'], ['LONG', 'SHORT', 'STAND_ASIDE'])
+        self.assertIn('total_latency_ms', decision)
+        self.assertEqual(len(layer.audit_log), 1)
+
+        # When Tier 2 does not confirm, decision is strictly STAND_ASIDE
+        if not decision['tier2']['agreed']:
+            self.assertEqual(decision['final_action'], 'STAND_ASIDE')

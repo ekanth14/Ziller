@@ -25,12 +25,12 @@ class CoinGeckoService:
     def get_top_listings(self, per_page: int = 50, page: int = 1) -> Dict[str, Any]:
         """Return cached top crypto assets with market cap, sparklines, and volume."""
         with self._lock:
-            now = time.time()
-            if not self.cached_listings or (now - self.last_fetch > self.CACHE_TTL_SECONDS):
+            if not self.cached_listings or (time.time() - self.last_fetch > self.CACHE_TTL_SECONDS):
                 self._fetch_markets_locked(per_page=100)
 
-            age = now - self.last_fetch if self.last_fetch > 0 else None
-            is_stale = age > self.CACHE_TTL_SECONDS if age else True
+            now = time.time()
+            age = max(0.0, now - self.last_fetch) if self.last_fetch > 0 else None
+            is_stale = (age > self.CACHE_TTL_SECONDS) if age is not None else True
 
             # Paginate in memory from top list
             start = (page - 1) * per_page

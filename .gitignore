@@ -41,6 +41,7 @@ htmlcov/
 *.onnx
 checkpoints/
 data/models/
+data/training/*.jsonl
 
 # OS specific
 .DS_Store
