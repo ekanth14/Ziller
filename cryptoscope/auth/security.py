@@ -5,7 +5,8 @@ import logging
 import os
 import secrets
 import time
-from typing import Dict, List, Optional, Tuple
+import threading
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("cryptoscope.auth.security")
 
@@ -17,10 +18,10 @@ LOCKOUT_DURATION_SECONDS = 15 * 60  # 15 minutes
 
 
 def hash_password(password: str) -> str:
-    """Hash password using scrypt with random 16-byte salt."""
+    """Hash password using scrypt with random 32-byte salt."""
     if not password or len(password) < 8:
         raise ValueError("Password must be at least 8 characters")
-    salt = secrets.token_bytes(16)
+    salt = secrets.token_bytes(32)
     key = hashlib.scrypt(password.encode("utf-8"), salt=salt, n=SCRYPT_N, r=SCRYPT_R, p=SCRYPT_P)
     return f"scrypt${SCRYPT_N}${SCRYPT_R}${SCRYPT_P}${salt.hex()}${key.hex()}"
 
@@ -69,68 +70,107 @@ def extract_client_ip(headers: Dict[str, str], socket_ip: str) -> str:
 
 
 class RateLimiter:
-    """Sliding-window in-memory rate limiter per IP address."""
+    """Sliding-window in-memory rate limiter per IP address and endpoint."""
     def __init__(self, limit: int = 10, window_sec: int = 60):
         self.limit = limit
         self.window_sec = window_sec
         self.requests: Dict[str, List[float]] = {}
+        self._lock = threading.Lock()
 
-    def is_allowed(self, ip: str) -> bool:
+    def is_allowed(self, ip: str, endpoint: str = "", limit: Optional[int] = None) -> bool:
+        key = f"{ip}:{endpoint}" if endpoint else ip
+        max_reqs = limit or self.limit
         now = time.time()
         cutoff = now - self.window_sec
-        history = [t for t in self.requests.get(ip, []) if t > cutoff]
-        if len(history) >= self.limit:
-            self.requests[ip] = history
-            return False
-        history.append(now)
-        self.requests[ip] = history
-        return True
+        with self._lock:
+            history = [t for t in self.requests.get(key, []) if t > cutoff]
+            if len(history) >= max_reqs:
+                self.requests[key] = history
+                return False
+            history.append(now)
+            self.requests[key] = history
+            return True
 
-    def retry_after(self, ip: str) -> int:
+    def retry_after(self, ip: str, endpoint: str = "") -> int:
+        key = f"{ip}:{endpoint}" if endpoint else ip
         now = time.time()
         cutoff = now - self.window_sec
-        history = [t for t in self.requests.get(ip, []) if t > cutoff]
-        if not history:
-            return 1
-        return max(1, int(history[0] + self.window_sec - now))
+        with self._lock:
+            history = [t for t in self.requests.get(key, []) if t > cutoff]
+            if not history:
+                return 1
+            return max(1, int(history[0] + self.window_sec - now))
 
 
 class AccountLockoutManager:
-    """Tracks consecutive failed logins per account; locks for 15 minutes after 5 failures."""
-    def __init__(self, threshold: int = LOCKOUT_THRESHOLD, duration: int = LOCKOUT_DURATION_SECONDS):
-        self.threshold = threshold
-        self.duration = duration
-        # email -> {"failures": int, "locked_until": float}
-        self.accounts: Dict[str, Dict[str, float]] = {}
+    """Tracks consecutive failed logins per account with exponential backoff:
+    - 3 failed logins -> 1 min (60s)
+    - 5 failed logins -> 15 min (900s)
+    - 10 failed logins -> permanent lock until admin reset
+    """
+    def __init__(self, threshold: Optional[int] = None, duration: Optional[int] = None, tiered: Optional[bool] = None):
+        self.tiered = (tiered is True) or (threshold is None and tiered is not False)
+        self.threshold = threshold or LOCKOUT_THRESHOLD
+        self.duration = duration or LOCKOUT_DURATION_SECONDS
+        # email -> {"failures": int, "locked_until": float, "admin_locked": bool}
+        self.accounts: Dict[str, Dict[str, Any]] = {}
+        self._lock = threading.Lock()
 
     def is_locked(self, email: str) -> Tuple[bool, int]:
         normalized = email.strip().lower()
         now = time.time()
-        rec = self.accounts.get(normalized)
-        if not rec:
+        with self._lock:
+            rec = self.accounts.get(normalized)
+            if not rec:
+                return False, 0
+            if rec.get("admin_locked"):
+                return True, -1  # indicates permanent lock until admin reset
+            locked_until = rec.get("locked_until", 0.0)
+            if now < locked_until:
+                rem = max(1, int(locked_until - now))
+                return True, rem
+            # Lockout expired
+            if locked_until > 0.0:
+                rec["locked_until"] = 0.0
             return False, 0
-        locked_until = rec.get("locked_until", 0.0)
-        if now < locked_until:
-            rem = int(locked_until - now)
-            return True, rem
-        # Lockout expired
-        if locked_until > 0.0:
-            rec["failures"] = 0
-            rec["locked_until"] = 0.0
-        return False, 0
 
     def record_failure(self, email: str) -> Tuple[bool, int]:
         normalized = email.strip().lower()
         now = time.time()
-        rec = self.accounts.setdefault(normalized, {"failures": 0, "locked_until": 0.0})
-        rec["failures"] += 1
-        if rec["failures"] >= self.threshold:
-            rec["locked_until"] = now + self.duration
-            logger.warning("Account %s locked out due to %d consecutive failed logins", normalized, rec["failures"])
-            return True, self.duration
-        return False, 0
+        with self._lock:
+            rec = self.accounts.setdefault(normalized, {"failures": 0, "locked_until": 0.0, "admin_locked": False})
+            rec["failures"] += 1
+            fails = rec["failures"]
+
+            if self.tiered:
+                if fails >= 10:
+                    rec["admin_locked"] = True
+                    rec["locked_until"] = now + 31536000
+                    logger.warning("Account %s permanently locked (10+ failures), admin reset required", normalized)
+                    return True, -1
+                elif fails >= 5:
+                    rec["locked_until"] = now + 900
+                    logger.warning("Account %s locked for 15 min (>=5 failures)", normalized)
+                    return True, 900
+                elif fails >= 3:
+                    rec["locked_until"] = now + 60
+                    logger.warning("Account %s locked for 1 min (>=3 failures)", normalized)
+                    return True, 60
+                return False, 0
+            else:
+                if fails >= self.threshold:
+                    rec["locked_until"] = now + self.duration
+                    logger.warning("Account %s locked out due to %d consecutive failed logins", normalized, fails)
+                    return True, self.duration
+                return False, 0
 
     def record_success(self, email: str):
         normalized = email.strip().lower()
-        if normalized in self.accounts:
-            self.accounts[normalized] = {"failures": 0, "locked_until": 0.0}
+        with self._lock:
+            if normalized in self.accounts and not self.accounts[normalized].get("admin_locked"):
+                self.accounts[normalized] = {"failures": 0, "locked_until": 0.0, "admin_locked": False}
+
+    def admin_unlock(self, email: str):
+        normalized = email.strip().lower()
+        with self._lock:
+            self.accounts[normalized] = {"failures": 0, "locked_until": 0.0, "admin_locked": False}

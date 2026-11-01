@@ -22,6 +22,9 @@ class AuthSecurityTests(unittest.TestCase):
         pwd = "InstitutionalPassword123!"
         hashed = hash_password(pwd)
         self.assertTrue(hashed.startswith("scrypt$16384$8$1$"))
+        parts = hashed.split("$")
+        # Ensure 32-byte salt (64 hex characters)
+        self.assertEqual(len(parts[4]), 64)
         self.assertTrue(verify_password(pwd, hashed))
         self.assertFalse(verify_password("WrongPassword123!", hashed))
         self.assertFalse(verify_password("", hashed))
@@ -60,6 +63,39 @@ class AuthSecurityTests(unittest.TestCase):
         # Successful login resets failure count
         mgr.record_success(email)
         mgr.accounts[email]["locked_until"] = 0.0
+        self.assertFalse(mgr.is_locked(email)[0])
+
+    def test_exponential_tiered_lockout(self):
+        mgr = AccountLockoutManager(tiered=True)
+        email = "tiered_trader@zillers.local"
+
+        # 1 and 2 failures: not locked
+        self.assertFalse(mgr.record_failure(email)[0])
+        self.assertFalse(mgr.record_failure(email)[0])
+
+        # 3 failures: 1 min (60s) lockout
+        locked3, rem3 = mgr.record_failure(email)
+        self.assertTrue(locked3)
+        self.assertLessEqual(rem3, 60)
+
+        # 4th failure
+        mgr.record_failure(email)
+
+        # 5th failure: 15 min (900s) lockout
+        locked5, rem5 = mgr.record_failure(email)
+        self.assertTrue(locked5)
+        self.assertGreater(rem5, 60)
+        self.assertLessEqual(rem5, 900)
+
+        # Up to 10 failures: permanent admin lock
+        for _ in range(4):
+            mgr.record_failure(email)
+        locked10, rem10 = mgr.record_failure(email)
+        self.assertTrue(locked10)
+        self.assertEqual(rem10, -1)  # Permanent lock flag
+
+        # Admin unlock releases the account
+        mgr.admin_unlock(email)
         self.assertFalse(mgr.is_locked(email)[0])
 
     def test_proxy_header_trust_only_when_configured(self):

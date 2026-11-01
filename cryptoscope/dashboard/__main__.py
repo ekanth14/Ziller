@@ -244,8 +244,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
 
             # 1. Login
             if url.path == "/api/auth/login":
-                if not rate_limiter.is_allowed(client_ip):
-                    retry = rate_limiter.retry_after(client_ip)
+                if not rate_limiter.is_allowed(client_ip, "/api/auth/login", limit=12):
+                    retry = rate_limiter.retry_after(client_ip, "/api/auth/login")
                     return self.json(429, {"error": f"Rate limit exceeded. Retry in {retry} seconds."})
 
                 email = str(body.get("email", "")).strip().lower()
@@ -253,18 +253,25 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
 
                 is_locked, rem = lockout_mgr.is_locked(email)
                 if is_locked:
+                    if rem < 0:
+                        return self.json(423, {"error": "Account permanently locked due to repeated failed logins. Contact administrator."})
                     return self.json(423, {"error": f"Account temporarily locked due to failed logins. Try again in {rem} seconds."})
 
                 user = auth_store.get_user_by_email(email)
                 if not user or not verify_password(password, user["password_hash"]):
                     locked, rem_lock = lockout_mgr.record_failure(email)
                     if locked:
-                        return self.json(423, {"error": f"Account locked for {rem_lock} seconds due to 5 consecutive failures."})
-                    return self.json(401, {"error": "Invalid email or password"})
+                        if rem_lock < 0:
+                            return self.json(423, {"error": "Account permanently locked due to repeated failed logins. Contact administrator."})
+                        return self.json(423, {"error": f"Account locked for {rem_lock} seconds due to consecutive failed logins."})
+                    return self.json(401, {"error": "Invalid credentials"})
 
                 lockout_mgr.record_success(email)
+                auth_store.record_login(user["id"])
                 raw_token, csrf_token = auth_store.create_session(user["id"])
-                cookie_str = f"session_token={raw_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=43200"
+                is_tls = self.headers.get("X-Forwarded-Proto") == "https"
+                secure_flag = "; Secure" if is_tls else ""
+                cookie_str = f"session_token={raw_token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800{secure_flag}"
 
                 return self.json(200, {
                     "status": "ok",
@@ -279,7 +286,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
 
             # 2. Signup
             if url.path == "/api/auth/signup":
-                if not rate_limiter.is_allowed(client_ip):
+                if not rate_limiter.is_allowed(client_ip, "/api/auth/signup", limit=12):
                     return self.json(429, {"error": "Rate limit exceeded"})
 
                 email = str(body.get("email", "")).strip().lower()
@@ -289,7 +296,9 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 try:
                     user_id = auth_store.create_user(email, password, role="user", invite_code=invite_code)
                     raw_token, csrf_token = auth_store.create_session(user_id)
-                    cookie_str = f"session_token={raw_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=43200"
+                    is_tls = self.headers.get("X-Forwarded-Proto") == "https"
+                    secure_flag = "; Secure" if is_tls else ""
+                    cookie_str = f"session_token={raw_token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800{secure_flag}"
                     return self.json(200, {
                         "status": "ok",
                         "user": {"id": user_id, "email": email, "role": "user", "must_change_password": False},
@@ -305,7 +314,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     c = SimpleCookie(raw_cookies)
                     if "session_token" in c:
                         auth_store.revoke_session(c["session_token"].value)
-                clear_cookie = "session_token=; Path=/; HttpOnly; Max-Age=0"
+                clear_cookie = "session_token=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0"
                 return self.json(200, {"status": "logged_out"}, cookies=[clear_cookie])
 
             # 4. Password Reset Request
@@ -334,13 +343,33 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
             if not session:
                 return self.json(401, {"error": "Authentication required"})
 
+            # CSRF Verification on authenticated mutating requests
+            csrf_token = self.headers.get("X-CSRF-Token") or body.get("csrf_token")
+            if not csrf_token or csrf_token != session.get("csrf_token"):
+                return self.json(403, {"error": "Invalid or missing CSRF token"})
+
+            # Re-authentication for sensitive actions
+            if url.path == "/api/auth/reauth":
+                password = str(body.get("password", ""))
+                user = auth_store.get_user_by_id(session["user_id"])
+                if not user or not verify_password(password, user["password_hash"]):
+                    return self.json(401, {"error": "Invalid credentials"})
+                return self.json(200, {
+                    "status": "ok",
+                    "reauthenticated": True,
+                    "expires_at": time.time() + 300,
+                    "message": "Re-authentication verified for 5 minutes"
+                })
+
             # Change Password
             if url.path == "/api/auth/change_password":
                 new_pwd = str(body.get("new_password", ""))
                 try:
                     auth_store.change_password(session["user_id"], new_pwd)
                     raw_token, csrf_token = auth_store.create_session(session["user_id"])
-                    cookie_str = f"session_token={raw_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=43200"
+                    is_tls = self.headers.get("X-Forwarded-Proto") == "https"
+                    secure_flag = "; Secure" if is_tls else ""
+                    cookie_str = f"session_token={raw_token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800{secure_flag}"
                     return self.json(200, {"status": "ok", "message": "Password updated"}, cookies=[cookie_str])
                 except ValueError as err:
                     return self.json(400, {"error": str(err)})
@@ -373,13 +402,10 @@ def main():
     args = parser.parse_args()
 
     auth_store = AuthStore()
-    # Bootstrap admin if ADMIN_INITIAL_PASSWORD is provided or required
-    if os.environ.get("ADMIN_INITIAL_PASSWORD"):
-        try:
-            admin_id = auth_store.bootstrap_admin()
-            print(f"[ZILLERS AUTH] Admin user bootstrapped (id={admin_id})", flush=True)
-        except Exception as e:
-            logger.warning("Admin bootstrap note: %s", e)
+    # Bootstrap admin if no admin exists (fails cleanly if ADMIN_INITIAL_PASSWORD is unset)
+    if not auth_store.has_admin():
+        admin_id = auth_store.bootstrap_admin()
+        print(f"[ZILLERS AUTH] Admin user bootstrapped (id={admin_id})", flush=True)
 
     rate_limiter = RateLimiter(limit=15, window_sec=60)
     lockout_mgr = AccountLockoutManager(threshold=5, duration=900)

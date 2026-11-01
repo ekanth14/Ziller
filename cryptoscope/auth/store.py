@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from cryptoscope.auth.security import hash_password, hash_token, generate_session_token
 
 DEFAULT_USERS_DB = Path(__file__).resolve().parents[2] / "work/runtime/users.db"
-SESSION_LIFETIME_SECONDS = 12 * 3600  # 12 hours
+SESSION_LIFETIME_SECONDS = 7 * 24 * 3600  # 7 days idle
 RESET_TOKEN_LIFETIME_SECONDS = 3600    # 1 hour
 
 
@@ -41,9 +41,14 @@ class AuthStore:
                         must_change_password INTEGER NOT NULL DEFAULT 0,
                         disabled INTEGER NOT NULL DEFAULT 0,
                         created_at REAL NOT NULL,
-                        updated_at REAL NOT NULL
+                        updated_at REAL NOT NULL,
+                        last_login REAL
                     )
                 """)
+                try:
+                    conn.execute("ALTER TABLE users ADD COLUMN last_login REAL")
+                except sqlite3.OperationalError:
+                    pass
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS sessions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,6 +90,28 @@ class AuthStore:
                         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                     )
                 """)
+                conn.commit()
+            finally:
+                conn.close()
+
+    def has_admin(self) -> bool:
+        """Check if an administrator account already exists."""
+        with self._lock:
+            conn = self._get_connection()
+            try:
+                cur = conn.cursor()
+                cur.execute("SELECT id FROM users WHERE role = 'admin' LIMIT 1")
+                return cur.fetchone() is not None
+            finally:
+                conn.close()
+
+    def record_login(self, user_id: int):
+        """Record timestamp of successful authentication."""
+        now = time.time()
+        with self._lock:
+            conn = self._get_connection()
+            try:
+                conn.execute("UPDATE users SET last_login = ?, updated_at = ? WHERE id = ?", (now, now, user_id))
                 conn.commit()
             finally:
                 conn.close()
@@ -221,6 +248,10 @@ class AuthStore:
                 row = cur.fetchone()
                 if not row or row["disabled"]:
                     return None
+                # Refresh session expiry (7 days idle)
+                new_expiry = now + SESSION_LIFETIME_SECONDS
+                conn.execute("UPDATE sessions SET expires_at = ? WHERE token_hash = ?", (new_expiry, thash))
+                conn.commit()
                 return dict(row)
             finally:
                 conn.close()

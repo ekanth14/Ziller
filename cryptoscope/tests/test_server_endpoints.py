@@ -120,6 +120,61 @@ class ServerEndpointTests(unittest.TestCase):
             # Cold state without upstream mock returns unavailable
             self.assertIn(data["status"], ["available", "stale", "unavailable"])
 
+    def test_csrf_token_validation_on_mutating_requests(self):
+        raw_token, csrf_token = self.auth_store.create_session(self.admin_id)
+        payload = json.dumps({"display_currency": "USD", "theme": "dark"}).encode()
+
+        # Request missing CSRF header returns 403 Forbidden
+        req_no_csrf = Request(
+            f"{self.base_url}/api/user/settings",
+            data=payload,
+            headers={"Cookie": f"session_token={raw_token}", "Content-Type": "application/json"}
+        )
+        with self.assertRaises(HTTPError) as ctx:
+            urlopen(req_no_csrf)
+        self.assertEqual(ctx.exception.code, 403)
+
+        # Request with valid X-CSRF-Token header succeeds 200 OK
+        req_with_csrf = Request(
+            f"{self.base_url}/api/user/settings",
+            data=payload,
+            headers={
+                "Cookie": f"session_token={raw_token}",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf_token,
+            }
+        )
+        with urlopen(req_with_csrf) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.load(resp)
+            self.assertEqual(data["status"], "ok")
+
+    def test_reauth_endpoint(self):
+        raw_token, csrf_token = self.auth_store.create_session(self.admin_id)
+
+        # Invalid password returns 401
+        invalid_body = json.dumps({"password": "WrongPassword999!"}).encode()
+        req_invalid = Request(
+            f"{self.base_url}/api/auth/reauth",
+            data=invalid_body,
+            headers={"Cookie": f"session_token={raw_token}", "Content-Type": "application/json", "X-CSRF-Token": csrf_token}
+        )
+        with self.assertRaises(HTTPError) as ctx:
+            urlopen(req_invalid)
+        self.assertEqual(ctx.exception.code, 401)
+
+        # Correct password returns 200 with reauthenticated: True
+        valid_body = json.dumps({"password": "AdminTestingPassword123!"}).encode()
+        req_valid = Request(
+            f"{self.base_url}/api/auth/reauth",
+            data=valid_body,
+            headers={"Cookie": f"session_token={raw_token}", "Content-Type": "application/json", "X-CSRF-Token": csrf_token}
+        )
+        with urlopen(req_valid) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.load(resp)
+            self.assertTrue(data["reauthenticated"])
+
 
 if __name__ == "__main__":
     unittest.main()
