@@ -276,7 +276,35 @@
             <span>Alpha PnL Attribution & Market Context</span>
           </div>
           <div class="panel-controls">
-            <select id="symbol" aria-label="Select asset" style="margin-right: 8px; background: var(--surface-mid); color: #fff; border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-family: var(--font-mono); font-size: 11px;">
+            <!-- Custom Institutional Crypto Dropdown Component -->
+            <div class="symbol-picker-container" id="symbol-picker-container">
+              <button type="button" class="symbol-picker-trigger" id="symbol-picker-btn" aria-haspopup="listbox" aria-expanded="false" title="Switch cryptocurrency chart">
+                <span class="symbol-pill-icon" id="symbol-pill-icon">Ξ</span>
+                <span class="symbol-pill-label" id="symbol-pill-label">ETHUSDT · Ethereum</span>
+                <span class="symbol-pill-caret">▾</span>
+              </button>
+              <div class="symbol-picker-dropdown" id="symbol-picker-dropdown" role="listbox" style="display: none;">
+                <div class="symbol-picker-header">
+                  <div class="symbol-picker-search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="symbol-picker-search" class="symbol-picker-search" placeholder="Search 100+ cryptocurrencies..." autocomplete="off" spellcheck="false" />
+                  </div>
+                  <div class="symbol-picker-categories" id="symbol-picker-categories">
+                    <button type="button" class="cat-pill active" data-cat="all">ALL</button>
+                    <button type="button" class="cat-pill" data-cat="majors">MAJORS</button>
+                    <button type="button" class="cat-pill" data-cat="l1">L1/L2</button>
+                    <button type="button" class="cat-pill" data-cat="defi">DEFI</button>
+                    <button type="button" class="cat-pill" data-cat="meme">MEME</button>
+                  </div>
+                </div>
+                <div class="symbol-picker-list" id="symbol-picker-list" tabindex="-1">
+                  <!-- Populated dynamically via renderCustomSymbolDropdown in app.js -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Native select kept in DOM for backwards compatibility and test assertions -->
+            <select id="symbol" aria-label="Select asset" style="display: none;">
               <option value="ETHUSDT" selected>ETHUSDT · Ethereum</option>
               <option value="BTCUSDT">BTCUSDT · Bitcoin</option>
               <option value="SOLUSDT">SOLUSDT · Solana</option>

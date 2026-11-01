@@ -208,9 +208,163 @@ function renderPositions() {
   `).join(''):`<div style="padding:16px 0; font-family:var(--font-mono); font-size:11px; color:var(--text-sub); text-align:center;">All clear. Portfolio flat with zero open positions.</div>`;
 }
 
+const MAJORS_SET = new Set(['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT']);
+const L1_SET = new Set(['ADAUSDT', 'AVAXUSDT', 'NEARUSDT', 'SUIUSDT', 'DOTUSDT', 'ATOMUSDT', 'FTMUSDT', 'ALGOUSDT', 'TRXUSDT']);
+const DEFI_SET = new Set(['LINKUSDT', 'UNIUSDT', 'AAVEUSDT', 'MKRUSDT', 'CRVUSDT', 'SNXUSDT', 'LDOUSDT']);
+const MEME_SET = new Set(['DOGEUSDT', 'SHIBUSDT', 'PEPEUSDT', 'WIFUSDT', 'BONKUSDT', 'FLOKIUSDT']);
+
+function getSymbolCategory(symbol) {
+  if (MAJORS_SET.has(symbol)) return 'majors';
+  if (L1_SET.has(symbol)) return 'l1';
+  if (DEFI_SET.has(symbol)) return 'defi';
+  if (MEME_SET.has(symbol)) return 'meme';
+  return 'other';
+}
+
+function updateSymbolTriggerLabel(symbol) {
+  if (!$('symbol-pill-label')) return;
+  let name = symbol.replace('USDT', '');
+  const found = (state.listings || []).find(l => (l.symbol || '').toUpperCase() === symbol || (l.symbol || '').toUpperCase() + 'USDT' === symbol);
+  if (found && found.name) name = found.name;
+  $('symbol-pill-label').textContent = `${symbol} · ${name}`;
+  if ($('symbol-pill-icon')) $('symbol-pill-icon').textContent = coin(symbol);
+}
+
+function renderCustomSymbolDropdown(allSymbols, currentVal) {
+  updateSymbolTriggerLabel(currentVal);
+  const listEl = $('symbol-picker-list');
+  if (!listEl) return;
+
+  const currentSearch = ($('symbol-picker-search')?.value || '').trim().toLowerCase();
+  const currentCat = listEl.dataset.cat || 'all';
+
+  listEl.innerHTML = allSymbols.map(sym => {
+    let baseName = sym.replace('USDT', '');
+    const found = (state.listings || []).find(l => (l.symbol || '').toUpperCase() === sym || (l.symbol || '').toUpperCase() + 'USDT' === sym);
+    const fullName = found?.name || baseName;
+    const cat = getSymbolCategory(sym);
+
+    const ticker = state.tickers?.[sym] || state.tickers?.[baseName] || (found ? { price: found.price_usd, change_24h_pct: found.change_24h_pct } : null);
+    const priceText = ticker && Number.isFinite(ticker.price) ? money(ticker.price) : '—';
+    const changePct = ticker && Number.isFinite(ticker.change_24h_pct) ? ticker.change_24h_pct : null;
+    const changeClass = changePct !== null ? (changePct >= 0 ? 'up' : 'down') : '';
+    const changeText = changePct !== null ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : '';
+
+    const isMatch = (!currentSearch || sym.toLowerCase().includes(currentSearch) || fullName.toLowerCase().includes(currentSearch)) &&
+                    (currentCat === 'all' || cat === currentCat);
+
+    return `
+      <div class="symbol-picker-item${sym === currentVal ? ' active' : ''}" data-symbol="${escapeHtml(sym)}" data-cat="${cat}" style="display: ${isMatch ? 'flex' : 'none'};">
+        <div class="symbol-item-left">
+          <span class="symbol-item-icon">${escapeHtml(coin(sym))}</span>
+          <div class="symbol-item-names">
+            <span class="symbol-item-ticker">${escapeHtml(sym)}</span>
+            <span class="symbol-item-name">${escapeHtml(fullName)}</span>
+          </div>
+        </div>
+        <div class="symbol-item-right">
+          <span class="symbol-item-price">${escapeHtml(priceText)}</span>
+          ${changeText ? `<span class="symbol-item-change ${changeClass}">${escapeHtml(changeText)}</span>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function initCustomSymbolPicker() {
+  const container = $('symbol-picker-container');
+  const triggerBtn = $('symbol-picker-btn');
+  const dropdown = $('symbol-picker-dropdown');
+  const searchInput = $('symbol-picker-search');
+  const categoriesEl = $('symbol-picker-categories');
+  const listEl = $('symbol-picker-list');
+  if (!triggerBtn || !dropdown) return;
+
+  const openDropdown = () => {
+    dropdown.style.display = 'flex';
+    container?.classList.add('open');
+    triggerBtn.setAttribute('aria-expanded', 'true');
+    searchInput?.focus();
+    searchInput?.select();
+    const activeItem = listEl?.querySelector('.symbol-picker-item.active');
+    if (activeItem) activeItem.scrollIntoView({ block: 'nearest' });
+  };
+
+  const closeDropdown = () => {
+    dropdown.style.display = 'none';
+    container?.classList.remove('open');
+    triggerBtn.setAttribute('aria-expanded', 'false');
+  };
+
+  triggerBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (dropdown.style.display === 'none' || !dropdown.style.display) {
+      openDropdown();
+    } else {
+      closeDropdown();
+    }
+  });
+
+  searchInput?.addEventListener('input', () => {
+    const q = searchInput.value.trim().toLowerCase();
+    const cat = listEl?.dataset.cat || 'all';
+    listEl?.querySelectorAll('.symbol-picker-item').forEach(item => {
+      const sym = (item.dataset.symbol || '').toLowerCase();
+      const name = item.querySelector('.symbol-item-name')?.textContent.toLowerCase() || '';
+      const itemCat = item.dataset.cat || 'other';
+      const matchesSearch = !q || sym.includes(q) || name.includes(q);
+      const matchesCat = cat === 'all' || itemCat === cat;
+      item.style.display = matchesSearch && matchesCat ? 'flex' : 'none';
+    });
+  });
+
+  categoriesEl?.addEventListener('click', (e) => {
+    const pill = e.target.closest('.cat-pill');
+    if (!pill) return;
+    categoriesEl.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    const cat = pill.dataset.cat || 'all';
+    if (listEl) listEl.dataset.cat = cat;
+    searchInput?.dispatchEvent(new Event('input'));
+  });
+
+  listEl?.addEventListener('click', (e) => {
+    const item = e.target.closest('.symbol-picker-item');
+    if (!item) return;
+    const sym = item.dataset.symbol;
+    if (!sym) return;
+
+    if ($('symbol')) {
+      $('symbol').value = sym;
+      $('symbol').dispatchEvent(new Event('change'));
+    } else {
+      state.activeSymbol = sym;
+      updateSymbolTriggerLabel(sym);
+      loadCandlesForSymbol(sym, true);
+      renderOrderBook();
+    }
+
+    listEl.querySelectorAll('.symbol-picker-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    updateSymbolTriggerLabel(sym);
+    closeDropdown();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!container?.contains(e.target)) {
+      closeDropdown();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && dropdown.style.display !== 'none') {
+      closeDropdown();
+    }
+  });
+}
+
 function updateSymbolDropdown(customSymbols = []) {
-  if (!$('symbol')) return;
-  const currentVal = $('symbol').value || state.activeSymbol || 'ETHUSDT';
+  const currentVal = $('symbol')?.value || state.activeSymbol || 'ETHUSDT';
   const set = new Set(DEFAULT_SYMBOLS);
   customSymbols.forEach(s => set.add(s));
   (state.listings || []).forEach(item => {
@@ -220,16 +374,21 @@ function updateSymbolDropdown(customSymbols = []) {
     }
   });
   const allSymbols = Array.from(set);
-  const optionsHtml = allSymbols.map(s => {
-    let name = s.replace('USDT', '');
-    const found = (state.listings || []).find(l => (l.symbol || '').toUpperCase() === s || (l.symbol || '').toUpperCase() + 'USDT' === s);
-    if (found && found.name) name = `${s} · ${found.name}`;
-    return `<option value="${escapeHtml(s)}"${s === currentVal ? ' selected' : ''}>${escapeHtml(name)}</option>`;
-  }).join('');
-  $('symbol').innerHTML = optionsHtml;
-  if (allSymbols.includes(currentVal)) {
-    $('symbol').value = currentVal;
+  
+  if ($('symbol')) {
+    const optionsHtml = allSymbols.map(s => {
+      let name = s.replace('USDT', '');
+      const found = (state.listings || []).find(l => (l.symbol || '').toUpperCase() === s || (l.symbol || '').toUpperCase() + 'USDT' === s);
+      if (found && found.name) name = `${s} · ${found.name}`;
+      return `<option value="${escapeHtml(s)}"${s === currentVal ? ' selected' : ''}>${escapeHtml(name)}</option>`;
+    }).join('');
+    $('symbol').innerHTML = optionsHtml;
+    if (allSymbols.includes(currentVal)) {
+      $('symbol').value = currentVal;
+    }
   }
+
+  renderCustomSymbolDropdown(allSymbols, currentVal);
 }
 
 async function loadCandlesForSymbol(symbol, force = false) {
@@ -1504,6 +1663,7 @@ window.selectSymbolForResearch = function(symbol) {
     }
     $('symbol').value = symbol;
     state.activeSymbol = symbol;
+    updateSymbolTriggerLabel(symbol);
     loadCandlesForSymbol(symbol, true);
     renderOrderBook();
   }
@@ -1656,10 +1816,13 @@ fetchListings();
 loadFeatures();
 initSseStream();
 
+initCustomSymbolPicker();
+
 if ($('symbol')) {
   $('symbol').addEventListener('change', e => {
     const sym = e.target.value;
     state.activeSymbol = sym;
+    updateSymbolTriggerLabel(sym);
     loadCandlesForSymbol(sym, true);
     renderOrderBook();
   });
