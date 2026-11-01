@@ -658,10 +658,50 @@ document.querySelectorAll('.nav-tab, .sidebar-link').forEach(a=>{
 });
 
 if ($('kill-switch-btn')) {
-  $('kill-switch-btn').addEventListener('click', () => {
-    const isHalted = state.data?.controls?.halted;
-    notice(isHalted ? 'Resuming paper entries requires terminal operator command: python -m cryptoscope.autotrader resume-entries' : 'Emergency kill-switch: To halt entries run python -m cryptoscope.autotrader pause-entries in your terminal.');
+  $('kill-switch-btn').addEventListener('click', async () => {
+    const isHalted = state.governor?.kill_switch_engaged || state.governor?.emergency_halted;
+    if (isHalted) {
+      const pwd = prompt('EMERGENCY HALT ACTIVE. Enter Administrator password to verify and resume bot operations:');
+      if (!pwd) return;
+      try {
+        const res = await postJson('/api/governor/resume', { password: pwd });
+        notice('Master kill switch disengaged. Bot resumed successfully by administrator.');
+        await fetchGovernorStatus();
+      } catch (err) {
+        notice(`Resume failed: ${err.message}`);
+      }
+    } else {
+      if (confirm('ENGAGE MASTER EMERGENCY KILL-SWITCH?\n\nThis will immediately cancel all open orders across all venues, flatten active positions via market orders, and transition the autonomous bot into HALTED state.')) {
+        try {
+          const res = await postJson('/api/governor/kill_switch');
+          notice(`MASTER KILL-SWITCH ENGAGED! Canceled ${res.orders_canceled || 0} orders, flattened ${res.positions_flattened || 0} positions.`);
+          await fetchGovernorStatus();
+        } catch (err) {
+          notice(`Kill-switch execution error: ${err.message}`);
+        }
+      }
+    }
   });
+}
+
+async function fetchGovernorStatus() {
+  try {
+    const res = await request('/api/governor/status');
+    state.governor = res;
+    const btn = $('kill-switch-btn');
+    if (!btn) return;
+    if (res.kill_switch_engaged || res.emergency_halted) {
+      btn.style.background = 'var(--danger-rose)';
+      btn.style.color = '#fff';
+      btn.innerHTML = '<span>⚠</span> HALTED (CLICK TO RESUME)';
+      btn.title = `Bot is EMERGENCY HALTED: ${res.halt_reason || 'Kill switch engaged'}. Click to enter admin password and resume.`;
+    } else {
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.innerHTML = '<span>⚠</span> KILL-SWITCH';
+      btn.title = `Master Emergency Kill Switch (Mode: ${res.mode || 'PAPER'})`;
+    }
+  } catch (e) {}
 }
 
 /* =========================================================================
@@ -1246,6 +1286,7 @@ setInterval(()=>{
     refresh();
     fetchListings();
     fetchFxRate();
+    fetchGovernorStatus();
   }
 }, 5000);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden && $('auto-refresh')?.checked) { refresh(); fetchListings(); } });
@@ -1281,6 +1322,7 @@ function initSseStream() {
 refresh();
 fetchFxRate();
 fetchAuthStatus();
+fetchGovernorStatus();
 fetchListings();
 loadFeatures();
 initSseStream();

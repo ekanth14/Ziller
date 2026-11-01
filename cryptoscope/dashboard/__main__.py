@@ -23,19 +23,23 @@ from cryptoscope.market_data.binance_feed import BinanceFeed
 from cryptoscope.market_data.coinbase_feed import CoinbaseFeed
 from cryptoscope.market_data.kraken_feed import KrakenFeed
 from cryptoscope.market_data.coingecko import CoinGeckoService
+from cryptoscope.execution.governor import LiveMultiGateGovernor, RiskGovernor, EmergencyKillSwitch, LiveGateError
 from cryptoscope.research.settings import ROOT, load_config
 
 logger = logging.getLogger("cryptoscope.server")
 STATIC = Path(__file__).parent / "static"
 
 
-def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_service=None, market_aggregator=None, coingecko_service=None):
+def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_service=None, market_aggregator=None, coingecko_service=None, risk_governor=None, live_governor=None, kill_switch=None):
     auth_store = auth_store or AuthStore()
     rate_limiter = rate_limiter or RateLimiter()
     lockout_mgr = lockout_mgr or AccountLockoutManager()
     fx_service = fx_service or FxRateService()
     market_aggregator = market_aggregator or MarketDataAggregator()
     coingecko_service = coingecko_service or CoinGeckoService()
+    risk_governor = risk_governor or RiskGovernor()
+    live_governor = live_governor or LiveMultiGateGovernor()
+    kill_switch = kill_switch or EmergencyKillSwitch(risk_governor, live_governor)
 
     class Handler(BaseHTTPRequestHandler):
         def send(self, status, content, kind, download=None, cookies=None):
@@ -159,6 +163,16 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 page = int(query.get("page", [1])[0])
                 per_page = int(query.get("per_page", [50])[0])
                 return self.json(200, coingecko_service.get_top_listings(per_page, page))
+
+            if url.path == "/api/governor/status":
+                return self.json(200, {
+                    "mode": live_governor.mode,
+                    "kill_switch_engaged": kill_switch.halted,
+                    "emergency_halted": risk_governor.emergency_halted,
+                    "halt_reason": risk_governor.halt_reason,
+                    "halted_at": kill_switch.halted_at,
+                    "halted_by": kill_switch.halted_by,
+                })
 
             # Auth session inspection
             if url.path == "/api/auth/me":
@@ -387,6 +401,54 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 auth_store.update_settings(session["user_id"], currency, theme)
                 return self.json(200, {"status": "ok", "settings": {"display_currency": currency, "theme": theme}})
 
+            # Master Emergency Kill Switch
+            if url.path == "/api/governor/kill_switch":
+                operator = session.get("email", "Operator")
+                result = kill_switch.execute_kill_switch(triggered_by=operator)
+                return self.json(200, result)
+
+            # Resume from Emergency Kill Switch (Requires Admin Password)
+            if url.path == "/api/governor/resume":
+                if session.get("role") != "admin":
+                    return self.json(403, {"error": "Admin role required to resume bot from emergency halt"})
+                password = str(body.get("password", ""))
+                admin_user = auth_store.get_user_by_id(session["user_id"])
+                if not admin_user or not verify_password(password, admin_user["password_hash"]):
+                    return self.json(401, {"error": "Invalid administrator password"})
+                result = kill_switch.resume_bot(admin_reauthenticated=True, admin_email=admin_user["email"])
+                return self.json(200, result)
+
+            # 5-Gate Live Trading Activation Toggle
+            if url.path == "/api/governor/live_toggle":
+                if session.get("role") != "admin":
+                    return self.json(403, {"error": "Admin role required to configure trading mode"})
+                target_mode = str(body.get("mode", "PAPER")).upper()
+                if target_mode == "PAPER":
+                    live_governor.deactivate_to_paper("Admin set to paper mode")
+                    return self.json(200, {"status": "ok", "mode": "PAPER"})
+
+                # Validating 5-gate activation for LIVE mode
+                password = str(body.get("password", ""))
+                admin_user = auth_store.get_user_by_id(session["user_id"])
+                if not admin_user or not verify_password(password, admin_user["password_hash"]):
+                    return self.json(401, {"error": "Invalid administrator password"})
+
+                confirmation_text = str(body.get("confirmation", ""))
+                paper_trades = int(body.get("paper_trades_count", 0))
+                paper_pnl = float(body.get("paper_net_pnl", 0.0))
+
+                try:
+                    live_governor.activate_live(
+                        paper_trade_count=paper_trades,
+                        paper_net_pnl=paper_pnl,
+                        admin_reauthenticated=True,
+                        admin_reauth_time=time.time(),
+                        typed_confirmation=confirmation_text,
+                    )
+                    return self.json(200, {"status": "ok", "mode": "LIVE"})
+                except LiveGateError as err:
+                    return self.json(400, {"error": str(err)})
+
             return self.json(404, {"error": "Not found"})
 
         def log_message(self, *_args):
@@ -412,6 +474,9 @@ def main():
     fx_service = FxRateService()
     market_aggregator = MarketDataAggregator(["BTCUSDT", "ETHUSDT", "SOLUSDT"])
     coingecko_service = CoinGeckoService()
+    risk_governor = RiskGovernor()
+    live_governor = LiveMultiGateGovernor()
+    kill_switch = EmergencyKillSwitch(risk_governor, live_governor)
 
     # Start live exchange feeds in background
     binance_feed = BinanceFeed(on_ticker=market_aggregator.record_ticker, symbols=["BTCUSDT", "ETHUSDT", "SOLUSDT"])
@@ -431,6 +496,9 @@ def main():
             fx_service,
             market_aggregator,
             coingecko_service,
+            risk_governor,
+            live_governor,
+            kill_switch,
         )
     )
     print(f"ZILLERS terminal: http://localhost:{server.server_address[1]}", flush=True)
