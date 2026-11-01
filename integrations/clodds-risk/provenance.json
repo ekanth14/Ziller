@@ -1,0 +1,25 @@
+{
+  "repository": "https://github.com/alsk1992/CloddsBot",
+  "commit": "c930628c47a4a745f497e29035a3b64622f97cc7",
+  "version": "1.9.1",
+  "license": "MIT",
+  "installed_modules": [
+    {
+      "path": "src/risk/var.ts",
+      "git_blob_sha": "54e099f59b80cbfe11225194cf824521d619b097"
+    },
+    {
+      "path": "src/risk/volatility.ts",
+      "git_blob_sha": "b1a6a58b4215ce591c8ef96a6e609e99f84c9147"
+    },
+    {
+      "path": "src/risk/stress.ts",
+      "git_blob_sha": "51ecd28a7e75fd57e04cf0a2f2ba871fc53f7a6e"
+    },
+    {
+      "path": "LICENSE",
+      "git_blob_sha": "8162740abc520a329930f8cbba70c88bb84f9c31"
+    }
+  ],
+  "policy": "Unmodified upstream modules; optional offline diagnostics only."
+}

@@ -1,0 +1,29 @@
+{
+  "order": "08",
+  "folder": "08-ornate-z-sword-emblem",
+  "id": "9290077997175161156",
+  "title": "Ornate Z Sword Emblem.png",
+  "resourceName": "projects/11951265260504602280/screens/9290077997175161156",
+  "width": "941",
+  "height": "1672",
+  "htmlCode": {},
+  "screenshot": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/9290077997175162667:download",
+    "mimeType": "image/png",
+    "name": "projects/11951265260504602280/files/9290077997175162667"
+  },
+  "imageOnly": true,
+  "files": [
+    {
+      "name": "preview.png",
+      "bytes": 1194189,
+      "mimeType": "image/png",
+      "sha256": "8fc3dea5248fd3a951de3c20114c17065cda1e03ca98aa828aa93256ae3c12b2"
+    }
+  ],
+  "preview": "preview.png",
+  "verifiedImageDimensions": {
+    "width": 941,
+    "height": 1672
+  }
+}

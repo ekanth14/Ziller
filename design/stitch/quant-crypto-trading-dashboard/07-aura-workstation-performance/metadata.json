@@ -1,0 +1,39 @@
+{
+  "order": "07",
+  "folder": "07-zillers-workstation-performance",
+  "id": "b827295066ff411f99a2710c8a57ab9b",
+  "title": "ZILLERS - Workstation & Client Device Performance",
+  "resourceName": "projects/11951265260504602280/screens/b827295066ff411f99a2710c8a57ab9b",
+  "width": "2560",
+  "height": "2440",
+  "htmlCode": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/16189267917282748582:download",
+    "mimeType": "text/html",
+    "name": "projects/11951265260504602280/files/16189267917282748582"
+  },
+  "screenshot": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f22c5584deb0503c2f9211e8925:download",
+    "mimeType": "image/png",
+    "name": "projects/11951265260504602280/screens/b827295066ff411f99a2710c8a57ab9b/fileEntries/screenshot"
+  },
+  "imageOnly": false,
+  "files": [
+    {
+      "name": "preview.png",
+      "bytes": 807344,
+      "mimeType": "image/png",
+      "sha256": "6f8ea465fe1fe46bd3c2e731570dd4e62a32f28c946016ff70de22bf5dacfbfe"
+    },
+    {
+      "name": "index.html",
+      "bytes": 68360,
+      "mimeType": "text/html",
+      "sha256": "eaf7818eb1308c1eb23a49f22299cafbb2860d427d2a6b86580a795b5af44127"
+    }
+  ],
+  "preview": "preview.png",
+  "verifiedImageDimensions": {
+    "width": 2560,
+    "height": 2440
+  }
+}

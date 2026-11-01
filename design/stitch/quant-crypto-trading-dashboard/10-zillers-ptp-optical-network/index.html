@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-surface":"#e2e2e9","on-tertiary-fixed":"#40000d","inverse-on-surface":"#2e3036","on-error-container":"#ffdad6","error":"#ffb4ab","primary-fixed":"#c4e7ff","tertiary-fixed-dim":"#ffb2b7","tertiary-fixed":"#ffdadb","on-tertiary-container":"#8c0028","error-container":"#93000a","on-secondary-container":"#00311f","surface-variant":"#33353a","secondary":"#4edea3","surface-tint":"#7bd0ff","outline":"#87929a","on-primary-fixed":"#001e2c","on-error":"#690005","surface-container-low":"#191b21","on-tertiary":"#67001b","primary-container":"#38bdf8","surface-container-highest":"#33353a","on-primary-fixed-variant":"#004c69","surface-container-high":"#282a30","surface-dim":"#111319","tertiary":"#ffbcbf","background":"#111319","secondary-container":"#00a572","secondary-fixed-dim":"#4edea3","primary-fixed-dim":"#7bd0ff","outline-variant":"#3e484f","surface-container":"#1e1f25","surface":"#111319","tertiary-container":"#ff929a","inverse-primary":"#00668a","on-secondary-fixed":"#002113","secondary-fixed":"#6ffbbe","inverse-surface":"#e2e2e9","primary":"#8ed5ff","surface-container-lowest":"#0c0e13","on-tertiary-fixed-variant":"#92002a","on-surface-variant":"#bdc8d1","on-secondary-fixed-variant":"#005236","on-primary":"#00354a","surface-bright":"#37393f","on-primary-container":"#004965","on-background":"#e2e2e9","on-secondary":"#003824"},borderRadius:{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},spacing:{"space-md":"0.75rem","space-2xs":"0.125rem","space-xs":"0.25rem","space-sm":"0.5rem","space-lg":"1rem","gutter":"0.5rem","gutter-compact":"0.25rem","margin":"0.75rem","margin-compact":"0.5rem","space-xl":"1.5rem"},fontFamily:{"mono-metric-lg":["JetBrains Mono"],"mono-metric-xl":["JetBrains Mono"],"headline-lg":["Inter"],"headline-sm":["Inter"],"headline-xl":["Inter"],"body-md":["Inter"],"body-lg":["Inter"],"mono-table":["JetBrains Mono"],"headline-md":["Inter"],"body-sm":["Inter"],"mono-micro":["JetBrains Mono"],"label-caps":["Inter"]},fontSize:{"mono-metric-lg":["16px",{"lineHeight":"20px","letterSpacing":"-0.01em","fontWeight":"500"}],"mono-metric-xl":["24px",{"lineHeight":"28px","letterSpacing":"-0.02em","fontWeight":"600"}],"headline-lg":["24px",{"lineHeight":"30px","letterSpacing":"-0.015em","fontWeight":"600"}],"headline-sm":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"600"}],"headline-xl":["32px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"600"}],"body-md":["12px",{"lineHeight":"16px","letterSpacing":"0em","fontWeight":"400"}],"body-lg":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}],"mono-table":["12px",{"lineHeight":"16px","letterSpacing":"0em","fontWeight":"400"}],"headline-md":["18px",{"lineHeight":"24px","letterSpacing":"-0.01em","fontWeight":"600"}],"body-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.01em","fontWeight":"400"}],"mono-micro":["10px",{"lineHeight":"12px","letterSpacing":"0.02em","fontWeight":"500"}],"label-caps":["10px",{"lineHeight":"12px","letterSpacing":"0.06em","fontWeight":"600"}]}}}}</script></head><body class="bg-surface font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container"><header class="fixed top-0 left-0 right-0 h-14 bg-surface-container-lowest/90 backdrop-blur-xl z-50 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-14 w-full px-space-md flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md shrink-0"><div class="flex items-center gap-space-xs"><img alt="Ornate Z Sword Emblem.png" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1VScmviBAfw9E07Ul2JHHPlcNiQyWOFHfWVAA6GISrMm9E_KNopfP5t8xjEWq74iCuwhKcKGCtPSyzVIRzMHtxstnK0gSJiCD1J6bLoJLiZayKtf1uBUDXACW74PR9e9nIVVZUHZbff29BuE24LjMOrlgCOfC9EhnXdxvwYEuopgg5omRKwOa4z7gwhF87ZPQFYvnUl3Q5ZGh59U6OdWNi0-mczCaPBgyQDW1WLwJx-d5WhU-Ew-h8a4MJ8"/><div class="flex flex-col"><span class="font-headline-sm text-headline-sm uppercase tracking-wider text-on-surface leading-none">ZILLERS</span><span class="font-label-caps text-label-caps uppercase text-on-surface-variant tracking-wider leading-none mt-space-2xs">(A Zien Organisation Company)</span></div></div><div class="hidden xl:flex items-center gap-space-xs px-space-xs py-space-2xs rounded bg-surface-container-high"><span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span><span class="font-mono-micro text-mono-micro uppercase text-secondary font-semibold tracking-wider">PROD // NY4 CO-LOCATED</span></div></div><nav class="hidden lg:flex items-center gap-space-2xs shrink-0 overflow-x-auto py-space-2xs" data-active-classes="bg-surface-container-high text-primary font-semibold"><a class="px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors whitespace-nowrap" data-path="terminal" href="#">Terminal</a><a class="px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors whitespace-nowrap" data-path="strategy-engine" href="#">Strategy Engine</a><a class="px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors whitespace-nowrap" data-path="order-book-&amp;-liquidity" href="#">Order Book &amp; Liquidity</a><a class="px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors whitespace-nowrap" data-path="risk-&amp;-kill-switch" href="#">Risk &amp; Kill-Switch</a><a aria-current="page" class="px-space-xs py-space-2xs rounded transition-colors whitespace-nowrap bg-surface-container-high text-primary font-semibold" data-path="clock-&amp;-optical-hub" href="#">Clock &amp; Optical Hub</a><a class="px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors whitespace-nowrap" data-path="fix-audit-&amp;-replay" href="#">FIX Audit &amp; Replay</a><a class="px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors whitespace-nowrap" data-path="workstation-benchmark" href="#">Workstation Benchmark</a><a class="px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors whitespace-nowrap" data-path="settings" href="#">Settings</a></nav><div class="flex items-center gap-space-sm shrink-0"><div class="hidden md:flex items-center gap-space-sm px-space-xs py-space-2xs rounded bg-surface-container"><div class="flex flex-col text-right"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">PTP DRIFT</span><span class="font-mono-micro text-mono-micro text-secondary font-medium">+0.042 µs</span></div><div class="w-px h-6 bg-surface-variant"></div><div class="flex flex-col text-right"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">NRT LATENCY</span><span class="font-mono-micro text-mono-micro text-primary font-medium">1.18 µs</span></div><div class="w-px h-6 bg-surface-variant"></div><div class="flex flex-col text-right"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">NAV AUM</span><span class="font-mono-micro text-mono-micro text-on-surface font-semibold">$418.25M</span></div></div><button class="flex items-center gap-space-2xs px-space-xs py-space-2xs rounded bg-error-container text-error hover:bg-error hover:text-on-error transition-all shadow-[0_0_8px_rgba(244,63,94,0.25)]"><span class="material-symbols-outlined text-[16px]">power_settings_new</span><span class="font-mono-micro text-mono-micro font-semibold uppercase tracking-wider hidden sm:inline">KILL-SWITCH</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><aside class="fixed left-0 top-14 bottom-0 w-64 bg-surface-container-low/95 backdrop-blur-xl z-40 flex flex-col justify-between p-space-sm shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col gap-space-md"><div class="px-space-xs py-space-2xs rounded bg-surface-container-lowest flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="w-2 h-2 rounded-full bg-secondary"></span><span class="font-label-caps text-label-caps uppercase text-on-surface">EXECUTION GATEWAY</span></div><span class="font-mono-micro text-mono-micro text-secondary font-medium">ARMED</span></div><div class="flex flex-col gap-space-2xs"><span class="px-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant">TACTICAL ROUTING</span><nav class="flex flex-col gap-space-2xs" data-active-classes="bg-surface-container text-primary font-semibold"><a class="flex items-center justify-between px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="terminal" href="#"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">terminal</span><span>Matrix Console</span></span><span class="font-mono-micro text-mono-micro text-on-surface-variant">F1</span></a><a class="flex items-center justify-between px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="strategy-engine" href="#"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">memory</span><span>Algorithmic Core</span></span><span class="font-mono-micro text-mono-micro text-secondary">RUN</span></a><a class="flex items-center justify-between px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="order-book-&amp;-liquidity" href="#"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">candlestick_chart</span><span>L3 Book &amp; Cross</span></span><span class="font-mono-micro text-mono-micro text-primary font-medium">NY4</span></a><a class="flex items-center justify-between px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="risk-&amp;-kill-switch" href="#"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">shield</span><span>Margin &amp; Breakers</span></span><span class="font-mono-micro text-mono-micro text-secondary font-medium">0.02%</span></a><a aria-current="page" class="flex items-center justify-between px-space-xs py-space-2xs rounded transition-colors bg-surface-container text-primary font-semibold" data-path="clock-&amp;-optical-hub" href="#"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">nest_clock_farsight_analog</span><span>Optical Chrono Hub</span></span><span class="font-mono-micro text-mono-micro text-primary-container font-medium">PTP</span></a><a class="flex items-center justify-between px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="fix-audit-&amp;-replay" href="#"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">history_toggle_off</span><span>FIX Packet Audit</span></span><span class="font-mono-micro text-mono-micro text-on-surface-variant">TAP</span></a><a class="flex items-center justify-between px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="workstation-benchmark" href="#"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">speed</span><span>HW Benchmark</span></span><span class="font-mono-micro text-mono-micro text-on-surface-variant">FPGA</span></a><a class="flex items-center justify-between px-space-xs py-space-2xs rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="settings" href="#"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">tune</span><span>Engine Config</span></span><span class="font-mono-micro text-mono-micro text-on-surface-variant">SYS</span></a></nav></div><div class="flex flex-col gap-space-2xs pt-space-xs"><span class="px-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant">FPGA TELEMETRY FEED</span><div class="p-space-xs rounded bg-surface-container-lowest flex flex-col gap-space-2xs"><div class="flex items-center justify-between"><span class="font-body-sm text-body-sm text-on-surface-variant">NIC Queue Drop</span><span class="font-mono-micro text-mono-micro text-secondary font-semibold">0 PKTS</span></div><div class="flex items-center justify-between"><span class="font-body-sm text-body-sm text-on-surface-variant">Thermal Matrix</span><span class="font-mono-micro text-mono-micro text-on-surface font-medium">41.4°C</span></div><div class="flex items-center justify-between"><span class="font-body-sm text-body-sm text-on-surface-variant">Optical RX Power</span><span class="font-mono-micro text-mono-micro text-primary font-medium">-1.8 dBm</span></div></div></div></div><div class="p-space-xs rounded bg-surface-container flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span><span class="font-mono-micro text-mono-micro text-on-surface font-medium uppercase">DMA RING OK</span></div><span class="font-mono-micro text-mono-micro text-on-surface-variant">x8 GEN5</span></div></aside><div class="pl-64"><main class="relative pt-14 w-full px-space-md bg-surface min-h-screen"><div class="flex flex-col w-full pb-space-xl">
+<!-- Top Command HUD: Telemetry Snapshot & Grandmaster State -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md py-space-sm mb-space-sm bg-surface-container-lowest px-space-md rounded-lg shadow-sm">
+<div class="flex flex-wrap items-center gap-space-md">
+<div class="flex items-center gap-space-xs">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary animate-ping"></span>
+<span class="font-headline-sm text-headline-sm text-on-surface uppercase tracking-wider">CHRONO-CORE // IEEE 1588-2008</span>
+</div>
+<div class="h-4 w-px bg-surface-variant hidden sm:block"></div>
+<div class="flex items-center gap-space-2xs">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">PTP DOMAIN:</span>
+<span class="font-mono-micro text-mono-micro text-primary font-semibold bg-surface-container-high px-space-xs py-space-2xs rounded">24 (HIGH FREQ TELEMETRY)</span>
+</div>
+<div class="flex items-center gap-space-2xs">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">OSCILLATOR:</span>
+<span class="font-mono-micro text-mono-micro text-secondary font-semibold bg-surface-container-high px-space-xs py-space-2xs rounded">RUBIDIUM ATOMIC AT-84</span>
+</div>
+<div class="flex items-center gap-space-2xs">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">CLOCK CLASS:</span>
+<span class="font-mono-micro text-mono-micro text-on-surface bg-surface-container-high px-space-xs py-space-2xs rounded">6 (LOCKED GNSS)</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm self-end lg:self-center">
+<button class="flex items-center gap-space-xs px-space-sm py-space-xs rounded bg-surface-container-high hover:bg-surface-variant text-on-surface font-mono-micro text-mono-micro transition-colors shadow-sm" id="pcap-trigger-btn">
+<span class="material-symbols-outlined text-[15px] text-primary">download</span>
+<span>SNAP PCAP TRACE (500ms)</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-md py-space-xs rounded bg-primary-container text-on-primary-container hover:bg-primary font-mono-micro text-mono-micro font-semibold transition-all shadow-md" id="resync-main-btn">
+<span class="material-symbols-outlined text-[16px]">sync_alt</span>
+<span>FORCE PHASE REALIGN</span>
+</button>
+</div>
+</div>
+<!-- Primary Grid: Grandmaster & Optical Patch -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-space-md mb-space-md">
+<!-- Left Column: Meinberg M1000 Rubidium Grandmaster Station (7 Cols) -->
+<div class="xl:col-span-7 flex flex-col gap-space-md">
+<!-- Rubidium Master Panel -->
+<div class="bg-surface-container-low rounded-lg p-space-md shadow-md flex flex-col justify-between">
+<div class="flex items-center justify-between pb-space-xs border-b border-surface-container-high">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">nest_clock_farsight_analog</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Meinberg M1000 Rubidium Grandmaster Unit</span>
+<span class="font-mono-micro text-mono-micro text-secondary bg-surface-container-highest px-space-xs py-space-2xs rounded">CH-01 PRIMARY</span>
+</div>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">HW REV: 4.12.8-FPGA</span>
+</div>
+<!-- Metric Grid -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-space-sm my-space-md">
+<div class="p-space-xs bg-surface-container-lowest rounded">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">SUB-NS PHASE DRIFT</span>
+<div class="flex items-baseline gap-space-2xs mt-space-2xs">
+<span class="font-mono-metric-xl text-mono-metric-xl text-secondary" id="drift-display">+0.14</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">ns</span>
+</div>
+<span class="font-mono-micro text-mono-micro text-secondary">Jitter: ±0.03 ns (1σ)</span>
+</div>
+<div class="p-space-xs bg-surface-container-lowest rounded">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">GNSS CONSTELLATION</span>
+<div class="flex items-baseline gap-space-2xs mt-space-2xs">
+<span class="font-mono-metric-xl text-mono-metric-xl text-primary">18</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">SATS</span>
+</div>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">GPS (11) + GALILEO (7) L1/L5</span>
+</div>
+<div class="p-space-xs bg-surface-container-lowest rounded">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">HOLDOVER RESIDUAL</span>
+<div class="flex items-baseline gap-space-2xs mt-space-2xs">
+<span class="font-mono-metric-xl text-mono-metric-xl text-on-surface">&lt; 1.18</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">µs</span>
+</div>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">Rated 24h &lt; 1.20 µs drift</span>
+</div>
+<div class="p-space-xs bg-surface-container-lowest rounded">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">MEAN PATH DELAY</span>
+<div class="flex items-baseline gap-space-2xs mt-space-2xs">
+<span class="font-mono-metric-xl text-mono-metric-xl text-primary" id="delay-display">48.21</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">ns</span>
+</div>
+<span class="font-mono-micro text-mono-micro text-secondary">Sync Offset: 0.002 ns</span>
+</div>
+</div>
+<!-- Live Sub-Nanosecond Phase Dispersion Graph -->
+<div class="bg-surface-container-lowest p-space-sm rounded mb-space-sm">
+<div class="flex items-center justify-between mb-space-2xs">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Real-Time Phase Offset Dispersion (1000 PTP Follow_Up Packets/Sec)</span>
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+</div>
+<div class="flex items-center gap-space-sm font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">Window: <span class="text-on-surface">60s</span></span>
+<span class="text-on-surface-variant">Scale: <span class="text-secondary">±1.0 ns</span></span>
+</div>
+</div>
+<div class="w-full h-28 relative overflow-hidden bg-surface-container-low rounded flex items-center">
+<!-- Grid lines -->
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
+<div class="w-full h-px bg-on-surface"></div>
+<div class="w-full h-px bg-on-surface"></div>
+<div class="w-full h-px bg-secondary"></div>
+<div class="w-full h-px bg-on-surface"></div>
+<div class="w-full h-px bg-on-surface"></div>
+</div>
+<!-- Dynamic Phase Waveform Canvas simulation with SVG -->
+<svg class="w-full h-full text-secondary" id="phase-graph" preserveaspectratio="none" viewbox="0 0 500 100">
+<defs>
+<lineargradient id="phaseGrad" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="currentColor" stop-opacity="0.3"></stop>
+<stop offset="100%" stop-color="currentColor" stop-opacity="0.0"></stop>
+</lineargradient>
+</defs>
+<path d="M 0,50 L 0,50 L 500,50 L 500,50 Z" fill="url(#phaseGrad)" id="graph-fill"></path>
+<path d="M0,50 L 500,50" fill="none" id="graph-line" stroke="currentColor" stroke-linecap="round" stroke-width="1.75"></path>
+</svg>
+<div class="absolute right-2 top-2 px-space-xs py-space-2xs bg-surface-container-highest/80 rounded font-mono-micro text-mono-micro text-secondary">
+              LOCKED TO UTC(NIST)
+            </div>
+</div>
+</div>
+<!-- GNSS Satellite Spectrum Mini Deck -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-sm">
+<div class="bg-surface-container-lowest p-space-xs rounded flex flex-col gap-space-2xs">
+<span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Carrier-to-Noise Density (C/N₀ Spectrum)</span>
+<div class="flex items-end gap-1.5 h-12 pt-1 px-1">
+<div class="flex-1 bg-secondary rounded-t" style="height: 94%" title="GPS-03 (47 dB-Hz)"></div>
+<div class="flex-1 bg-secondary rounded-t" style="height: 88%" title="GPS-08 (44 dB-Hz)"></div>
+<div class="flex-1 bg-secondary rounded-t" style="height: 92%" title="GPS-14 (46 dB-Hz)"></div>
+<div class="flex-1 bg-secondary rounded-t" style="height: 78%" title="GPS-16 (39 dB-Hz)"></div>
+<div class="flex-1 bg-secondary rounded-t" style="height: 85%" title="GPS-22 (42 dB-Hz)"></div>
+<div class="flex-1 bg-primary rounded-t" style="height: 96%" title="GAL-E01 (48 dB-Hz)"></div>
+<div class="flex-1 bg-primary rounded-t" style="height: 90%" title="GAL-E05 (45 dB-Hz)"></div>
+<div class="flex-1 bg-primary rounded-t" style="height: 82%" title="GAL-E12 (41 dB-Hz)"></div>
+<div class="flex-1 bg-secondary rounded-t" style="height: 70%" title="GPS-27 (35 dB-Hz)"></div>
+<div class="flex-1 bg-primary rounded-t" style="height: 91%" title="GAL-E30 (45.5 dB-Hz)"></div>
+<div class="flex-1 bg-secondary rounded-t" style="height: 86%" title="GPS-31 (43 dB-Hz)"></div>
+<div class="flex-1 bg-primary rounded-t" style="height: 89%" title="GAL-E33 (44.5 dB-Hz)"></div>
+</div>
+<div class="flex justify-between font-mono-micro text-mono-micro text-on-surface-variant">
+<span>L1/E1 (1575.42 MHz)</span>
+<span class="text-secondary font-semibold">PEAK 48.2 dB-Hz</span>
+<span>L5/E5a (1176.45 MHz)</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-space-xs rounded flex flex-col justify-between">
+<span class="font-label-caps text-label-caps uppercase text-on-surface-variant">IEEE 1588-2008 Telecom Profile Slaves</span>
+<div class="space-y-1 my-auto">
+<div class="flex items-center justify-between font-mono-micro text-mono-micro">
+<span class="text-on-surface">FPGA-EXEC-NODE-01</span>
+<span class="text-secondary">OFFSET: +0.02 ns</span>
+<span class="text-on-surface-variant">SLAVE_LOCKED</span>
+</div>
+<div class="flex items-center justify-between font-mono-micro text-mono-micro">
+<span class="text-on-surface">FPGA-EXEC-NODE-02</span>
+<span class="text-secondary">OFFSET: -0.01 ns</span>
+<span class="text-on-surface-variant">SLAVE_LOCKED</span>
+</div>
+<div class="flex items-center justify-between font-mono-micro text-mono-micro">
+<span class="text-on-surface">SOLARFLARE-X3522-01</span>
+<span class="text-secondary">OFFSET: +0.05 ns</span>
+<span class="text-on-surface-variant">SLAVE_LOCKED</span>
+</div>
+<div class="flex items-center justify-between font-mono-micro text-mono-micro">
+<span class="text-on-surface">ARISTA-7130LBA-TAP</span>
+<span class="text-secondary">OFFSET: +0.00 ns</span>
+<span class="text-on-surface-variant">BOUNDARY_CLK</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1 border-t border-surface-container-high font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">1-Step E2E Hybrid Mode</span>
+<span class="text-primary font-semibold">128 SYNCS / SEC</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Facility Cross-Data-Center Dark Fiber Failover -->
+<div class="bg-surface-container-low rounded-lg p-space-md shadow-md">
+<div class="flex items-center justify-between pb-space-xs mb-space-sm border-b border-surface-container-high">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">alt_route</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Facility Dark-Fiber Core &amp; Automatic Failover</span>
+</div>
+<span class="font-mono-micro text-mono-micro text-secondary bg-surface-container-highest px-space-xs py-space-2xs rounded">STANDBY LASER ARMED</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-sm items-center">
+<!-- Venue NY4 -->
+<div class="p-space-sm bg-surface-container-lowest rounded flex flex-col gap-space-2xs">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-primary uppercase">PRIMARY VENUE</span>
+<span class="px-1.5 py-0.5 rounded bg-secondary-container/20 text-secondary font-mono-micro text-mono-micro">ACTIVE (100% ROUTE)</span>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface">Equinix NY4</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">Secaucus, NJ // Cage 402, Rack R14</span>
+<div class="pt-space-2xs mt-space-2xs border-t border-surface-container-high flex justify-between font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">Local Core Delay:</span>
+<span class="text-secondary font-semibold">0.41 µs</span>
+</div>
+</div>
+<!-- Transatlantic Link Telemetry -->
+<div class="p-space-sm bg-surface-container-lowest rounded flex flex-col items-center justify-center text-center">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">TRANSATLANTIC SUBSEA LINK</span>
+<div class="flex items-baseline gap-space-2xs my-space-2xs">
+<span class="font-mono-metric-xl text-mono-metric-xl text-primary font-bold">33.82</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">ms RTT</span>
+</div>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">ZILLERS Cross-Atlantic Dark Wave</span>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden mt-space-xs">
+<div class="bg-primary h-full w-full animate-pulse"></div>
+</div>
+</div>
+<!-- Venue LD4 -->
+<div class="p-space-sm bg-surface-container-lowest rounded flex flex-col gap-space-2xs">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">STANDBY VENUE</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-mono-micro text-mono-micro">ARMED HOT-STANDBY</span>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface">Equinix LD4</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">Slough, UK // Pod 08, Suite 12</span>
+<div class="pt-space-2xs mt-space-2xs border-t border-surface-container-high flex justify-between font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">Sync Drift vs NY4:</span>
+<span class="text-primary font-semibold">0.82 ns</span>
+</div>
+</div>
+</div>
+<div class="flex flex-wrap items-center justify-between mt-space-sm p-space-xs bg-surface-container rounded gap-space-xs">
+<div class="flex items-center gap-space-xs">
+<input checked="" class="w-4 h-4 rounded bg-surface-container-lowest accent-primary cursor-pointer" id="auto-failover-toggle" type="checkbox"/>
+<label class="font-body-sm text-body-sm text-on-surface cursor-pointer" for="auto-failover-toggle">Automatic Sub-Microsecond Optical Switchover if Rx Attenuation &gt; 3.0 dB Loss</label>
+</div>
+<span class="font-mono-micro text-mono-micro text-secondary font-medium">ESTIMATED SWITCH OVERHEAD: 180 ns</span>
+</div>
+</div>
+</div>
+<!-- Right Column: Optical Patch Matrix & Kernel-Bypass Trace (5 Cols) -->
+<div class="xl:col-span-5 flex flex-col gap-space-md">
+<!-- Cross-Connect Optical Patch & Attenuation Monitor -->
+<div class="bg-surface-container-low rounded-lg p-space-md shadow-md flex-1">
+<div class="flex items-center justify-between pb-space-xs border-b border-surface-container-high mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-[20px]">hub</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Optical Cross-Connect Patch Matrix</span>
+</div>
+<span class="font-mono-micro text-mono-micro text-primary">4 PATHS ACTIVE</span>
+</div>
+<div class="flex flex-col gap-space-xs">
+<!-- Patch Row 1: CME Aurora -->
+<div class="p-space-xs bg-surface-container-lowest rounded hover:bg-surface-container transition-colors">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-body-sm text-body-sm font-semibold text-on-surface">NY4 ➔ CME Aurora (CyrusOne)</span>
+</div>
+<span class="font-mono-micro text-mono-micro text-secondary bg-surface-container-high px-space-xs py-space-2xs rounded">ATTENUATION: NOMINAL</span>
+</div>
+<div class="grid grid-cols-4 gap-space-2xs mt-space-xs font-mono-micro text-mono-micro text-on-surface-variant">
+<div>
+<span class="block text-label-caps text-label-caps">TX POWER</span>
+<span class="text-on-surface font-medium">+1.42 dBm</span>
+</div>
+<div>
+<span class="block text-label-caps text-label-caps">RX POWER</span>
+<span class="text-secondary font-medium">-1.85 dBm</span>
+</div>
+<div>
+<span class="block text-label-caps text-label-caps">WAVELENGTH</span>
+<span class="text-on-surface font-medium">1310 nm</span>
+</div>
+<div class="text-right">
+<span class="block text-label-caps text-label-caps">FIBER LENGTH</span>
+<span class="text-primary font-medium">1,180.4 km</span>
+</div>
+</div>
+</div>
+<!-- Patch Row 2: ICE Carteret -->
+<div class="p-space-xs bg-surface-container-lowest rounded hover:bg-surface-container transition-colors">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-body-sm text-body-sm font-semibold text-on-surface">NY4 ➔ ICE Carteret (Mahwah link)</span>
+</div>
+<span class="font-mono-micro text-mono-micro text-secondary bg-surface-container-high px-space-xs py-space-2xs rounded">ATTENUATION: NOMINAL</span>
+</div>
+<div class="grid grid-cols-4 gap-space-2xs mt-space-xs font-mono-micro text-mono-micro text-on-surface-variant">
+<div>
+<span class="block text-label-caps text-label-caps">TX POWER</span>
+<span class="text-on-surface font-medium">+0.88 dBm</span>
+</div>
+<div>
+<span class="block text-label-caps text-label-caps">RX POWER</span>
+<span class="text-secondary font-medium">-2.10 dBm</span>
+</div>
+<div>
+<span class="block text-label-caps text-label-caps">WAVELENGTH</span>
+<span class="text-on-surface font-medium">850 nm</span>
+</div>
+<div class="text-right">
+<span class="block text-label-caps text-label-caps">FIBER LENGTH</span>
+<span class="text-primary font-medium">32.6 km</span>
+</div>
+</div>
+</div>
+<!-- Patch Row 3: BATS Secaucus -->
+<div class="p-space-xs bg-surface-container-lowest rounded hover:bg-surface-container transition-colors">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-body-sm text-body-sm font-semibold text-on-surface">NY4 ➔ BATS / CBOE NY5 Secaucus</span>
+</div>
+<span class="font-mono-micro text-mono-micro text-secondary bg-surface-container-high px-space-xs py-space-2xs rounded">CAMPUS CROSS-CONN</span>
+</div>
+<div class="grid grid-cols-4 gap-space-2xs mt-space-xs font-mono-micro text-mono-micro text-on-surface-variant">
+<div>
+<span class="block text-label-caps text-label-caps">TX POWER</span>
+<span class="text-on-surface font-medium">+2.15 dBm</span>
+</div>
+<div>
+<span class="block text-label-caps text-label-caps">RX POWER</span>
+<span class="text-secondary font-medium">-0.92 dBm</span>
+</div>
+<div>
+<span class="block text-label-caps text-label-caps">WAVELENGTH</span>
+<span class="text-on-surface font-medium">850 nm MM</span>
+</div>
+<div class="text-right">
+<span class="block text-label-caps text-label-caps">FIBER LENGTH</span>
+<span class="text-primary font-medium">340.0 m</span>
+</div>
+</div>
+</div>
+<!-- Patch Row 4: LD4 Slough Transatlantic -->
+<div class="p-space-xs bg-surface-container-lowest rounded hover:bg-surface-container transition-colors">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-body-sm text-body-sm font-semibold text-on-surface">NY4 ➔ LD4 Slough UK (Dark Fiber)</span>
+</div>
+<span class="font-mono-micro text-mono-micro text-primary bg-surface-container-high px-space-xs py-space-2xs rounded">DWDM 100G CH-44</span>
+</div>
+<div class="grid grid-cols-4 gap-space-2xs mt-space-xs font-mono-micro text-mono-micro text-on-surface-variant">
+<div>
+<span class="block text-label-caps text-label-caps">TX POWER</span>
+<span class="text-on-surface font-medium">+4.50 dBm</span>
+</div>
+<div>
+<span class="block text-label-caps text-label-caps">RX POWER</span>
+<span class="text-primary font-medium">-3.22 dBm</span>
+</div>
+<div>
+<span class="block text-label-caps text-label-caps">WAVELENGTH</span>
+<span class="text-on-surface font-medium">1550.12 nm</span>
+</div>
+<div class="text-right">
+<span class="block text-label-caps text-label-caps">FIBER LENGTH</span>
+<span class="text-primary font-medium">5,510.8 km</span>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-space-sm p-space-xs bg-surface-container-lowest rounded flex items-center justify-between font-mono-micro text-mono-micro">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>
+<span class="text-on-surface-variant">Optical Patch Status: All photodiode voltages balanced.</span>
+</div>
+<span class="text-secondary font-semibold">0 SFP+ FAULTS</span>
+</div>
+</div>
+<!-- Solarflare EF_VI & Kernel Bypass Packet Capture Hub -->
+<div class="bg-surface-container-low rounded-lg p-space-md shadow-md">
+<div class="flex items-center justify-between pb-space-xs border-b border-surface-container-high mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">layers</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Solarflare EF_VI &amp; Kernel-Bypass Capture</span>
+</div>
+<span class="font-mono-micro text-mono-micro text-secondary bg-surface-container-highest px-space-xs py-space-2xs rounded">ZERO-DROP ACTIVE</span>
+</div>
+<div class="space-y-space-sm">
+<!-- NVMe Ring Buffer Consumption -->
+<div class="p-space-xs bg-surface-container-lowest rounded">
+<div class="flex justify-between items-center mb-space-2xs">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">NVMe CIRCULAR PCAP BUFFER</span>
+<span class="font-mono-micro text-mono-micro text-primary font-semibold">12.8 GB / 64.0 GB (20.0%)</span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded overflow-hidden">
+<div class="bg-primary h-full rounded transition-all duration-500" style="width: 20%"></div>
+</div>
+<div class="flex justify-between items-center mt-space-2xs font-mono-micro text-mono-micro text-on-surface-variant">
+<span>Write Throughput: 14.8 Gbps</span>
+<span>Retention Window: ~14.2 min</span>
+</div>
+</div>
+<!-- Ring buffer details -->
+<div class="grid grid-cols-3 gap-space-xs">
+<div class="p-space-xs bg-surface-container-lowest rounded">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">ONLOAD RING PACKETS</span>
+<div class="font-mono-metric-lg text-mono-metric-lg text-on-surface mt-space-2xs">4,194,304</div>
+<span class="font-mono-micro text-mono-micro text-secondary">0 Drops (HW Count)</span>
+</div>
+<div class="p-space-xs bg-surface-container-lowest rounded">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">EF_VI TX DIRECT</span>
+<div class="font-mono-metric-lg text-mono-metric-lg text-secondary mt-space-2xs">0.42 µs</div>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">Wire-to-Wire bypass</span>
+</div>
+<div class="p-space-xs bg-surface-container-lowest rounded">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">HW TIMESTAMPING</span>
+<div class="font-mono-metric-lg text-mono-metric-lg text-primary mt-space-2xs">±0.2 ns</div>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">PHY Cross-stamp</span>
+</div>
+</div>
+<!-- PCAP Diagnostic Action Strip -->
+<div class="flex items-center justify-between pt-space-xs border-t border-surface-container-high">
+<div class="flex items-center gap-space-xs font-mono-micro text-mono-micro text-on-surface-variant">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span>Live Tap: <span class="text-on-surface font-medium">eth4 (100GbE QSFP28)</span></span>
+</div>
+<button class="flex items-center gap-space-2xs px-space-sm py-space-2xs rounded bg-surface-container-highest hover:bg-surface-variant text-on-surface font-mono-micro text-mono-micro transition-colors" id="dump-diag-btn">
+<span class="material-symbols-outlined text-[15px] text-primary">bug_report</span>
+<span>DUMP DIAGNOSTIC REGISTER</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Strip: Detailed Telemetry Audit Packet Log -->
+<div class="bg-surface-container-low rounded-lg p-space-md shadow-md">
+<div class="flex flex-wrap items-center justify-between pb-space-xs border-b border-surface-container-high mb-space-sm gap-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">receipt_long</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">PTP &amp; Optical Real-Time Telemetry Event Log</span>
+</div>
+<div class="flex items-center gap-space-md font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">STREAM: <span class="text-secondary">PTP_SYNC_EVENTS_RAW</span></span>
+<span class="text-on-surface-variant">FORMAT: <span class="text-on-surface">NANOSECOND ISO-8601</span></span>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left font-mono-table text-mono-table">
+<thead>
+<tr class="text-on-surface-variant font-label-caps text-label-caps uppercase bg-surface-container-lowest">
+<th class="p-space-xs">EPOCH TIMESTAMP (UTC)</th>
+<th class="p-space-xs">SOURCE ADAPTER</th>
+<th class="p-space-xs">EVENT TYPE</th>
+<th class="p-space-xs">MEASURED VALUE</th>
+<th class="p-space-xs">DELTA THRESHOLD</th>
+<th class="p-space-xs text-right">STATUS</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container-high/40" id="telemetry-log-tbody">
+<tr class="hover:bg-surface-container transition-colors">
+<td class="p-space-xs text-on-surface">14:22:04.819201412</td>
+<td class="p-space-xs text-primary">M1000-RB-MASTER</td>
+<td class="p-space-xs text-on-surface">PTP_SYNC_PHASE_ALIGN</td>
+<td class="p-space-xs text-secondary font-medium">+0.142 ns</td>
+<td class="p-space-xs text-on-surface-variant">&lt; 0.500 ns</td>
+<td class="p-space-xs text-right"><span class="text-secondary font-semibold">SYNCHRONIZED</span></td>
+</tr>
+<tr class="hover:bg-surface-container transition-colors">
+<td class="p-space-xs text-on-surface">14:22:03.818902871</td>
+<td class="p-space-xs text-primary">OPT-XCONN-NY4-AUR</td>
+<td class="p-space-xs text-on-surface">OPTICAL_RX_DIODE_SAMPLE</td>
+<td class="p-space-xs text-on-surface">-1.85 dBm (1310nm)</td>
+<td class="p-space-xs text-on-surface-variant">&gt; -4.50 dBm</td>
+<td class="p-space-xs text-right"><span class="text-secondary font-semibold">NOMINAL</span></td>
+</tr>
+<tr class="hover:bg-surface-container transition-colors">
+<td class="p-space-xs text-on-surface">14:22:02.817112044</td>
+<td class="p-space-xs text-primary">SF-EFVI-RING-0</td>
+<td class="p-space-xs text-on-surface">KERNEL_BYPASS_FLUSH</td>
+<td class="p-space-xs text-on-surface">0 drops / 1,421,990 pkts</td>
+<td class="p-space-xs text-on-surface-variant">0 drop tolerance</td>
+<td class="p-space-xs text-right"><span class="text-secondary font-semibold">PASS</span></td>
+</tr>
+<tr class="hover:bg-surface-container transition-colors">
+<td class="p-space-xs text-on-surface">14:22:01.816401928</td>
+<td class="p-space-xs text-primary">ZILLERS-TRANSATLANTIC</td>
+<td class="p-space-xs text-on-surface">RTT_SOLITON_PING</td>
+<td class="p-space-xs text-primary font-medium">33.821 ms</td>
+<td class="p-space-xs text-on-surface-variant">&lt; 34.100 ms</td>
+<td class="p-space-xs text-right"><span class="text-secondary font-semibold">OPTIMAL</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<script>
+  // Interactive Live Phase Drift Animation and Manual Re-alignment Simulation
+  (function() {
+    const driftDisplay = document.getElementById('drift-display');
+    const delayDisplay = document.getElementById('delay-display');
+    const resyncBtn = document.getElementById('resync-main-btn');
+    const pcapBtn = document.getElementById('pcap-trigger-btn');
+    const dumpBtn = document.getElementById('dump-diag-btn');
+    const graphLine = document.getElementById('graph-line');
+    const graphFill = document.getElementById('graph-fill');
+    const logTbody = document.getElementById('telemetry-log-tbody');
+
+    let points = Array.from({length: 40}, () => 50);
+
+    function updateWaveform() {
+      // Small realistic sub-nanosecond jitter around 50 (zero offset)
+      const jitter = (Math.random() - 0.5) * 8;
+      points.shift();
+      points.push(50 + jitter);
+
+      const step = 500 / (points.length - 1);
+      let pathD = `M 0,${points[0]}`;
+      for (let i = 1; i < points.length; i++) {
+        pathD += ` L ${i * step},${points[i]}`;
+      }
+      graphLine.setAttribute('d', pathD);
+      graphFill.setAttribute('d', `${pathD} L 500,100 L 0,100 Z`);
+
+      // Update Drift Metric with high-precision display
+      const currentDrift = ((points[points.length - 1] - 50) * 0.035).toFixed(2);
+      const sign = currentDrift >= 0 ? '+' : '';
+      if (driftDisplay) {
+        driftDisplay.textContent = `${sign}${currentDrift}`;
+      }
+    }
+
+    const interval = setInterval(updateWaveform, 200);
+
+    // Force Re-sync Action
+    if (resyncBtn) {
+      resyncBtn.addEventListener('click', function() {
+        resyncBtn.disabled = true;
+        const originalText = resyncBtn.innerHTML;
+        resyncBtn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span><span>CALIBRATING RUBIDIUM...</span>';
+        
+        // Reset points towards flat line zero
+        points = Array.from({length: 40}, () => 50 + (Math.random() - 0.5) * 1.5);
+        if (driftDisplay) driftDisplay.textContent = '+0.01';
+        if (delayDisplay) delayDisplay.textContent = '48.12';
+
+        setTimeout(() => {
+          resyncBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">done</span><span>ALIGNED ±0.00 ns</span>';
+          
+          // Append entry to event log table
+          if (logTbody) {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-surface-container transition-colors';
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0] + '.' + Math.floor(Math.random() * 899999 + 100000);
+            tr.innerHTML = `
+              <td class="p-space-xs text-on-surface">${timeStr}</td>
+              <td class="p-space-xs text-primary">OPERATOR_OVERRIDE</td>
+              <td class="p-space-xs text-secondary">MANUAL_CHRONO_REALIGN</td>
+              <td class="p-space-xs text-secondary font-medium">+0.002 ns</td>
+              <td class="p-space-xs text-on-surface-variant">&lt; 0.500 ns</td>
+              <td class="p-space-xs text-right"><span class="text-secondary font-semibold">VERIFIED</span></td>
+            `;
+            logTbody.insertBefore(tr, logTbody.firstChild);
+          }
+
+          setTimeout(() => {
+            resyncBtn.disabled = false;
+            resyncBtn.innerHTML = originalText;
+          }, 1500);
+        }, 1200);
+      });
+    }
+
+    // Diagnostic Dump Interaction
+    if (dumpBtn) {
+      dumpBtn.addEventListener('click', function() {
+        const prev = dumpBtn.innerHTML;
+        dumpBtn.innerHTML = '<span class="material-symbols-outlined text-[15px] text-secondary">check</span><span>FPGA REGS DUMPED (4KB)</span>';
+        setTimeout(() => {
+          dumpBtn.innerHTML = prev;
+        }, 1800);
+      });
+    }
+
+    // Snapshot PCAP Trigger
+    if (pcapBtn) {
+      pcapBtn.addEventListener('click', function() {
+        const prev = pcapBtn.innerHTML;
+        pcapBtn.innerHTML = '<span class="material-symbols-outlined text-[15px] text-secondary">file_download_done</span><span>PCAP CAPTURED (2.4 GB)</span>';
+        setTimeout(() => {
+          pcapBtn.innerHTML = prev;
+        }, 2000);
+      });
+    }
+  })();
+</script></main></div></body></html>

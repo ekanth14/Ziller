@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  zillers-terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zillers-terminal
+    restart: unless-stopped
+    ports:
+      - "8900:8900"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8900
+      - ADMIN_INITIAL_PASSWORD=${ADMIN_INITIAL_PASSWORD:?ADMIN_INITIAL_PASSWORD must be configured in .env}
+      - SIGNUP_MODE=${SIGNUP_MODE:-open}
+      - INVITE_CODE=${INVITE_CODE:-ZILLERS-INVITE-2026}
+      - TRUST_PROXY=${TRUST_PROXY:-false}
+      - LIVE_TRADING=${LIVE_TRADING:-false}
+      - EXCHANGE_API_KEY=${EXCHANGE_API_KEY:-}
+      - EXCHANGE_API_SECRET=${EXCHANGE_API_SECRET:-}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-gemma4:12b}
+      - DATA_DIR=/app/data
+    volumes:
+      - terminal_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8900/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      ollama:
+        condition: service_started
+        required: false
+
+  # Optional local Ollama engine for Laya AI offline inference
+  ollama:
+    image: ollama/ollama:latest
+    container_name: zillers-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    profiles:
+      - full
+      - with-ollama
+
+volumes:
+  terminal_data:
+    driver: local
+  ollama_models:
+    driver: local

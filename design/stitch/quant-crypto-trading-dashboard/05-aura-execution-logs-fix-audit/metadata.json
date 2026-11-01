@@ -1,0 +1,39 @@
+{
+  "order": "05",
+  "folder": "05-zillers-execution-logs-fix-audit",
+  "id": "bc793cd7efb74ee2be84c015c991cc44",
+  "title": "ZILLERS - Execution Logs & FIX Audit Tape",
+  "resourceName": "projects/11951265260504602280/screens/bc793cd7efb74ee2be84c015c991cc44",
+  "width": "2560",
+  "height": "2292",
+  "htmlCode": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/4666088631695489649:download",
+    "mimeType": "text/html",
+    "name": "projects/11951265260504602280/files/4666088631695489649"
+  },
+  "screenshot": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/17132500886577229082:download",
+    "mimeType": "image/jpeg",
+    "name": "projects/11951265260504602280/files/17132500886577229082"
+  },
+  "imageOnly": false,
+  "files": [
+    {
+      "name": "preview.jpg",
+      "bytes": 507017,
+      "mimeType": "image/jpeg",
+      "sha256": "6708ace1942de7802605c746b8bd73a9b8bc71fa6c0f9b026785480190c022b3"
+    },
+    {
+      "name": "index.html",
+      "bytes": 65490,
+      "mimeType": "text/html",
+      "sha256": "e0778c6ca160881a1fbd9d3c00cad362008008312a5c2210f870286f41562477"
+    }
+  ],
+  "preview": "preview.jpg",
+  "verifiedImageDimensions": {
+    "width": 2560,
+    "height": 2290
+  }
+}

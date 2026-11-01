@@ -1,0 +1,39 @@
+{
+  "order": "02",
+  "folder": "02-zillers-order-book-liquidity",
+  "id": "149635b64c504a11884114f9d4d1301b",
+  "title": "ZILLERS - Order Book & Liquidity",
+  "resourceName": "projects/11951265260504602280/screens/149635b64c504a11884114f9d4d1301b",
+  "width": "2560",
+  "height": "2048",
+  "htmlCode": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/636112231341989145:download",
+    "mimeType": "text/html",
+    "name": "projects/11951265260504602280/files/636112231341989145"
+  },
+  "screenshot": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f22a02185be089af6f92d216ef7:download",
+    "mimeType": "image/png",
+    "name": "projects/11951265260504602280/screens/149635b64c504a11884114f9d4d1301b/fileEntries/screenshot"
+  },
+  "imageOnly": false,
+  "files": [
+    {
+      "name": "preview.png",
+      "bytes": 811548,
+      "mimeType": "image/png",
+      "sha256": "c8610561afb046c1a2645ad132ad607f58cdb4407103a0dbcfeea8d0649d5f5a"
+    },
+    {
+      "name": "index.html",
+      "bytes": 57189,
+      "mimeType": "text/html",
+      "sha256": "4635b910c0d79929375270bce588cf1960acc5e5004e8a5687c984b74c4b7854"
+    }
+  ],
+  "preview": "preview.png",
+  "verifiedImageDimensions": {
+    "width": 2560,
+    "height": 2048
+  }
+}

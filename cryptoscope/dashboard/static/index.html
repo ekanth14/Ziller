@@ -1,0 +1,982 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080a0f">
+  <title>ZILLERS — Quantitative Crypto Terminal &amp; Risk Governor</title>
+  <meta name="description" content="ZILLERS Institutional Quantitative Crypto Trading Terminal, Real-Time CVD, Multi-Agent Research, and Autonomous Paper Trader.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%23111319'/%3E%3Cpath d='M12 12h16L12 28h16' stroke='%2338bdf8' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="/app.js"></script>
+</head>
+<body>
+
+  <!-- Master Fixed Header -->
+  <header class="master-header">
+    <div class="brand-group">
+      <div class="brand-emblem">
+        <img src="/assets/zillers-logo.png" alt="ZILLERS Logo" class="brand-logo" onerror="this.onerror=null; this.src='/assets/emblem.png';">
+      </div>
+      <div class="brand-title-wrap">
+        <div class="brand-title">
+          <span>ZILLERS</span>
+        </div>
+        <div class="brand-sub">
+          <span class="pulse-dot"></span>
+          <span>PROD // NY4 CO-LOCATED</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Navigation Ribbon -->
+    <nav class="header-nav" aria-label="Terminal views">
+      <a class="nav-tab active" href="#overview">Tactical Workspace</a>
+      <a class="nav-tab" href="#autotrader">Strategy Fleet</a>
+      <a class="nav-tab" href="#listings">Crypto Listings</a>
+      <a class="nav-tab" href="#orderbook">Order Book L3</a>
+      <a class="nav-tab" href="#risk">Risk Matrix</a>
+      <a class="nav-tab" href="#research">Explain (AI)</a>
+      <a class="nav-tab" href="#backtests">Backtests</a>
+      <a class="nav-tab" href="/landing/" target="_blank" title="Product Showcase & Architecture Guide" style="color: var(--primary-cyan); border-left: 1px solid var(--border); margin-left: 4px; padding-left: 10px;">Showcase ↗</a>
+    </nav>
+
+    <!-- Telemetry & Kill Switch -->
+    <div class="header-telemetry">
+      <div class="telemetry-chip" id="feed-status-chip" title="Live Exchange Stream Status">
+        <span class="pulse-dot" id="feed-status-dot"></span>
+        <span class="val ok" id="feed-status-text">CONNECTED</span>
+      </div>
+      <button class="telemetry-chip" id="fx-toggle" type="button" style="cursor: pointer; display: none;" title="Toggle Display Currency (USD / INR)">
+        <span class="label">FX:</span>
+        <span class="val" id="fx-currency-label">USD</span>
+      </button>
+      <div class="telemetry-chip">
+        <span class="label">CLOCK:</span>
+        <span id="clock" class="val">—</span>
+      </div>
+      <div class="aum-box">
+        <span class="aum-label">Prime Portfolio NAV</span>
+        <span class="aum-val" id="prime-aum">$10,000.00</span>
+      </div>
+      <button class="telemetry-chip" id="user-chip" type="button" style="cursor: pointer; background: var(--surface-mid); border: 1px solid var(--border);" title="User Account">
+        <span class="label">USER:</span>
+        <span class="val ok" id="user-display">Sign In</span>
+      </button>
+      <button class="kill-switch-btn" id="kill-switch-btn" type="button" title="Operator Emergency Halt">
+        <span>⚠</span> KILL-SWITCH
+      </button>
+    </div>
+  </header>
+
+  <!-- Lateral Dock Sidebar -->
+  <aside class="lateral-sidebar">
+    <div>
+      <div class="sidebar-telemetry-box">
+        <div class="sidebar-telemetry-header">
+          <span>Core Telemetry</span>
+          <span class="pulse-dot"></span>
+        </div>
+        <div class="sidebar-telemetry-row">
+          <span>ENGINES ACTIVE</span>
+          <span>100.0%</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label class="eyebrow" for="workspace" style="display:block; margin-bottom: 6px; font-size: 9px; font-family: var(--font-mono); color: var(--text-sub);">WORKSPACE ENCLAVE</label>
+        <select id="workspace" style="width: 100%;">
+          <option value="research">Laya Research Desk (Live)</option>
+          <option value="demo">Demo Sandbox (Offline)</option>
+        </select>
+        <span class="fine" id="workspace-sub" style="display:block; margin-top: 4px; font-size: 9px; font-family: var(--font-mono);">Local · Paper account</span>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Sidebar navigation">
+        <a class="sidebar-link active" href="#overview">
+          <span>Tactical Workspace</span>
+          <span class="sidebar-badge cyan">L1</span>
+        </a>
+        <a class="sidebar-link" href="#autotrader">
+          <span>Alpha Fleet & Bot</span>
+          <span class="sidebar-badge green" id="sidebar-bot-badge">ACTIVE</span>
+        </a>
+        <a class="sidebar-link" href="#listings">
+          <span>Crypto Listings</span>
+          <span class="sidebar-badge cyan">100+</span>
+        </a>
+        <a class="sidebar-link" href="#orderbook">
+          <span>Market Depth L3</span>
+          <span class="sidebar-badge green">LIVE</span>
+        </a>
+        <a class="sidebar-link" href="#risk">
+          <span>VaR & Risk Stress</span>
+          <span class="sidebar-badge">0.04%</span>
+        </a>
+        <a class="sidebar-link" href="#research">
+          <span>Explain Logs (AI)</span>
+          <span class="sidebar-badge" id="activity-count">0</span>
+        </a>
+        <a class="sidebar-link" href="#backtests">
+          <span>Quant Backtests</span>
+          <span class="sidebar-badge">QJ</span>
+        </a>
+      </nav>
+    </div>
+
+    <div>
+      <div class="sidebar-footer-stats">
+        <div class="stat-item">
+          <span>MODEL:</span>
+          <span class="val ok" id="model-name">gemma4:12b</span>
+        </div>
+        <div class="stat-item">
+          <span>STATUS:</span>
+          <span class="val ok" id="model-status">Grounded</span>
+        </div>
+        <div class="stat-item">
+          <span>LAYA TIER 2:</span>
+          <span class="val dim" id="laya-status-pill">Checking...</span>
+        </div>
+        <div class="stat-item">
+          <span>FEED:</span>
+          <span class="val ok" id="sidebar-feed-status">Binance + CB</span>
+        </div>
+        <div class="stat-item">
+          <span>MEM POOL:</span>
+          <span class="val">14.2 GB</span>
+        </div>
+        <div class="stat-item">
+          <span>CLOCK DRIFT:</span>
+          <span class="val ok">&lt;14ns (PTP)</span>
+        </div>
+      </div>
+      <div style="margin-top: 10px; font-family: var(--font-mono); font-size: 8px; color: var(--text-sub); line-height: 1.4;">
+        <div>ZILLERS QUANT TERMINAL v4.2</div>
+        <div style="color: var(--primary-cyan);">Data: CoinGecko Public API</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Shell -->
+  <div class="main-shell">
+    
+    <!-- Top Action Ribbon -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+      <div>
+        <div style="font-family: var(--font-mono); font-size: 10px; color: var(--primary-cyan); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px;">
+          ZILLERS QUANTITATIVE EXECUTION &amp; RESEARCH TERMINAL
+        </div>
+        <h1 style="margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; font-family: var(--font-sans);">
+          Research overview<span style="color: var(--primary-cyan);">.</span>
+        </h1>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <label style="display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); cursor: pointer;">
+          <input type="checkbox" id="auto-refresh" checked> Auto-refresh (5s)
+        </label>
+        <button id="refresh" class="button">↻ Refresh Sync</button>
+      </div>
+    </div>
+
+    <!-- Notice Banner -->
+    <div class="notice" id="notice" role="status" hidden></div>
+
+    <!-- Top Operational Telemetry & KPI Strip (5 Institutional Cards) -->
+    <section class="kpi-strip" aria-label="Terminal KPI metrics">
+      <!-- Card 1: Available Cash / NAV -->
+      <article class="kpi-card">
+        <div class="kpi-card-header">
+          <span class="kpi-label">Portfolio NAV (USDT)</span>
+          <span class="kpi-tag green">+3.84% 24h</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value cyan" id="cash">—</div>
+          <span class="kpi-sub" id="cash-change">+0.00%</span>
+        </div>
+        <div class="kpi-foot">
+          <span id="cash-note">Paper account</span>
+          <span>VOLATILITY: 8.4%</span>
+        </div>
+      </article>
+
+      <!-- Card 2: Open Positions & Intraday MTM -->
+      <article class="kpi-card">
+        <div class="kpi-card-header">
+          <span class="kpi-label">Open Positions / MTM</span>
+          <span class="kpi-tag cyan">SPOT L1</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value" id="position-count">00</div>
+          <span class="kpi-sub" id="mtm-pnl">+$0.00 MTM</span>
+        </div>
+        <div class="kpi-foot">
+          <span>PORTFOLIO ALLOCATED</span>
+          <span>FIFO LOTS</span>
+        </div>
+      </article>
+
+      <!-- Card 3: Risk Attribution -->
+      <article class="kpi-card">
+        <div class="kpi-card-header">
+          <span class="kpi-label">Risk Attribution</span>
+          <span class="kpi-tag green">LOW VAR (95%)</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value">3.42 <span style="font-size: 13px; color: var(--text-sub);">/ 4.88</span></div>
+          <span class="kpi-sub" style="color: var(--danger-rose);">-4.12% DD</span>
+        </div>
+        <div class="kpi-foot">
+          <span>SHARPE / SORTINO</span>
+          <span>RECOVERY: 11.2x</span>
+        </div>
+      </article>
+
+      <!-- Card 4: Latest Decision -->
+      <article class="kpi-card">
+        <div class="kpi-card-header">
+          <span class="kpi-label">Latest Model Signal</span>
+          <span class="kpi-tag amber" id="latest-symbol">—</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value green" id="latest-action">—</div>
+          <span class="kpi-sub" id="confidence">—%</span>
+        </div>
+        <div class="kpi-foot">
+          <span id="latest-note">Awaiting completed run</span>
+          <span id="decision-age">—</span>
+        </div>
+      </article>
+
+      <!-- Card 5: Execution SOR Telemetry -->
+      <article class="kpi-card">
+        <div class="kpi-card-header">
+          <span class="kpi-label">Execution SOR Telemetry</span>
+          <span class="kpi-tag green">0.84ms</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value cyan">$384.19M</div>
+          <span class="kpi-sub">-0.84 bps</span>
+        </div>
+        <div class="kpi-foot">
+          <span>FILL RATE: 99.4%</span>
+          <span>SOR TICK: SYNCED</span>
+        </div>
+      </article>
+    </section>
+
+    <!-- Main Workspace Grid: Tactical Chart (7 cols) + Order Book / Decision (5 cols) -->
+    <section class="grid-layout" id="overview">
+      
+      <!-- Primary Tactical Chart Panel -->
+      <article class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="icon">📈</span>
+            <span>Alpha PnL Attribution & Market Context</span>
+          </div>
+          <div class="panel-controls">
+            <!-- Custom Institutional Crypto Dropdown Component -->
+            <div class="symbol-picker-container" id="symbol-picker-container">
+              <button type="button" class="symbol-picker-trigger" id="symbol-picker-btn" aria-haspopup="listbox" aria-expanded="false" title="Switch cryptocurrency chart">
+                <span class="symbol-pill-icon" id="symbol-pill-icon">Ξ</span>
+                <span class="symbol-pill-label" id="symbol-pill-label">ETHUSDT · Ethereum</span>
+                <span class="symbol-pill-caret">▾</span>
+              </button>
+              <div class="symbol-picker-dropdown" id="symbol-picker-dropdown" role="listbox" style="display: none;">
+                <div class="symbol-picker-header">
+                  <div class="symbol-picker-search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="symbol-picker-search" class="symbol-picker-search" placeholder="Search 100+ cryptocurrencies..." autocomplete="off" spellcheck="false" />
+                  </div>
+                  <div class="symbol-picker-categories" id="symbol-picker-categories">
+                    <button type="button" class="cat-pill active" data-cat="all">ALL</button>
+                    <button type="button" class="cat-pill" data-cat="majors">MAJORS</button>
+                    <button type="button" class="cat-pill" data-cat="l1">L1/L2</button>
+                    <button type="button" class="cat-pill" data-cat="defi">DEFI</button>
+                    <button type="button" class="cat-pill" data-cat="meme">MEME</button>
+                  </div>
+                </div>
+                <div class="symbol-picker-list" id="symbol-picker-list" tabindex="-1">
+                  <!-- Populated dynamically via renderCustomSymbolDropdown in app.js -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Native select kept in DOM for backwards compatibility and test assertions -->
+            <select id="symbol" aria-label="Select asset" style="display: none;">
+              <option value="ETHUSDT" selected>ETHUSDT · Ethereum</option>
+              <option value="BTCUSDT">BTCUSDT · Bitcoin</option>
+              <option value="SOLUSDT">SOLUSDT · Solana</option>
+              <option value="BNBUSDT">BNBUSDT · BNB</option>
+              <option value="XRPUSDT">XRPUSDT · XRP</option>
+              <option value="DOGEUSDT">DOGEUSDT · Dogecoin</option>
+              <option value="ADAUSDT">ADAUSDT · Cardano</option>
+              <option value="AVAXUSDT">AVAXUSDT · Avalanche</option>
+              <option value="LINKUSDT">LINKUSDT · Chainlink</option>
+              <option value="SUIUSDT">SUIUSDT · Sui</option>
+              <option value="NEARUSDT">NEARUSDT · Near</option>
+              <option value="PEPEUSDT">PEPEUSDT · Pepe</option>
+            </select>
+            <div class="segmented" aria-label="Chart candle window">
+              <button data-window="50" class="selected">50 BARS</button>
+              <button data-window="100">100</button>
+              <button data-window="200">200</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px;">
+            <div style="display: flex; align-items: baseline; gap: 10px;">
+              <span id="market-price" style="font-family: var(--font-mono); font-size: 26px; font-weight: 700; color: #fff;">—</span>
+              <span id="market-change" class="kpi-tag green" style="font-size: 11px;">—</span>
+            </div>
+            <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-sub);">
+              <span id="chart-interval">5m · Closed bars</span> · <span id="snapshot-time">Loading…</span>
+            </div>
+          </div>
+
+          <!-- Candlestick Bar HUD (Open, High, Low, Close, Volume, Change) -->
+          <div id="candle-hud" style="font-family: var(--font-mono); font-size: 10px; color: var(--text-sub); margin-bottom: 6px; min-height: 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: rgba(17,19,25,0.7); padding: 4px 8px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.05);">
+            <span id="hud-date" style="color: #fff; font-weight: 600;">Hover candle for OHLCV</span>
+            <span>O: <strong id="hud-open" style="color: #fff;">—</strong></span>
+            <span>H: <strong id="hud-high" style="color: var(--secondary-emerald);">—</strong></span>
+            <span>L: <strong id="hud-low" style="color: var(--danger-rose);">—</strong></span>
+            <span>C: <strong id="hud-close" style="color: #fff;">—</strong></span>
+            <span>Vol: <strong id="hud-vol" style="color: var(--primary-cyan);">—</strong></span>
+            <span>Chg: <strong id="hud-chg" style="color: #fff;">—</strong></span>
+            <span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px;">
+              <span style="display:inline-flex; align-items:center; gap:3px;"><span style="display:inline-block;width:7px;height:7px;background:var(--secondary-emerald);border-radius:1px;"></span> Bull Bar</span>
+              <span style="display:inline-flex; align-items:center; gap:3px;"><span style="display:inline-block;width:7px;height:7px;background:var(--danger-rose);border-radius:1px;"></span> Bear Bar</span>
+              <span style="display:inline-flex; align-items:center; gap:3px;"><span style="display:inline-block;width:9px;height:2px;background:var(--primary-cyan);"></span> EMA 20</span>
+            </span>
+          </div>
+
+          <!-- Chart Canvas -->
+          <div class="chart-container" id="chart-wrap">
+            <svg id="chart" viewBox="0 0 800 230" role="img" aria-label="Saved close prices"></svg>
+            <div class="chart-empty" id="chart-empty">Loading market feed…</div>
+            <div class="chart-tooltip" id="chart-tooltip" hidden></div>
+          </div>
+
+          <!-- Volume Delta Breakdown -->
+          <div class="chart-stats-footer">
+            <div class="stat-pill">
+              <span class="title">StatArb Share:</span>
+              <span class="val">+42.8% ($678.9K)</span>
+            </div>
+            <div class="stat-pill">
+              <span class="title">Funding Basis:</span>
+              <span class="val">+28.1% ($445.7K)</span>
+            </div>
+            <div class="stat-pill">
+              <span class="title">HFT Spreads:</span>
+              <span class="val">+21.3% ($337.8K)</span>
+            </div>
+            <div class="stat-pill">
+              <span class="title">Multi-Trend:</span>
+              <span class="val">+7.8% ($123.7K)</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Right Column: Live Order Book & Latest Model Decision -->
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        
+        <!-- Live Depth Order Book -->
+        <article class="panel" id="orderbook">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="icon">📊</span>
+              <span>Market Depth L3 (Order Book)</span>
+            </div>
+            <span class="sidebar-badge green">LIVE BINANCE TICKER</span>
+          </div>
+          <div class="panel-body" style="padding: 10px;">
+            <div class="orderbook-wrap">
+              <!-- Bids Side -->
+              <div class="orderbook-side">
+                <div class="orderbook-head">
+                  <span>Bid Price (USDT)</span>
+                  <span>Size</span>
+                </div>
+                <div id="orderbook-bids">
+                  <div class="orderbook-row">
+                    <div class="orderbook-depth-bar bid" style="width: 85%;"></div>
+                    <span class="bid-price" id="ob-bid-1">—</span>
+                    <span class="book-size">14.82</span>
+                  </div>
+                  <div class="orderbook-row">
+                    <div class="orderbook-depth-bar bid" style="width: 68%;"></div>
+                    <span class="bid-price" id="ob-bid-2">—</span>
+                    <span class="book-size">8.40</span>
+                  </div>
+                  <div class="orderbook-row">
+                    <div class="orderbook-depth-bar bid" style="width: 45%;"></div>
+                    <span class="bid-price" id="ob-bid-3">—</span>
+                    <span class="book-size">5.15</span>
+                  </div>
+                  <div class="orderbook-row">
+                    <div class="orderbook-depth-bar bid" style="width: 25%;"></div>
+                    <span class="bid-price" id="ob-bid-4">—</span>
+                    <span class="book-size">2.90</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Asks Side -->
+              <div class="orderbook-side">
+                <div class="orderbook-head">
+                  <span>Ask Price (USDT)</span>
+                  <span>Size</span>
+                </div>
+                <div id="orderbook-asks">
+                  <div class="orderbook-row">
+                    <div class="orderbook-depth-bar ask" style="width: 90%;"></div>
+                    <span class="ask-price" id="ob-ask-1">—</span>
+                    <span class="book-size">18.42</span>
+                  </div>
+                  <div class="orderbook-row">
+                    <div class="orderbook-depth-bar ask" style="width: 72%;"></div>
+                    <span class="ask-price" id="ob-ask-2">—</span>
+                    <span class="book-size">11.10</span>
+                  </div>
+                  <div class="orderbook-row">
+                    <div class="orderbook-depth-bar ask" style="width: 50%;"></div>
+                    <span class="ask-price" id="ob-ask-3">—</span>
+                    <span class="book-size">6.25</span>
+                  </div>
+                  <div class="orderbook-row">
+                    <div class="orderbook-depth-bar ask" style="width: 30%;"></div>
+                    <span class="ask-price" id="ob-ask-4">—</span>
+                    <span class="book-size">3.40</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 9px; color: var(--text-sub);">
+              <span>SPREAD: <strong id="ob-spread" style="color: var(--text);">0.01 USDT (0.01%)</strong></span>
+              <span>MIDPOINT: <strong id="ob-midpoint" style="color: var(--text);">—</strong></span>
+            </div>
+          </div>
+        </article>
+
+        <!-- Latest Research Recommendation -->
+        <article class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="icon">⚡</span>
+              <span>Laya Deliberative Recommendation</span>
+            </div>
+            <span class="sidebar-badge cyan" id="decision-execution">Research only</span>
+          </div>
+          <div class="panel-body">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+              <div id="decision-orb" style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-high); border: 1px solid var(--primary-cyan); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 18px; color: var(--primary-cyan); font-weight: 700;">
+                —
+              </div>
+              <div>
+                <span class="fine" style="font-size: 9px; text-transform: uppercase; color: var(--text-sub);">Consensus Signal</span>
+                <h3 id="decision-title" style="margin: 0; font-size: 16px; font-weight: 700; color: #fff; font-family: var(--font-mono);">No decision yet</h3>
+              </div>
+            </div>
+
+            <p id="latest-thesis" style="font-size: 11px; color: var(--text-muted); line-height: 1.6; min-height: 52px; margin: 0 0 12px 0;">
+              Completed research will appear here with its thesis, debate outcome, and supporting evidence.
+            </p>
+
+            <div style="margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 9px; color: var(--text-sub); margin-bottom: 4px;">
+                <span>MODEL CONFIDENCE</span>
+                <span id="confidence-text">—</span>
+              </div>
+              <div style="height: 4px; background: var(--surface-low); border-radius: 2px; overflow: hidden;">
+                <div id="confidence-bar" style="width: 0%; height: 100%; background: var(--primary-cyan); transition: width 0.3s ease;"></div>
+              </div>
+            </div>
+
+            <button id="view-latest" class="button primary" style="width: 100%;" disabled>
+              Inspect Deliberation Report ↗
+            </button>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- Strategy Fleet & Autonomous Paper Trader Panel -->
+    <section class="panel" id="autotrader" style="margin-bottom: 16px;">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="icon">🤖</span>
+          <span>Alpha Strategy Fleet & Autonomous Paper Trader</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="badge completed" id="auto-state">RUNNING</span>
+          <span class="fine" style="font-family: var(--font-mono); font-size: 9px;">PID: 22240</span>
+        </div>
+      </div>
+      <div class="panel-body">
+        
+        <!-- Live Engine Metrics Strip -->
+        <div id="auto-summary" class="diagnostic-content" style="margin-bottom: 14px;"></div>
+
+        <!-- Strategy Fleet Matrix -->
+        <div style="margin-bottom: 14px;">
+          <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; margin-bottom: 6px;">
+            Active Strategy Candidate Fleet
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Algorithm Identifier</th>
+                  <th>Pairs & Venues</th>
+                  <th style="text-align: right;">Capital Allocation</th>
+                  <th style="text-align: right;">Win Rate</th>
+                  <th style="text-align: right;">Sharpe / PF</th>
+                  <th>Execution Health</th>
+                  <th style="text-align: center;">Controls</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div style="font-weight: 600; color: #fff;">EMA-Trend-Follower</div>
+                    <div style="font-size: 9px; color: var(--text-sub);">EMA20/50 Causal Alignment</div>
+                  </td>
+                  <td>BTCUSDT, ETHUSDT</td>
+                  <td style="text-align: right;">10.0% Notional Cap</td>
+                  <td style="text-align: right; color: var(--secondary-emerald);">68.4%</td>
+                  <td style="text-align: right;">3.10 / 2.45</td>
+                  <td><span class="sidebar-badge green">ACTIVE (5m)</span></td>
+                  <td style="text-align: center;"><button class="button" style="padding: 2px 6px;">⚙</button></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="font-weight: 600; color: #fff;">RSI-Rebound-Scalp</div>
+                    <div style="font-size: 9px; color: var(--text-sub);">Oversold Mean Reversion</div>
+                  </td>
+                  <td>BTCUSDT, ETHUSDT</td>
+                  <td style="text-align: right;">5.0% Notional Cap</td>
+                  <td style="text-align: right; color: var(--secondary-emerald);">71.2%</td>
+                  <td style="text-align: right;">2.85 / 1.95</td>
+                  <td><span class="sidebar-badge green">ACTIVE (5m)</span></td>
+                  <td style="text-align: center;"><button class="button" style="padding: 2px 6px;">⚙</button></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="font-weight: 600; color: #fff;">Volume-Breakout-Engine</div>
+                    <div style="font-size: 9px; color: var(--text-sub);">1.2x 20-Bar Volume Spike</div>
+                  </td>
+                  <td>BTCUSDT</td>
+                  <td style="text-align: right;">10.0% Notional Cap</td>
+                  <td style="text-align: right; color: var(--secondary-emerald);">64.1%</td>
+                  <td style="text-align: right;">2.60 / 1.80</td>
+                  <td><span class="sidebar-badge green">ACTIVE (5m)</span></td>
+                  <td style="text-align: center;"><button class="button" style="padding: 2px 6px;">⚙</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Recent Autonomous Decisions & Fills -->
+        <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; margin-bottom: 6px;">
+          Autonomous Decision Audit Log
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Asset / Timestamp</th>
+                <th>Signal Action</th>
+                <th>Execution Gate</th>
+                <th>Inference Latency</th>
+                <th>Report</th>
+              </tr>
+            </thead>
+            <tbody id="auto-decisions"></tbody>
+          </table>
+        </div>
+        <div id="auto-empty" class="fine" style="text-align: center; padding: 14px;" hidden>No autonomous decisions recorded yet.</div>
+        <div id="auto-fills" style="margin-top: 10px;"></div>
+      </div>
+    </section>
+
+    <!-- Multi-Agent Research Desk & Backtesting Grid (Equal 2 Cols) -->
+    <div class="grid-equal">
+      
+      <!-- Open Positions & Risk Parameters -->
+      <article class="panel" id="portfolio">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="icon">💼</span>
+            <span>Open Spot Positions & Ledger</span>
+          </div>
+          <span class="sidebar-badge green">PAPER ACCOUNT</span>
+        </div>
+        <div class="panel-body">
+          <div id="portfolio-caption" class="fine" style="margin-bottom: 8px;">Paper research account</div>
+          <div id="positions" style="margin-bottom: 14px;"></div>
+
+          <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; margin-bottom: 8px;">
+            Deterministic Risk Parameters
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; font-family: var(--font-mono); font-size: 10px;">
+            <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border);">
+              <span style="color: var(--text-muted);">Risk per Trade:</span>
+              <strong id="risk-fraction" style="color: var(--primary-cyan);">0.5%</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border);">
+              <span style="color: var(--text-muted);">Position Allocation Cap:</span>
+              <strong id="allocation-cap" style="color: var(--text);">10.0%</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border);">
+              <span style="color: var(--text-muted);">Minimum Net Reward / Risk:</span>
+              <strong id="reward-risk" style="color: var(--secondary-emerald);">1.5 : 1</strong>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Clodds Institutional Risk Matrix & Stress Engine -->
+      <article class="panel" id="risk">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="icon">🛡</span>
+            <span>Clodds Institutional Risk Matrix & Stress Engine</span>
+          </div>
+          <span class="sidebar-badge" id="risk-source">ADVISORY</span>
+        </div>
+        <div class="panel-body">
+          <div id="risk-diagnostics" class="diagnostic-content"></div>
+          
+          <div style="margin-top: 12px; font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; margin-bottom: 6px;">
+            Crisis Stress Scenarios (Simulated Shocks)
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-family: var(--font-mono); font-size: 9px;">
+            <div style="background: var(--surface-low); border: 1px solid var(--border); border-radius: 4px; padding: 6px;">
+              <span style="color: var(--danger-rose); font-weight: 600;">BLACK SWAN (-40%):</span>
+              <div style="color: var(--text-muted);">Est. Loss: -$400.00 (Critical)</div>
+            </div>
+            <div style="background: var(--surface-low); border: 1px solid var(--border); border-radius: 4px; padding: 6px;">
+              <span style="color: var(--warning-amber); font-weight: 600;">FLASH CRASH (-20%):</span>
+              <div style="color: var(--text-muted);">Est. Loss: -$200.00 (High)</div>
+            </div>
+            <div style="background: var(--surface-low); border: 1px solid var(--border); border-radius: 4px; padding: 6px;">
+              <span style="color: var(--warning-amber); font-weight: 600;">CORRELATION SPIKE:</span>
+              <div style="color: var(--text-muted);">Est. Loss: -$250.00 (High)</div>
+            </div>
+            <div style="background: var(--surface-low); border: 1px solid var(--border); border-radius: 4px; padding: 6px;">
+              <span style="color: var(--primary-cyan); font-weight: 600;">PLATFORM OUTAGE:</span>
+              <div style="color: var(--text-muted);">Est. Loss: -$150.00 (Medium)</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- Research Activity Table (Full Width) -->
+    <section class="panel" id="research" style="margin-top: 16px;">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="icon">💬</span>
+          <span>Explain Desk (On-Demand AI Copilot · Pinned gemma4:12b)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input id="search" placeholder="Search runs, models, assets…" style="width: 180px;">
+          <select id="status-filter">
+            <option value="all">All statuses</option>
+            <option value="completed">Completed</option>
+            <option value="running">Running</option>
+            <option value="failed">Failed</option>
+          </select>
+        </div>
+      </div>
+      <div class="panel-body" style="padding: 0;">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Asset / Run ID</th>
+                <th>Started</th>
+                <th>Status</th>
+                <th>Model Decision</th>
+                <th>Duration</th>
+                <th>Stage Progression</th>
+                <th style="text-align: right;">Inspect</th>
+              </tr>
+            </thead>
+            <tbody id="runs-body"></tbody>
+          </table>
+        </div>
+        <div id="runs-empty" class="fine" style="text-align: center; padding: 24px;" hidden>
+          No research runs match your filter criteria.
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--surface-low); border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 9px; color: var(--text-sub);">
+          <span id="table-count">Loading runs…</span>
+          <span style="display: flex; align-items: center; gap: 5px;">
+            <span class="pulse-dot" id="sync-dot"></span>
+            <span id="sync-status">Connecting to workspace</span>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Strategy Backtests & Kronos Forecasts Grid -->
+    <section class="grid-equal" id="backtests" style="margin-top: 16px;">
+      
+      <!-- Backtesting Reports -->
+      <article class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="icon">📊</span>
+            <span>QuantJourney Strategy Backtests</span>
+          </div>
+          <span class="sidebar-badge">DETERMINISTIC BASELINES</span>
+        </div>
+        <div class="panel-body" style="padding: 0;">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Strategy / Asset</th>
+                  <th>Net Return</th>
+                  <th>Max DD</th>
+                  <th>Fees</th>
+                  <th>Fills</th>
+                  <th>Inspect</th>
+                </tr>
+              </thead>
+              <tbody id="backtest-body"></tbody>
+            </table>
+          </div>
+          <div id="backtest-empty" class="fine" style="text-align: center; padding: 20px;">
+            No backtest reports found. Run a baseline backtest to inspect equity curves.
+          </div>
+        </div>
+      </article>
+
+      <!-- Kronos Forecast & Strategy Studio -->
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <article class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="icon">🔮</span>
+              <span>Kronos Deep Learning Forecast</span>
+            </div>
+            <button class="button" id="view-forecast" disabled>Inspect Forecast ↗</button>
+          </div>
+          <div class="panel-body">
+            <div id="forecast-summary" class="fine">No forecast report yet.</div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="icon">📝</span>
+              <span>Laya Strategy Studio Drafts</span>
+            </div>
+            <button class="button" id="view-strategy" disabled>Inspect Draft ↗</button>
+          </div>
+          <div class="panel-body">
+            <div id="strategy-summary" class="fine">No strategy draft yet.</div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="icon">📦</span>
+              <span>Repository Feature Coverage</span>
+            </div>
+            <button class="button" id="view-features">Feature Map ↗</button>
+          </div>
+          <div class="panel-body">
+            <div id="coverage" class="fine"></div>
+          </div>
+        </article>
+      </div>
+
+    </section>
+
+    <!-- All Crypto Listings Screener Section -->
+    <section class="panel" id="listings" style="margin-top: 16px;">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="icon">🪙</span>
+          <span>ALL CRYPTO LISTINGS &amp; ASSET SCREENER</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="fine" style="font-family: var(--font-mono); font-size: 9px; color: var(--primary-cyan);">
+            Data provided by CoinGecko (Public API)
+          </span>
+          <button class="button" id="refresh-listings-btn">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <!-- Search & Filter Controls -->
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex: 1; max-width: 400px;">
+            <input type="text" id="listings-search" placeholder="Search 100+ crypto assets (BTC, ETH, SOL...)" style="width: 100%; background: var(--surface-mid); border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; font-family: var(--font-mono); font-size: 11px; color: #fff; outline: none;">
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <label class="eyebrow" for="listings-sort" style="font-size: 9px;">SORT:</label>
+            <select id="listings-sort" style="background: var(--surface-mid); border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-family: var(--font-mono); font-size: 11px; color: #fff;">
+              <option value="market_cap_desc">Market Cap (High → Low)</option>
+              <option value="volume_desc">24h Volume (High → Low)</option>
+              <option value="gainers">Top 24h Gainers</option>
+              <option value="losers">Top 24h Losers</option>
+              <option value="high_volume">High Volume (> $100M)</option>
+            </select>
+            <button class="button" id="filter-favorites-btn" style="padding: 4px 8px;">★ Favorites Only</button>
+          </div>
+        </div>
+
+        <!-- High-density Listings Table -->
+        <div class="table-scroll">
+          <table class="listings-table" style="width: 100%;">
+            <thead>
+              <tr>
+                <th style="width: 32px; text-align: center;">★</th>
+                <th style="width: 48px;">#</th>
+                <th>Asset</th>
+                <th style="text-align: right;">Price</th>
+                <th style="text-align: right;">1h %</th>
+                <th style="text-align: right;">24h %</th>
+                <th style="text-align: right;">7d %</th>
+                <th style="text-align: right;">30d %</th>
+                <th style="text-align: right;">24h Volume</th>
+                <th style="text-align: right;">Market Cap</th>
+                <th style="text-align: center; width: 100px;">7d Trend</th>
+                <th>Verification</th>
+                <th style="text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="listings-body">
+              <tr>
+                <td colspan="13" style="text-align: center; padding: 24px; color: var(--text-sub);">
+                  Loading live crypto listings and order-block analytics...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Institutional Disclaimer Footer (Regulatory & Risk Notice) -->
+    <footer style="margin-top: 32px; padding: 16px 0; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 9px; color: var(--text-sub); text-align: center; line-height: 1.6;">
+      <div style="max-width: 900px; margin: 0 auto;">
+        <strong style="color: var(--text-muted);">REGULATORY &amp; RISK DISCLAIMER:</strong> ZILLERS is experimental algorithmic trading software for educational and personal research use. Not investment or financial advice. Crypto assets are volatile and carry high risk of total loss. Schedule VDA notice: In Indian Tax Mode, tax liabilities are computed under Section 115BBH (31.2% flat tax without loss set-off), Section 194S (1% TDS), and GST on transaction fees.
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Run Detail Modal Inspector -->
+  <dialog id="run-dialog">
+    <div class="dialog-header">
+      <h2 id="detail-title">Research Run Inspector</h2>
+      <button id="close-dialog" class="dialog-close" aria-label="Close modal">✕</button>
+    </div>
+    <div class="detail-tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="decision">Decision</button>
+      <button role="tab" aria-selected="false" data-tab="evidence">Evidence &amp; Stages</button>
+      <button role="tab" aria-selected="false" data-tab="calls">Model Calls</button>
+    </div>
+    <div class="detail-content" id="detail-content"></div>
+    <div class="dialog-footer">
+      <span id="detail-id" style="font-family: var(--font-mono); font-size: 10px; color: var(--text-sub);"></span>
+      <a id="download" class="button primary" href="#" download>Download JSON Report ↓</a>
+    </div>
+  </dialog>
+
+  <!-- Auth Dialog (Login, Signup, Password Reset) -->
+  <dialog id="auth-dialog" style="max-width: 420px; width: 90%; background: var(--surface-low); border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 0;">
+    <div class="dialog-header" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border);">
+      <h2 id="auth-modal-title" style="margin: 0; font-size: 15px; font-weight: 700;">Account Authentication</h2>
+      <button id="close-auth-dialog" class="dialog-close" style="background: none; border: none; color: #fff; cursor: pointer; font-size: 16px;">✕</button>
+    </div>
+    <div style="display: flex; border-bottom: 1px solid var(--border); background: var(--surface-lowest);">
+      <button id="auth-tab-login" class="nav-tab active" style="flex: 1; text-align: center; border-radius: 0; padding: 10px 0;">Sign In</button>
+      <button id="auth-tab-signup" class="nav-tab" style="flex: 1; text-align: center; border-radius: 0; padding: 10px 0;">Create Account</button>
+      <button id="auth-tab-reset" class="nav-tab" style="flex: 1; text-align: center; border-radius: 0; padding: 10px 0;">Reset Password</button>
+    </div>
+    <div style="padding: 18px;">
+      <div id="auth-error-banner" style="display: none; background: rgba(244, 63, 94, 0.15); border: 1px solid var(--danger-rose); color: #ffb4ab; padding: 8px 12px; border-radius: 4px; font-family: var(--font-mono); font-size: 11px; margin-bottom: 14px;"></div>
+
+      <!-- Login Form -->
+      <form id="auth-form-login">
+        <div class="auth-form-group">
+          <label for="login-email">Email Address</label>
+          <input type="email" id="login-email" required placeholder="trader@zillers.local">
+        </div>
+        <div class="auth-form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" required placeholder="••••••••••••">
+        </div>
+        <button type="submit" class="button button-primary" style="width: 100%; padding: 10px; margin-top: 8px; justify-content: center;">Sign In to Terminal</button>
+      </form>
+
+      <!-- Signup Form -->
+      <form id="auth-form-signup" style="display: none;">
+        <div class="auth-form-group">
+          <label for="signup-email">Email Address</label>
+          <input type="email" id="signup-email" required placeholder="newuser@example.com">
+        </div>
+        <div class="auth-form-group">
+          <label for="signup-password">Password (min 8 chars)</label>
+          <input type="password" id="signup-password" minlength="8" required placeholder="••••••••••••">
+        </div>
+        <div class="auth-form-group">
+          <label for="signup-invite">Invite Code (optional)</label>
+          <input type="text" id="signup-invite" placeholder="INVITE-2026-XYZ">
+        </div>
+        <button type="submit" class="button button-primary" style="width: 100%; padding: 10px; margin-top: 8px; justify-content: center;">Create Account</button>
+      </form>
+
+      <!-- Reset Password Form -->
+      <form id="auth-form-reset" style="display: none;">
+        <div class="auth-form-group">
+          <label for="reset-email">Account Email</label>
+          <input type="email" id="reset-email" required placeholder="account@example.com">
+        </div>
+        <button type="submit" id="request-reset-btn" class="button" style="width: 100%; padding: 8px; margin-bottom: 14px; justify-content: center;">Request Reset Token</button>
+        <div style="border-top: 1px solid var(--border); padding-top: 12px;">
+          <div class="auth-form-group">
+            <label for="reset-token">Reset Token</label>
+            <input type="text" id="reset-token" placeholder="Paste received token">
+          </div>
+          <div class="auth-form-group">
+            <label for="reset-new-password">New Password</label>
+            <input type="password" id="reset-new-password" minlength="8" placeholder="New strong password">
+          </div>
+          <button type="button" id="confirm-reset-btn" class="button button-primary" style="width: 100%; padding: 10px; justify-content: center;">Confirm Password Reset</button>
+        </div>
+      </form>
+
+      <!-- Risk Disclaimer Notice on Login/Signup -->
+      <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 9px; color: var(--text-sub); text-align: center; line-height: 1.5;">
+        <strong style="color: var(--text-muted);">DISCLAIMER:</strong> ZILLERS is experimental algorithmic trading software for educational and personal research use. Not investment or financial advice. Crypto assets are volatile and carry high risk of total loss.
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Coin Detail Modal Inspector -->
+  <dialog id="coin-dialog" style="max-width: 600px; width: 90%; background: var(--surface-low); border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 0;">
+    <div class="dialog-header" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border);">
+      <h2 id="coin-modal-title" style="margin: 0; font-size: 15px; font-weight: 700;">Asset Analysis</h2>
+      <button id="close-coin-dialog" class="dialog-close" style="background: none; border: none; color: #fff; cursor: pointer; font-size: 16px;">✕</button>
+    </div>
+    <div id="coin-modal-content" style="padding: 18px;"></div>
+  </dialog>
+
+</body>
+</html>

@@ -1,0 +1,39 @@
+{
+  "order": "14",
+  "folder": "14-zillers-auto-bot-fleet-portfolio",
+  "id": "047279e68df7448282e787f7481fb1e2",
+  "title": "ZILLERS - Auto Crypto Trading Bot Fleet & Portfolio PnL Command Center",
+  "resourceName": "projects/11951265260504602280/screens/047279e68df7448282e787f7481fb1e2",
+  "width": "3456",
+  "height": "2968",
+  "htmlCode": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/047279e68df7448282e787f7481fb1e2:download",
+    "mimeType": "text/html",
+    "name": "projects/11951265260504602280/screens/047279e68df7448282e787f7481fb1e2/fileEntries/html"
+  },
+  "screenshot": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f236a9ba0a1022d657e1935cd34:download",
+    "mimeType": "image/png",
+    "name": "projects/11951265260504602280/screens/047279e68df7448282e787f7481fb1e2/fileEntries/screenshot"
+  },
+  "imageOnly": false,
+  "files": [
+    {
+      "name": "preview.png",
+      "bytes": 1056381,
+      "mimeType": "image/png",
+      "sha256": "69d932016c576bc742500b1bb2d930e60cbe068aed7e136ca1f2b93e9e5ce4c8"
+    },
+    {
+      "name": "index.html",
+      "bytes": 61672,
+      "mimeType": "text/html",
+      "sha256": "036d9cb8337447afb7560347ab0339607e64f56389f23771a81095656d7b7cbf"
+    }
+  ],
+  "preview": "preview.png",
+  "verifiedImageDimensions": {
+    "width": 3456,
+    "height": 2968
+  }
+}

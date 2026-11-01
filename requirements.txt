@@ -1,7 +1,0 @@
-# Zien Crypto - Institutional Quantitative Trading Terminal
-# Backend is 100% pure Python 3.12+ Standard Library (zero external packages required to run).
-# Frontend is 100% vanilla ES6+ / HTML5 Canvas / CSS3 (zero build steps or Node.js required).
-
-# Optional development tools:
-# pytest>=8.0.0
-# mypy>=1.9.0

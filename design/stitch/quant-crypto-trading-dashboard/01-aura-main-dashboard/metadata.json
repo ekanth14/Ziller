@@ -1,0 +1,39 @@
+{
+  "order": "01",
+  "folder": "01-zillers-main-dashboard",
+  "id": "6d8203d05f8b47d994c5574ce4c9b8a7",
+  "title": "ZILLERS - Main Dashboard",
+  "resourceName": "projects/11951265260504602280/screens/6d8203d05f8b47d994c5574ce4c9b8a7",
+  "width": "2560",
+  "height": "2134",
+  "htmlCode": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/3316312044065323021:download",
+    "mimeType": "text/html",
+    "name": "projects/11951265260504602280/files/3316312044065323021"
+  },
+  "screenshot": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f228fe6eb04053b4abc2914c1e5:download",
+    "mimeType": "image/png",
+    "name": "projects/11951265260504602280/screens/6d8203d05f8b47d994c5574ce4c9b8a7/fileEntries/screenshot"
+  },
+  "imageOnly": false,
+  "files": [
+    {
+      "name": "preview.png",
+      "bytes": 843460,
+      "mimeType": "image/png",
+      "sha256": "73c37db7cf9400f56c23df841fde3da2ea444e0efcf5d44fe07bc0da05c21a84"
+    },
+    {
+      "name": "index.html",
+      "bytes": 52694,
+      "mimeType": "text/html",
+      "sha256": "fe7dd8f965d9888a4bb14d93119973155d8be0fe1d0ad2f98f2f3f3905d6fd2d"
+    }
+  ],
+  "preview": "preview.png",
+  "verifiedImageDimensions": {
+    "width": 2560,
+    "height": 2134
+  }
+}

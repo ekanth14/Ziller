@@ -1,0 +1,39 @@
+{
+  "order": "13",
+  "folder": "13-zillers-fix-replay-simulator-alternate",
+  "id": "ab8d8ab5318e457191046f58330f806a",
+  "title": "ZILLERS - Interactive FIX Audit Tape & Replay Simulator",
+  "resourceName": "projects/11951265260504602280/screens/ab8d8ab5318e457191046f58330f806a",
+  "width": "3286",
+  "height": "2704",
+  "htmlCode": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/ab8d8ab5318e457191046f58330f806a:download",
+    "mimeType": "text/html",
+    "name": "projects/11951265260504602280/screens/ab8d8ab5318e457191046f58330f806a/fileEntries/html"
+  },
+  "screenshot": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f235ee95055020795d3480a4bc1:download",
+    "mimeType": "image/png",
+    "name": "projects/11951265260504602280/screens/ab8d8ab5318e457191046f58330f806a/fileEntries/screenshot"
+  },
+  "imageOnly": false,
+  "files": [
+    {
+      "name": "preview.png",
+      "bytes": 900951,
+      "mimeType": "image/png",
+      "sha256": "d3d79578dc3adb97c66fbb8eefb51b3359245ceabbfa0caf0d790193cf487a5d"
+    },
+    {
+      "name": "index.html",
+      "bytes": 70003,
+      "mimeType": "text/html",
+      "sha256": "a263f83b1e5cb64d93abfdea4b17f38dc8ffd3e776ba5ff10210a908ba107528"
+    }
+  ],
+  "preview": "preview.png",
+  "verifiedImageDimensions": {
+    "width": 3286,
+    "height": 2704
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "order": "12",
+  "folder": "12-zillers-diagnostics-benchmarks",
+  "id": "2114a2a7a28841e492e858ccc5b7e466",
+  "title": "ZILLERS - Workstation Diagnostics & Benchmark Suite",
+  "resourceName": "projects/11951265260504602280/screens/2114a2a7a28841e492e858ccc5b7e466",
+  "width": "3752",
+  "height": "2080",
+  "htmlCode": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/2114a2a7a28841e492e858ccc5b7e466:download",
+    "mimeType": "text/html",
+    "name": "projects/11951265260504602280/screens/2114a2a7a28841e492e858ccc5b7e466/fileEntries/html"
+  },
+  "screenshot": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f23538989f705c2febdfd1d3dd6:download",
+    "mimeType": "image/png",
+    "name": "projects/11951265260504602280/screens/2114a2a7a28841e492e858ccc5b7e466/fileEntries/screenshot"
+  },
+  "imageOnly": false,
+  "files": [
+    {
+      "name": "preview.png",
+      "bytes": 878746,
+      "mimeType": "image/png",
+      "sha256": "6cc82bd56c669fe3e41a0c1e2e239928d7b7ac2b024feec1cd990f63ea4c4d95"
+    },
+    {
+      "name": "index.html",
+      "bytes": 51966,
+      "mimeType": "text/html",
+      "sha256": "d469a5bcc814612e02565aa084f331c1e189add80454f65abee094b1b4bb9d9d"
+    }
+  ],
+  "preview": "preview.png",
+  "verifiedImageDimensions": {
+    "width": 3752,
+    "height": 2080
+  }
+}

@@ -1,0 +1,592 @@
+{
+  "project": {
+    "id": "11951265260504602280",
+    "title": "Quant Crypto Trading Dashboard"
+  },
+  "exportedOn": "2026-11-01",
+  "downloadMethod": "Authenticated Stitch MCP download_file; credentials read from existing local configuration and never exported",
+  "screens": [
+    {
+      "order": "01",
+      "folder": "01-zillers-main-dashboard",
+      "id": "6d8203d05f8b47d994c5574ce4c9b8a7",
+      "title": "ZILLERS - Main Dashboard",
+      "resourceName": "projects/11951265260504602280/screens/6d8203d05f8b47d994c5574ce4c9b8a7",
+      "width": "2560",
+      "height": "2134",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/3316312044065323021:download",
+        "mimeType": "text/html",
+        "name": "projects/11951265260504602280/files/3316312044065323021"
+      },
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f228fe6eb04053b4abc2914c1e5:download",
+        "mimeType": "image/png",
+        "name": "projects/11951265260504602280/screens/6d8203d05f8b47d994c5574ce4c9b8a7/fileEntries/screenshot"
+      },
+      "imageOnly": false,
+      "files": [
+        {
+          "name": "preview.png",
+          "bytes": 843460,
+          "mimeType": "image/png",
+          "sha256": "73c37db7cf9400f56c23df841fde3da2ea444e0efcf5d44fe07bc0da05c21a84"
+        },
+        {
+          "name": "index.html",
+          "bytes": 52694,
+          "mimeType": "text/html",
+          "sha256": "fe7dd8f965d9888a4bb14d93119973155d8be0fe1d0ad2f98f2f3f3905d6fd2d"
+        }
+      ],
+      "preview": "preview.png",
+      "verifiedImageDimensions": {
+        "width": 2560,
+        "height": 2134
+      }
+    },
+    {
+      "order": "02",
+      "folder": "02-zillers-order-book-liquidity",
+      "id": "149635b64c504a11884114f9d4d1301b",
+      "title": "ZILLERS - Order Book & Liquidity",
+      "resourceName": "projects/11951265260504602280/screens/149635b64c504a11884114f9d4d1301b",
+      "width": "2560",
+      "height": "2048",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/636112231341989145:download",
+        "mimeType": "text/html",
+        "name": "projects/11951265260504602280/files/636112231341989145"
+      },
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f22a02185be089af6f92d216ef7:download",
+        "mimeType": "image/png",
+        "name": "projects/11951265260504602280/screens/149635b64c504a11884114f9d4d1301b/fileEntries/screenshot"
+      },
+      "imageOnly": false,
+      "files": [
+        {
+          "name": "preview.png",
+          "bytes": 811548,
+          "mimeType": "image/png",
+          "sha256": "c8610561afb046c1a2645ad132ad607f58cdb4407103a0dbcfeea8d0649d5f5a"
+        },
+        {
+          "name": "index.html",
+          "bytes": 57189,
+          "mimeType": "text/html",
+          "sha256": "4635b910c0d79929375270bce588cf1960acc5e5004e8a5687c984b74c4b7854"
+        }
+      ],
+      "preview": "preview.png",
+      "verifiedImageDimensions": {
+        "width": 2560,
+        "height": 2048
+      }
+    },
+    {
+      "order": "03",
+      "folder": "03-zillers-footprint-depth-heatmap",
+      "id": "aeef46e2bc454f69bc3a76305fc25e96",
+      "title": "ZILLERS - Order Book, Footprint & Depth Heatmap",
+      "resourceName": "projects/11951265260504602280/screens/aeef46e2bc454f69bc3a76305fc25e96",
+      "width": "2560",
+      "height": "2302",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/337597370399759311:download",
+        "mimeType": "text/html",
+        "name": "projects/11951265260504602280/files/337597370399759311"
+      },
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/10133703532570347670:download",
+        "mimeType": "image/jpeg",
+        "name": "projects/11951265260504602280/files/10133703532570347670"
+      },
+      "imageOnly": false,
+      "files": [
+        {
+          "name": "preview.jpg",
+          "bytes": 596636,
+          "mimeType": "image/jpeg",
+          "sha256": "37bc7b3c759e123d7df5f5da56d8641336a15ba4c7960dc63bea970b9c2f5404"
+        },
+        {
+          "name": "index.html",
+          "bytes": 74637,
+          "mimeType": "text/html",
+          "sha256": "23d435a0d81b8a63eca49b33385837fdcaeffe018800e4e65f25952c55dbb590"
+        }
+      ],
+      "preview": "preview.jpg",
+      "verifiedImageDimensions": {
+        "width": 2560,
+        "height": 2302
+      }
+    },
+    {
+      "order": "04",
+      "folder": "04-zillers-algorithmic-strategy-engine",
+      "id": "dd6505323ba646678ec39d2237fb1a12",
+      "title": "ZILLERS - Algorithmic Strategy Engine",
+      "resourceName": "projects/11951265260504602280/screens/dd6505323ba646678ec39d2237fb1a12",
+      "width": "2560",
+      "height": "2512",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/41853657167522763:download",
+        "mimeType": "text/html",
+        "name": "projects/11951265260504602280/files/41853657167522763"
+      },
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/5168780192494306554:download",
+        "mimeType": "image/jpeg",
+        "name": "projects/11951265260504602280/files/5168780192494306554"
+      },
+      "imageOnly": false,
+      "files": [
+        {
+          "name": "preview.jpg",
+          "bytes": 680923,
+          "mimeType": "image/jpeg",
+          "sha256": "501a2e7b4055532c016562b4d990a1658690a41b4e97069e4b33725f2695f47b"
+        },
+        {
+          "name": "index.html",
+          "bytes": 68356,
+          "mimeType": "text/html",
+          "sha256": "8dd81f5d8b81e669e416aa02ed1822afb701d49698581ef031641b1082a8ba94"
+        }
+      ],
+      "preview": "preview.jpg",
+      "verifiedImageDimensions": {
+        "width": 2560,
+        "height": 3266
+      }
+    },
+    {
+      "order": "05",
+      "folder": "05-zillers-execution-logs-fix-audit",
+      "id": "bc793cd7efb74ee2be84c015c991cc44",
+      "title": "ZILLERS - Execution Logs & FIX Audit Tape",
+      "resourceName": "projects/11951265260504602280/screens/bc793cd7efb74ee2be84c015c991cc44",
+      "width": "2560",
+      "height": "2292",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/4666088631695489649:download",
+        "mimeType": "text/html",
+        "name": "projects/11951265260504602280/files/4666088631695489649"
+      },
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/17132500886577229082:download",
+        "mimeType": "image/jpeg",
+        "name": "projects/11951265260504602280/files/17132500886577229082"
+      },
+      "imageOnly": false,
+      "files": [
+        {
+          "name": "preview.jpg",
+          "bytes": 507017,
+          "mimeType": "image/jpeg",
+          "sha256": "6708ace1942de7802605c746b8bd73a9b8bc71fa6c0f9b026785480190c022b3"
+        },
+        {
+          "name": "index.html",
+          "bytes": 65490,
+          "mimeType": "text/html",
+          "sha256": "e0778c6ca160881a1fbd9d3c00cad362008008312a5c2210f870286f41562477"
+        }
+      ],
+      "preview": "preview.jpg",
+      "verifiedImageDimensions": {
+        "width": 2560,
+        "height": 2290
+      }
+    },
+    {
+      "order": "06",
+      "folder": "06-zillers-system-settings-hardware",
+      "id": "4ce4c5349c91453bb20c466096c58dfb",
+      "title": "ZILLERS - System Settings & Colocation Hardware",
+      "resourceName": "projects/11951265260504602280/screens/4ce4c5349c91453bb20c466096c58dfb",
+      "width": "2560",
+      "height": "2388",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/7442100994564322839:download",
+        "mimeType": "text/html",
+        "name": "projects/11951265260504602280/files/7442100994564322839"
+      },
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/12228142326236736865:download",
+        "mimeType": "image/jpeg",
+        "name": "projects/11951265260504602280/files/12228142326236736865"
+      },
+      "imageOnly": false,
+      "files": [
+        {
+          "name": "preview.jpg",
+          "bytes": 610055,
+          "mimeType": "image/jpeg",
+          "sha256": "e3963e8ffcdb4953d05ea80a6a6ed136e99b98e23147f7536b5e56b63e6cf502"
+        },
+        {
+          "name": "index.html",
+          "bytes": 62750,
+          "mimeType": "text/html",
+          "sha256": "e171444a0d755b2eba241baf7cc1afa39529107a0e61e0ceaad68dc47736c9df"
+        }
+      ],
+      "preview": "preview.jpg",
+      "verifiedImageDimensions": {
+        "width": 2560,
+        "height": 2364
+      }
+    },
+    {
+      "order": "07",
+      "folder": "07-zillers-workstation-performance",
+      "id": "b827295066ff411f99a2710c8a57ab9b",
+      "title": "ZILLERS - Workstation & Client Device Performance",
+      "resourceName": "projects/11951265260504602280/screens/b827295066ff411f99a2710c8a57ab9b",
+      "width": "2560",
+      "height": "2440",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/16189267917282748582:download",
+        "mimeType": "text/html",
+        "name": "projects/11951265260504602280/files/16189267917282748582"
+      },
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f22c5584deb0503c2f9211e8925:download",
+        "mimeType": "image/png",
+        "name": "projects/11951265260504602280/screens/b827295066ff411f99a2710c8a57ab9b/fileEntries/screenshot"
+      },
+      "imageOnly": false,
+      "files": [
+        {
+          "name": "preview.png",
+          "bytes": 807344,
+          "mimeType": "image/png",
+          "sha256": "6f8ea465fe1fe46bd3c2e731570dd4e62a32f28c946016ff70de22bf5dacfbfe"
+        },
+        {
+          "name": "index.html",
+          "bytes": 68360,
+          "mimeType": "text/html",
+          "sha256": "eaf7818eb1308c1eb23a49f22299cafbb2860d427d2a6b86580a795b5af44127"
+        }
+      ],
+      "preview": "preview.png",
+      "verifiedImageDimensions": {
+        "width": 2560,
+        "height": 2440
+      }
+    },
+    {
+      "order": "08",
+      "folder": "08-ornate-z-sword-emblem",
+      "id": "9290077997175161156",
+      "title": "Ornate Z Sword Emblem.png",
+      "resourceName": "projects/11951265260504602280/screens/9290077997175161156",
+      "width": "941",
+      "height": "1672",
+      "htmlCode": {},
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/9290077997175162667:download",
+        "mimeType": "image/png",
+        "name": "projects/11951265260504602280/files/9290077997175162667"
+      },
+      "imageOnly": true,
+      "files": [
+        {
+          "name": "preview.png",
+          "bytes": 1194189,
+          "mimeType": "image/png",
+          "sha256": "8fc3dea5248fd3a951de3c20114c17065cda1e03ca98aa828aa93256ae3c12b2"
+        }
+      ],
+      "preview": "preview.png",
+      "verifiedImageDimensions": {
+        "width": 941,
+        "height": 1672
+      }
+    },
+    {
+      "order": "09",
+      "folder": "09-zillers-kill-switch-risk-governor",
+      "id": "9386b6f06f3b4423b75364fbf7091854",
+      "title": "ZILLERS - Master Emergency Kill-Switch & Risk Governor",
+      "resourceName": "projects/11951265260504602280/screens/9386b6f06f3b4423b75364fbf7091854",
+      "width": "3716",
+      "height": "2654",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/9386b6f06f3b4423b75364fbf7091854:download",
+        "mimeType": "text/html",
+        "name": "projects/11951265260504602280/screens/9386b6f06f3b4423b75364fbf7091854/fileEntries/html"
+      },
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f2353d2d30c02a9a2cee528bfb6:download",
+        "mimeType": "image/png",
+        "name": "projects/11951265260504602280/screens/9386b6f06f3b4423b75364fbf7091854/fileEntries/screenshot"
+      },
+      "imageOnly": false,
+      "files": [
+        {
+          "name": "preview.png",
+          "bytes": 1342838,
+          "mimeType": "image/png",
+          "sha256": "dc20fa74f76f57633bf143c3cab096f9a63352893ab0ab35d881b8affe62cd05"
+        },
+        {
+          "name": "index.html",
+          "bytes": 46628,
+          "mimeType": "text/html",
+          "sha256": "71bf996402551dd46e43d912ad21c7fd8183338d18bd830f81dba2a8ca254909"
+        }
+      ],
+      "preview": "preview.png",
+      "verifiedImageDimensions": {
+        "width": 3716,
+        "height": 2654
+      }
+    },
+    {
+      "order": "10",
+      "folder": "10-zillers-ptp-optical-network",
+      "id": "544c530bedc245969dcbcc19b72edad4",
+      "title": "ZILLERS - PTP Clock Grandmaster & Optical Network Hub",
+      "resourceName": "projects/11951265260504602280/screens/544c530bedc245969dcbcc19b72edad4",
+      "width": "3730",
+      "height": "2172",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/544c530bedc245969dcbcc19b72edad4:download",
+        "mimeType": "text/html",
+        "name": "projects/11951265260504602280/screens/544c530bedc245969dcbcc19b72edad4/fileEntries/html"
+      },
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f235392e36e0522a021fe3042a6:download",
+        "mimeType": "image/png",
+        "name": "projects/11951265260504602280/screens/544c530bedc245969dcbcc19b72edad4/fileEntries/screenshot"
+      },
+      "imageOnly": false,
+      "files": [
+        {
+          "name": "preview.png",
+          "bytes": 807763,
+          "mimeType": "image/png",
+          "sha256": "7a077de5ee1d066d0d90263338f672f8afeeda3109255249ab98aa21bb8b91a2"
+        },
+        {
+          "name": "index.html",
+          "bytes": 47433,
+          "mimeType": "text/html",
+          "sha256": "5de049c133fe989732bce94aac67c65e9885e84f9062ae82d9152acb0503b3a9"
+        }
+      ],
+      "preview": "preview.png",
+      "verifiedImageDimensions": {
+        "width": 3730,
+        "height": 2172
+      }
+    },
+    {
+      "order": "11",
+      "folder": "11-zillers-fix-replay-simulator",
+      "id": "1a985f49c71f4b73a64fb48b6ebb62f3",
+      "title": "ZILLERS - FIX Audit Tape & Historical Replay Simulator",
+      "resourceName": "projects/11951265260504602280/screens/1a985f49c71f4b73a64fb48b6ebb62f3",
+      "width": "3720",
+      "height": "2704",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/1a985f49c71f4b73a64fb48b6ebb62f3:download",
+        "mimeType": "text/html",
+        "name": "projects/11951265260504602280/screens/1a985f49c71f4b73a64fb48b6ebb62f3/fileEntries/html"
+      },
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f2353fcf00a020cc0ed520b80f6:download",
+        "mimeType": "image/png",
+        "name": "projects/11951265260504602280/screens/1a985f49c71f4b73a64fb48b6ebb62f3/fileEntries/screenshot"
+      },
+      "imageOnly": false,
+      "files": [
+        {
+          "name": "preview.png",
+          "bytes": 989844,
+          "mimeType": "image/png",
+          "sha256": "efb64297a4f49e240193a1bbb684ea7fef863f21d377131e284f22447d413426"
+        },
+        {
+          "name": "index.html",
+          "bytes": 51946,
+          "mimeType": "text/html",
+          "sha256": "e88ec35edce1832965c743d33f83a5d6246d1adef8898c88fe18f9648fb78fa6"
+        }
+      ],
+      "preview": "preview.png",
+      "verifiedImageDimensions": {
+        "width": 3720,
+        "height": 2704
+      }
+    },
+    {
+      "order": "12",
+      "folder": "12-zillers-diagnostics-benchmarks",
+      "id": "2114a2a7a28841e492e858ccc5b7e466",
+      "title": "ZILLERS - Workstation Diagnostics & Benchmark Suite",
+      "resourceName": "projects/11951265260504602280/screens/2114a2a7a28841e492e858ccc5b7e466",
+      "width": "3752",
+      "height": "2080",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/2114a2a7a28841e492e858ccc5b7e466:download",
+        "mimeType": "text/html",
+        "name": "projects/11951265260504602280/screens/2114a2a7a28841e492e858ccc5b7e466/fileEntries/html"
+      },
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f23538989f705c2febdfd1d3dd6:download",
+        "mimeType": "image/png",
+        "name": "projects/11951265260504602280/screens/2114a2a7a28841e492e858ccc5b7e466/fileEntries/screenshot"
+      },
+      "imageOnly": false,
+      "files": [
+        {
+          "name": "preview.png",
+          "bytes": 878746,
+          "mimeType": "image/png",
+          "sha256": "6cc82bd56c669fe3e41a0c1e2e239928d7b7ac2b024feec1cd990f63ea4c4d95"
+        },
+        {
+          "name": "index.html",
+          "bytes": 51966,
+          "mimeType": "text/html",
+          "sha256": "d469a5bcc814612e02565aa084f331c1e189add80454f65abee094b1b4bb9d9d"
+        }
+      ],
+      "preview": "preview.png",
+      "verifiedImageDimensions": {
+        "width": 3752,
+        "height": 2080
+      }
+    },
+    {
+      "order": "13",
+      "folder": "13-zillers-fix-replay-simulator-alternate",
+      "id": "ab8d8ab5318e457191046f58330f806a",
+      "title": "ZILLERS - Interactive FIX Audit Tape & Replay Simulator",
+      "resourceName": "projects/11951265260504602280/screens/ab8d8ab5318e457191046f58330f806a",
+      "width": "3286",
+      "height": "2704",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/ab8d8ab5318e457191046f58330f806a:download",
+        "mimeType": "text/html",
+        "name": "projects/11951265260504602280/screens/ab8d8ab5318e457191046f58330f806a/fileEntries/html"
+      },
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f235ee95055020795d3480a4bc1:download",
+        "mimeType": "image/png",
+        "name": "projects/11951265260504602280/screens/ab8d8ab5318e457191046f58330f806a/fileEntries/screenshot"
+      },
+      "imageOnly": false,
+      "files": [
+        {
+          "name": "preview.png",
+          "bytes": 900951,
+          "mimeType": "image/png",
+          "sha256": "d3d79578dc3adb97c66fbb8eefb51b3359245ceabbfa0caf0d790193cf487a5d"
+        },
+        {
+          "name": "index.html",
+          "bytes": 70003,
+          "mimeType": "text/html",
+          "sha256": "a263f83b1e5cb64d93abfdea4b17f38dc8ffd3e776ba5ff10210a908ba107528"
+        }
+      ],
+      "preview": "preview.png",
+      "verifiedImageDimensions": {
+        "width": 3286,
+        "height": 2704
+      }
+    },
+    {
+      "order": "14",
+      "folder": "14-zillers-auto-bot-fleet-portfolio",
+      "id": "047279e68df7448282e787f7481fb1e2",
+      "title": "ZILLERS - Auto Crypto Trading Bot Fleet & Portfolio PnL Command Center",
+      "resourceName": "projects/11951265260504602280/screens/047279e68df7448282e787f7481fb1e2",
+      "width": "3456",
+      "height": "2968",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/047279e68df7448282e787f7481fb1e2:download",
+        "mimeType": "text/html",
+        "name": "projects/11951265260504602280/screens/047279e68df7448282e787f7481fb1e2/fileEntries/html"
+      },
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f236a9ba0a1022d657e1935cd34:download",
+        "mimeType": "image/png",
+        "name": "projects/11951265260504602280/screens/047279e68df7448282e787f7481fb1e2/fileEntries/screenshot"
+      },
+      "imageOnly": false,
+      "files": [
+        {
+          "name": "preview.png",
+          "bytes": 1056381,
+          "mimeType": "image/png",
+          "sha256": "69d932016c576bc742500b1bb2d930e60cbe068aed7e136ca1f2b93e9e5ce4c8"
+        },
+        {
+          "name": "index.html",
+          "bytes": 61672,
+          "mimeType": "text/html",
+          "sha256": "036d9cb8337447afb7560347ab0339607e64f56389f23771a81095656d7b7cbf"
+        }
+      ],
+      "preview": "preview.png",
+      "verifiedImageDimensions": {
+        "width": 3456,
+        "height": 2968
+      }
+    },
+    {
+      "order": "15",
+      "folder": "15-zillers-portfolio-risk-stress",
+      "id": "b60ebae267484e389da02406293a130e",
+      "title": "ZILLERS - Institutional Portfolio Risk Matrix & Stress Engine",
+      "resourceName": "projects/11951265260504602280/screens/b60ebae267484e389da02406293a130e",
+      "width": "3638",
+      "height": "2356",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/b60ebae267484e389da02406293a130e:download",
+        "mimeType": "text/html",
+        "name": "projects/11951265260504602280/screens/b60ebae267484e389da02406293a130e/fileEntries/html"
+      },
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/screenshot_00065f236ef9c34007c4dc2cad1fe5e8:download",
+        "mimeType": "image/png",
+        "name": "projects/11951265260504602280/screens/b60ebae267484e389da02406293a130e/fileEntries/screenshot"
+      },
+      "imageOnly": false,
+      "files": [
+        {
+          "name": "preview.png",
+          "bytes": 963073,
+          "mimeType": "image/png",
+          "sha256": "237a6b49dce658fd93ae72f2d2c8ef4c6bd68b1a5c705822da46309cb6d3ed85"
+        },
+        {
+          "name": "index.html",
+          "bytes": 47939,
+          "mimeType": "text/html",
+          "sha256": "5ea23f3bc0e4a94e6756c509f10ea1a46560096227858d0780bc5bed3e981a8b"
+        }
+      ],
+      "preview": "preview.png",
+      "verifiedImageDimensions": {
+        "width": 3638,
+        "height": 2356
+      }
+    }
+  ],
+  "verification": {
+    "images": 15,
+    "htmlFiles": 14,
+    "imageDecode": "passed",
+    "sourceFileHashes": "SHA-256 verified",
+    "screenCount": 15
+  }
+}

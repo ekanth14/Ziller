@@ -1,0 +1,565 @@
+<!DOCTYPE html><html class="dark" lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"inverse-primary":"#00668a","on-tertiary-container":"#8c0028","on-secondary-fixed":"#002113","secondary-fixed-dim":"#4edea3","secondary-fixed":"#6ffbbe","on-secondary-fixed-variant":"#005236","inverse-on-surface":"#2e3036","on-primary-fixed-variant":"#004c69","secondary-container":"#00a572","tertiary":"#ffbcbf","outline":"#87929a","surface-tint":"#7bd0ff","secondary":"#4edea3","outline-variant":"#3e484f","primary":"#8ed5ff","on-primary":"#00354a","on-error-container":"#ffdad6","tertiary-container":"#ff929a","primary-fixed-dim":"#7bd0ff","surface-variant":"#33353a","background":"#111319","surface-container-low":"#191b21","on-primary-fixed":"#001e2c","surface-dim":"#111319","tertiary-fixed-dim":"#ffb2b7","surface-container-high":"#282a30","surface-container":"#1e1f25","surface":"#111319","surface-container-highest":"#33353a","on-error":"#690005","on-tertiary-fixed-variant":"#92002a","on-surface":"#e2e2e9","on-primary-container":"#004965","on-secondary":"#003824","surface-bright":"#37393f","on-background":"#e2e2e9","inverse-surface":"#e2e2e9","on-surface-variant":"#bdc8d1","primary-fixed":"#c4e7ff","on-tertiary-fixed":"#40000d","error-container":"#93000a","error":"#ffb4ab","primary-container":"#38bdf8","on-tertiary":"#67001b","tertiary-fixed":"#ffdadb","surface-container-lowest":"#0c0e13","on-secondary-container":"#00311f"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"space-xl":"1.5rem","space-lg":"1rem","space-md":"0.75rem","space-2xs":"0.125rem","margin":"0.75rem","space-xs":"0.25rem","space-sm":"0.5rem","margin-compact":"0.5rem","gutter":"0.5rem","gutter-compact":"0.25rem"},"fontFamily":{"label-caps":["Inter"],"mono-table":["JetBrains Mono"],"mono-metric-xl":["JetBrains Mono"],"mono-metric-lg":["JetBrains Mono"],"body-md":["Inter"],"body-sm":["Inter"],"headline-sm":["Inter"],"headline-xl":["Inter"],"headline-md":["Inter"],"body-lg":["Inter"],"mono-micro":["JetBrains Mono"],"headline-lg":["Inter"]},"fontSize":{"label-caps":["10px",{"lineHeight":"12px","letterSpacing":"0.06em","fontWeight":"600"}],"mono-table":["12px",{"lineHeight":"16px","letterSpacing":"0em","fontWeight":"400"}],"mono-metric-xl":["24px",{"lineHeight":"28px","letterSpacing":"-0.02em","fontWeight":"600"}],"mono-metric-lg":["16px",{"lineHeight":"20px","letterSpacing":"-0.01em","fontWeight":"500"}],"body-md":["12px",{"lineHeight":"16px","letterSpacing":"0em","fontWeight":"400"}],"body-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.01em","fontWeight":"400"}],"headline-sm":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"600"}],"headline-xl":["32px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"600"}],"headline-md":["18px",{"lineHeight":"24px","letterSpacing":"-0.01em","fontWeight":"600"}],"body-lg":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}],"mono-micro":["10px",{"lineHeight":"12px","letterSpacing":"0.02em","fontWeight":"500"}],"headline-lg":["24px",{"lineHeight":"30px","letterSpacing":"-0.015em","fontWeight":"600"}]}}}};</script></head><body class="bg-background font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container"><header class="fixed top-0 left-0 right-0 z-50 bg-surface-container-lowest/95 backdrop-blur-md"><div class="h-16 w-full px-space-md flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md shrink-0"><img alt="Zillers Logo" class="h-8 w-auto object-contain shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2o_0kwoCNyXDyG7fiG7kA0jhTO5jYBrX2ibqU1iRwxjxk7YoV9xidprg7KIyzYJW43WxJ2l2v4rjiba9PLOvK2eM2i0NGe5taLiMp_Dp3F5bW5k-jhhyG4T0dfi3pRuJlgQqDzJgCZ6HYYfPNPcqVmdxNQAuOMcFOWH93c0-kNxPFZkpyFjNkb5UnaIo_-bSXsEbQn_BCsKgIsO1WZwpc6RXsx4MUOI8rWDaiZSeiO_OKxsIQp4dh8Q"><div class="flex flex-col shrink-0"><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm tracking-wider uppercase text-on-surface font-semibold">ZILLERS</span><span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-surface-container-highest text-primary-container rounded shrink-0">v4.2</span></div><div class="flex items-center gap-space-xs mt-space-2xs"><span class="inline-block w-1.5 h-1.5 rounded-full bg-secondary animate-pulse shrink-0"></span><span class="font-mono-micro text-mono-micro text-secondary uppercase tracking-tight whitespace-nowrap">(A Zien Organisation Company)</span></div></div></div><nav class="flex items-center gap-space-xs bg-surface-container-lowest p-space-2xs rounded-lg shrink-0" data-active-classes="bg-surface-container-high text-primary"><a class="px-space-md py-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded" data-path="zillers-tactical-workspace" href="#">Terminal</a><a class="px-space-md py-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded" data-path="zillers-strategy-engine" href="#">Strategy Engine</a><a class="px-space-md py-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded" data-path="zillers-order-book-liquidity" href="#">Order Book &amp; Liquidity</a><a class="px-space-md py-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded" data-path="zillers-risk-matrix" href="#">Risk Matrix</a><a class="px-space-md py-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded" data-path="zillers-execution-logs" href="#">Execution Logs</a><a class="px-space-md py-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded" data-path="zillers-system-settings" href="#">Settings</a></nav><div class="flex items-center gap-space-sm"><div class="hidden xl:flex items-center gap-space-md bg-surface-container-low px-space-md py-space-xs rounded"><div class="flex items-center gap-space-xs font-mono-table text-mono-table"><span class="material-symbols-outlined text-[14px] text-secondary">bolt</span><span class="text-on-surface-variant">NRT:</span><span class="text-secondary">1.8ms HND</span><span class="text-on-surface-variant">|</span><span class="text-secondary">4.2ms ORD</span></div><div class="flex items-center gap-space-xs font-mono-table text-mono-table"><span class="text-on-surface-variant">ETH-PERP FR:</span><span class="text-secondary">+0.0102%</span></div></div><div class="hidden lg:flex flex-col items-end px-space-sm bg-surface-container-low py-space-2xs rounded"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Prime AUM #084</span><span class="font-mono-metric-lg text-mono-metric-lg text-primary">$42,819,400.22</span></div><button class="flex items-center gap-space-xs px-space-md py-space-xs bg-error-container text-on-error rounded hover:bg-error transition-colors" type="button"><span class="material-symbols-outlined text-[16px]">power_settings_new</span><span class="font-mono-table text-mono-table font-semibold uppercase tracking-wider">KILL-SWITCH</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><aside class="fixed left-0 top-16 bottom-0 w-64 bg-surface-container-lowest z-40 flex flex-col justify-between py-space-md"><div class="flex flex-col gap-space-md px-space-sm"><div class="px-space-sm py-space-xs bg-surface-container-low rounded"><div class="flex items-center justify-between"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Core Telemetry</span><span class="w-2 h-2 rounded-full bg-secondary"></span></div><div class="mt-space-xs font-mono-table text-mono-table text-secondary flex items-center justify-between"><span class="">ENGINES ALL GREEN</span><span class="">100.0%</span></div></div><nav class="flex flex-col gap-space-2xs" data-active-classes="bg-surface-container-high text-primary font-semibold"><a class="flex items-center justify-between px-space-md py-space-sm rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="zillers-tactical-workspace" href="#"><span class="">Tactical Workspace</span><span class="font-mono-micro text-mono-micro text-on-surface-variant">L1</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="zillers-strategy-engine" href="#"><span class="">Alpha Algos</span><span class="font-mono-micro text-mono-micro text-secondary">12 ACT</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="zillers-order-book-liquidity" href="#"><span class="">Market Depth L3</span><span class="font-mono-micro text-mono-micro text-primary">LIVE</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="zillers-risk-matrix" href="#"><span class="">VaR &amp; Collateral</span><span class="font-mono-micro text-mono-micro text-on-surface-variant">0.04%</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="zillers-execution-logs" href="#"><span class="">SOR Audit Tape</span><span class="font-mono-micro text-mono-micro text-on-surface-variant">480 msg/s</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="zillers-system-settings" href="#"><span class="">FIX / ITCH Config</span><span class="font-mono-micro text-mono-micro text-on-surface-variant">SYS</span></a></nav></div><div class="px-space-md flex flex-col gap-space-xs font-mono-micro text-mono-micro text-on-surface-variant bg-surface-container-low mx-space-sm p-space-sm rounded"><div class="flex justify-between items-center"><span class="">GATEWAY:</span><span class="text-secondary">ONLINE</span></div><div class="flex justify-between items-center"><span class="">MEM_POOL:</span><span class="text-on-surface">14.2 GB</span></div><div class="flex justify-between items-center"><span class="">PTP CLOCK DRIFT:</span><span class="text-secondary">&lt;14ns</span></div></div></aside><div class="pl-64"><main class="w-full pt-16 bg-background min-h-screen"><div class="flex flex-col w-full">
+<!-- Telemetry Strip & Global Action Sub-Header -->
+<section class="p-space-sm bg-surface-container-lowest">
+<div class="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-space-sm flex-wrap">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-space-xs flex-1">
+<!-- Facility Primary -->
+<div class="bg-surface-container-low p-space-xs rounded flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Primary Co-Lo</span>
+<span class="inline-flex items-center gap-space-2xs px-space-xs py-space-2xs bg-secondary/10 rounded">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+<span class="font-mono-micro text-mono-micro text-secondary">ACTIVE NY4</span>
+</span>
+</div>
+<div class="mt-space-2xs">
+<div class="font-mono-metric-lg text-mono-metric-lg text-primary tracking-tight">EQUINIX NY4</div>
+<div class="font-mono-micro text-mono-micro text-on-surface-variant">Cage 12 // Rack 04B // Pod-A</div>
+</div>
+</div>
+<!-- Facility Secondary -->
+<div class="bg-surface-container-low p-space-xs rounded flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Failover Target</span>
+<span class="font-mono-micro text-mono-micro text-primary-container px-space-xs py-space-2xs bg-primary-container/10 rounded">HOT STANDBY</span>
+</div>
+<div class="mt-space-2xs">
+<div class="font-mono-metric-lg text-mono-metric-lg text-on-surface tracking-tight">EQUINIX LD4</div>
+<div class="font-mono-micro text-mono-micro text-on-surface-variant">WAN RTT 38.2ms // Slough, UK</div>
+</div>
+</div>
+<!-- PTP Lock -->
+<div class="bg-surface-container-low p-space-xs rounded flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">PTP Drift // IEEE 1588</span>
+<span class="font-mono-micro text-mono-micro text-secondary px-space-xs py-space-2xs bg-secondary/10 rounded">LOCKED</span>
+</div>
+<div class="mt-space-2xs">
+<div class="font-mono-metric-lg text-mono-metric-lg text-secondary tracking-tight">&lt;6.2 ns</div>
+<div class="font-mono-micro text-mono-micro text-on-surface-variant">Meinberg M1000 Rubidium</div>
+</div>
+</div>
+<!-- Kernel Bypass -->
+<div class="bg-surface-container-low p-space-xs rounded flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Kernel Bypass</span>
+<span class="font-mono-micro text-mono-micro text-primary px-space-xs py-space-2xs bg-primary/10 rounded">EF_VI ZERO-COPY</span>
+</div>
+<div class="mt-space-2xs">
+<div class="font-mono-metric-lg text-mono-metric-lg text-primary tracking-tight">Onload v8.1.3</div>
+<div class="font-mono-micro text-mono-micro text-on-surface-variant">Solarflare X2522 Dual 25G</div>
+</div>
+</div>
+<!-- FPGA Pipeline -->
+<div class="bg-surface-container-low p-space-xs rounded flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">FPGA Tick-to-Trade</span>
+<span class="font-mono-micro text-mono-micro text-secondary px-space-xs py-space-2xs bg-secondary/10 rounded">180ns WIRE</span>
+</div>
+<div class="mt-space-2xs">
+<div class="font-mono-metric-lg text-mono-metric-lg text-secondary tracking-tight">Xilinx U50</div>
+<div class="font-mono-micro text-mono-micro text-on-surface-variant">Fast/ITCH L3 Direct Decode</div>
+</div>
+</div>
+</div>
+<!-- Quick Action Buttons -->
+<div class="flex items-center gap-space-xs shrink-0 self-end 2xl:self-center">
+<button class="px-space-md py-space-xs bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-mono-table text-mono-table rounded flex items-center gap-space-xs transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-primary">sync</span>
+<span class="">Re-sync Clocks</span>
+</button>
+<button class="px-space-md py-space-xs bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-mono-table text-mono-table rounded flex items-center gap-space-xs transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">developer_board</span>
+<span class="">Diagnostic Dump</span>
+</button>
+<button class="px-space-md py-space-xs bg-primary hover:bg-primary-container text-on-primary font-mono-table text-mono-table font-semibold rounded flex items-center gap-space-xs shadow-sm transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">bolt</span>
+<span class="">Deploy Rack Sync</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Main Grid Workspace -->
+<div class="p-space-sm flex flex-col gap-space-sm">
+<!-- Top Deck: Bare Metal Chassis + NIC Wire Cross Connects -->
+<section class="grid grid-cols-1 xl:grid-cols-12 gap-space-sm">
+<!-- Left Panel: Bare-Metal Server Chassis & Hardware Allocation (5 Cols) -->
+<div class="xl:col-span-5 bg-surface-container-lowest p-space-sm rounded shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[18px]">dns</span>
+<span class="font-headline-sm text-headline-sm text-on-surface uppercase tracking-wide">Bare-Metal Chassis Fleet</span>
+</div>
+<span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-surface-container-high text-on-surface-variant rounded">4 NODES ENUMERATED</span>
+</div>
+<!-- Server List -->
+<div class="flex flex-col gap-space-xs mt-space-xs">
+<!-- Node 1 -->
+<div class="bg-surface-container-low hover:bg-surface-container p-space-xs rounded transition-colors">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-mono-table text-mono-table text-primary font-semibold">NODE-01-NY4</span>
+<span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-primary/10 text-primary rounded">MASTER SOR / FIX</span>
+</div>
+<div class="flex items-center gap-space-sm font-mono-micro text-mono-micro text-on-surface-variant">
+<span class="text-secondary">44°C</span>
+<span class="">LOAD 18%</span>
+</div>
+</div>
+<div class="mt-space-2xs font-mono-micro text-mono-micro text-on-surface-variant">
+                Dual AMD EPYC 9654 (192 Cores) // 1.5TB DDR5 ECC // 2x Solarflare X2522
+              </div>
+<div class="mt-space-2xs flex items-center gap-space-xs flex-wrap">
+<span class="px-space-xs py-space-2xs bg-surface-container-highest text-on-surface font-mono-micro text-mono-micro rounded">Cores 0-15: OS/IRQ</span>
+<span class="px-space-xs py-space-2xs bg-surface-container-highest text-on-surface font-mono-micro text-mono-micro rounded">Cores 16-64: SOR Worker</span>
+<span class="px-space-xs py-space-2xs bg-primary/15 text-primary font-mono-micro text-mono-micro rounded">Cores 65-96: Isolated Bypass</span>
+</div>
+</div>
+<!-- Node 2 -->
+<div class="bg-surface-container-low hover:bg-surface-container p-space-xs rounded transition-colors">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-mono-table text-mono-table text-primary font-semibold">NODE-02-NY4</span>
+<span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-secondary/10 text-secondary rounded">STATARB / L3 BOOK</span>
+</div>
+<div class="flex items-center gap-space-sm font-mono-micro text-mono-micro text-on-surface-variant">
+<span class="text-secondary">48°C</span>
+<span class="">LOAD 34%</span>
+</div>
+</div>
+<div class="mt-space-2xs font-mono-micro text-mono-micro text-on-surface-variant">
+                Dual AMD EPYC 9654 // 1.5TB RAM // Xilinx Alveo U50 FPGA PCIe Gen4
+              </div>
+<div class="mt-space-2xs flex items-center gap-space-xs flex-wrap">
+<span class="px-space-xs py-space-2xs bg-surface-container-highest text-on-surface font-mono-micro text-mono-micro rounded">AVX-512 VNNI Vector Units</span>
+<span class="px-space-xs py-space-2xs bg-surface-container-highest text-on-surface font-mono-micro text-mono-micro rounded">NUMA Node 0 Bound</span>
+<span class="px-space-xs py-space-2xs bg-secondary/15 text-secondary font-mono-micro text-mono-micro rounded">FPGA DMA Ch0 Lock</span>
+</div>
+</div>
+<!-- Node 3 -->
+<div class="bg-surface-container-low hover:bg-surface-container p-space-xs rounded transition-colors">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-mono-table text-mono-table text-primary font-semibold">NODE-03-NY4</span>
+<span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-primary/10 text-primary rounded">MM &amp; OFI SKEW</span>
+</div>
+<div class="flex items-center gap-space-sm font-mono-micro text-mono-micro text-on-surface-variant">
+<span class="text-secondary">42°C</span>
+<span class="">LOAD 28%</span>
+</div>
+</div>
+<div class="mt-space-2xs font-mono-micro text-mono-micro text-on-surface-variant">
+                Intel Xeon Max 9480 // 64GB HBM2e On-Package Memory // 98.4% Cache Hit
+              </div>
+<div class="mt-space-2xs flex items-center gap-space-xs flex-wrap">
+<span class="px-space-xs py-space-2xs bg-surface-container-highest text-on-surface font-mono-micro text-mono-micro rounded">HBM Only Flat Mode</span>
+<span class="px-space-xs py-space-2xs bg-surface-container-highest text-on-surface font-mono-micro text-mono-micro rounded">AMX Matrix Accel ON</span>
+</div>
+</div>
+<!-- Node 4 -->
+<div class="bg-surface-container-low hover:bg-surface-container p-space-xs rounded transition-colors">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span class="font-mono-table text-mono-table text-on-surface font-semibold">NODE-04-LD4</span>
+<span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-surface-container-highest text-on-surface-variant rounded">DR &amp; ARB MIRROR</span>
+</div>
+<div class="flex items-center gap-space-sm font-mono-micro text-mono-micro text-on-surface-variant">
+<span class="text-secondary">39°C</span>
+<span class="">LOAD 8%</span>
+</div>
+</div>
+<div class="mt-space-2xs font-mono-micro text-mono-micro text-on-surface-variant">
+                Dual AMD EPYC 9354 // 768GB RAM // Synced Snapshot Feed
+              </div>
+<div class="mt-space-2xs flex items-center gap-space-xs flex-wrap">
+<span class="px-space-xs py-space-2xs bg-surface-container-highest text-on-surface-variant font-mono-micro text-mono-micro rounded">Warm Standby Ready</span>
+<span class="px-space-xs py-space-2xs bg-surface-container-highest text-on-surface-variant font-mono-micro text-mono-micro rounded">Heartbeat 100µs</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Hardware Execution Bios Controls -->
+<div class="mt-space-sm pt-space-xs bg-surface-container-low p-space-xs rounded">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-space-xs">Deterministic Low-Latency CPU Profiles</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-xs">
+<div class="flex items-center justify-between bg-surface-container px-space-xs py-space-2xs rounded">
+<span class="font-mono-micro text-mono-micro text-on-surface">Turbo Locked 3.8GHz</span>
+<span class="font-mono-micro text-mono-micro text-secondary font-bold">ALL-CORE</span>
+</div>
+<div class="flex items-center justify-between bg-surface-container px-space-xs py-space-2xs rounded">
+<span class="font-mono-micro text-mono-micro text-on-surface">C-States Disabled</span>
+<span class="font-mono-micro text-mono-micro text-secondary font-bold">C0 FIXED</span>
+</div>
+<div class="flex items-center justify-between bg-surface-container px-space-xs py-space-2xs rounded">
+<span class="font-mono-micro text-mono-micro text-on-surface">HyperThreading (SMT)</span>
+<span class="font-mono-micro text-mono-micro text-error font-bold">OFF (ISOLATED)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Panel: NIC Driver Tunables & Cross-Connect Matrix (7 Cols) -->
+<div class="xl:col-span-7 bg-surface-container-lowest p-space-sm rounded shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-[18px]">cable</span>
+<span class="font-headline-sm text-headline-sm text-on-surface uppercase tracking-wide">Kernel Bypass &amp; Cross-Connect Patching</span>
+</div>
+<div class="flex items-center gap-space-xs"><span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-secondary/10 text-secondary rounded">ONLOAD 8.1.3.18 DRIVER LIVE</span><button id="open-onload-modal-btn" onclick="document.getElementById('onload-tuning-modal').classList.remove('hidden')" class="px-space-xs py-space-2xs bg-surface-container-high hover:bg-primary/20 text-primary border border-primary/30 hover:border-primary font-mono-micro text-mono-micro rounded flex items-center gap-space-2xs transition-colors cursor-pointer" type="button"><span class="material-symbols-outlined text-[14px]">tune</span><span class="">Tune Parameters</span></button></div>
+</div>
+<!-- Parameter Gauges Strip -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-space-xs mt-space-xs">
+<div class="bg-surface-container-low p-space-xs rounded">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">EF_POLL_USECS</div>
+<div class="font-mono-metric-lg text-mono-metric-lg text-primary mt-space-2xs">100,000</div>
+<div class="font-mono-micro text-mono-micro text-secondary">Zero context switches</div>
+</div>
+<div class="bg-surface-container-low p-space-xs rounded">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">EF_RING_SIZE</div>
+<div class="font-mono-metric-lg text-mono-metric-lg text-on-surface mt-space-2xs">4,096</div>
+<div class="font-mono-micro text-mono-micro text-on-surface-variant">Descriptors allocated</div>
+</div>
+<div class="bg-surface-container-low p-space-xs rounded">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">TIMESTAMPING</div>
+<div class="font-mono-metric-lg text-mono-metric-lg text-secondary mt-space-2xs">1.0 ns</div>
+<div class="font-mono-micro text-mono-micro text-secondary">PHY Hardware Level</div>
+</div>
+<div class="bg-surface-container-low p-space-xs rounded">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">PACKET LOSS 24H</div>
+<div class="font-mono-metric-lg text-mono-metric-lg text-secondary mt-space-2xs">0.00%</div>
+<div class="font-mono-micro text-mono-micro text-secondary">0 dropped / 1.84B rx</div>
+</div>
+</div>
+<!-- Cross-Connect Matrix Table -->
+<div class="mt-space-sm">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-space-2xs">Physical Equinix NY4 Cross-Connect Patch Matrix</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left min-w-[540px]"><thead class="bg-surface-container font-mono-micro text-mono-micro text-on-surface-variant uppercase"><tr><th class="p-space-xs">Venue &amp; Port Route</th><th class="p-space-xs">Media Protocol</th><th class="p-space-xs">Optics / Atten.</th><th class="p-space-xs text-right">Physical RTT</th><th class="p-space-xs text-right">Wire Status</th></tr></thead><tbody class="font-mono-table text-mono-table divide-y divide-surface-container-highest/20"><tr class="hover:bg-surface-container/50"><td class="p-space-xs flex items-center gap-space-xs whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-secondary shrink-0"></span><span class="font-semibold text-on-surface">Binance Private Direct</span></td><td class="p-space-xs text-on-surface-variant whitespace-nowrap">NY4 Metro Cross-Connect</td><td class="p-space-xs text-on-surface-variant whitespace-nowrap">SMF 10G / -1.8 dBm</td><td class="p-space-xs text-right text-secondary whitespace-nowrap font-mono-table">140 µs</td><td class="p-space-xs text-right whitespace-nowrap"><span class="px-space-xs py-space-2xs bg-secondary/15 text-secondary text-mono-micro font-mono-micro rounded">UP</span></td></tr><tr class="hover:bg-surface-container/50"><td class="p-space-xs flex items-center gap-space-xs whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-secondary shrink-0"></span><span class="font-semibold text-on-surface">Bybit Dedicated Peering</span></td><td class="p-space-xs text-on-surface-variant whitespace-nowrap">NY4 Meet-Me Room SMF</td><td class="p-space-xs text-on-surface-variant whitespace-nowrap">SMF 10G / -2.1 dBm</td><td class="p-space-xs text-right text-secondary whitespace-nowrap font-mono-table">210 µs</td><td class="p-space-xs text-right whitespace-nowrap"><span class="px-space-xs py-space-2xs bg-secondary/15 text-secondary text-mono-micro font-mono-micro rounded">UP</span></td></tr><tr class="hover:bg-surface-container/50"><td class="p-space-xs flex items-center gap-space-xs whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-secondary shrink-0"></span><span class="font-semibold text-on-surface">OKX Direct Connect</span></td><td class="p-space-xs text-on-surface-variant whitespace-nowrap">Secaucus Low-Loss SMF</td><td class="p-space-xs text-on-surface-variant whitespace-nowrap">SMF 10G / -1.6 dBm</td><td class="p-space-xs text-right text-secondary whitespace-nowrap font-mono-table">185 µs</td><td class="p-space-xs text-right whitespace-nowrap"><span class="px-space-xs py-space-2xs bg-secondary/15 text-secondary text-mono-micro font-mono-micro rounded">UP</span></td></tr><tr class="hover:bg-surface-container/50"><td class="p-space-xs flex items-center gap-space-xs whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-secondary shrink-0"></span><span class="font-semibold text-on-surface">Deribit Local Engine</span></td><td class="p-space-xs text-on-surface-variant whitespace-nowrap">LD4 Metro Cross-Connect</td><td class="p-space-xs text-on-surface-variant whitespace-nowrap">SMF 10G / -1.2 dBm</td><td class="p-space-xs text-right text-secondary whitespace-nowrap font-mono-table">85 µs (LD4)</td><td class="p-space-xs text-right whitespace-nowrap"><span class="px-space-xs py-space-2xs bg-secondary/15 text-secondary text-mono-micro font-mono-micro rounded">UP</span></td></tr><tr class="hover:bg-surface-container/50"><td class="p-space-xs flex items-center gap-space-xs whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-secondary shrink-0"></span><span class="font-semibold text-on-surface">Hyperliquid L1 Validator</span></td><td class="p-space-xs text-on-surface-variant whitespace-nowrap">Dedicated Dark Fiber</td><td class="p-space-xs text-on-surface-variant whitespace-nowrap">SMF 25G / -0.9 dBm</td><td class="p-space-xs text-right text-secondary whitespace-nowrap font-mono-table">320 µs</td><td class="p-space-xs text-right whitespace-nowrap"><span class="px-space-xs py-space-2xs bg-secondary/15 text-secondary text-mono-micro font-mono-micro rounded">UP</span></td></tr></tbody></table>
+</div>
+</div>
+</div>
+<div class="mt-space-xs pt-space-xs flex items-center justify-between text-mono-micro font-mono-micro text-on-surface-variant">
+<span class="">TX Packet Steering: CPU-NUMA Direct Pinning</span>
+<span class="text-secondary font-mono-table">TX Ring Errors: 0</span>
+</div>
+</div>
+</section>
+<!-- Middle Deck: FPGA Pipeline Architecture & IEEE 1588 PTP Calibration -->
+<section class="grid grid-cols-1 xl:grid-cols-12 gap-space-sm">
+<!-- Left Panel: FPGA Pipeline Configuration (6 Cols) -->
+<div class="xl:col-span-6 bg-surface-container-lowest p-space-sm rounded shadow-sm">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[18px]">memory</span>
+<span class="font-headline-sm text-headline-sm text-on-surface uppercase tracking-wide">AMD Xilinx Alveo U50 Pipeline</span>
+</div>
+<span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-surface-container-high text-on-surface rounded">zillers_l3_parser_v4.2.1b_prod.bit</span>
+</div>
+<!-- Wire-to-Wire Pipeline Sequence Diagram -->
+<div class="mt-space-xs bg-surface-container-low p-space-xs rounded">
+<div class="flex items-center justify-between text-mono-micro font-mono-micro text-on-surface-variant uppercase">
+<span class="">Tick-to-Trade Hardware Sub-nanosecond Pipeline</span>
+<span class="text-secondary font-bold font-mono-table text-mono-table">Total: 180 ns</span>
+</div>
+<div class="mt-space-xs grid grid-cols-5 gap-space-2xs">
+<div class="bg-surface-container p-space-xs rounded text-center">
+<div class="font-mono-micro text-mono-micro text-on-surface-variant uppercase">Ingress PHY</div>
+<div class="font-mono-table text-mono-table text-primary font-bold mt-space-2xs">10GbE</div>
+<div class="font-mono-micro text-mono-micro text-secondary">0 ns</div>
+</div>
+<div class="bg-surface-container p-space-xs rounded text-center">
+<div class="font-mono-micro text-mono-micro text-on-surface-variant uppercase">FAST/ITCH Dec</div>
+<div class="font-mono-table text-mono-table text-primary font-bold mt-space-2xs">45 ns</div>
+<div class="font-mono-micro text-mono-micro text-secondary">T+45ns</div>
+</div>
+<div class="bg-surface-container p-space-xs rounded text-center">
+<div class="font-mono-micro text-mono-micro text-on-surface-variant uppercase">Book Synth</div>
+<div class="font-mono-table text-mono-table text-primary font-bold mt-space-2xs">60 ns</div>
+<div class="font-mono-micro text-mono-micro text-secondary">T+105ns</div>
+</div>
+<div class="bg-surface-container p-space-xs rounded text-center">
+<div class="font-mono-micro text-mono-micro text-on-surface-variant uppercase">Risk Arb Val</div>
+<div class="font-mono-table text-mono-table text-primary font-bold mt-space-2xs">35 ns</div>
+<div class="font-mono-micro text-mono-micro text-secondary">T+140ns</div>
+</div>
+<div class="bg-surface-container p-space-xs rounded text-center">
+<div class="font-mono-micro text-mono-micro text-on-surface-variant uppercase">FIX Egress</div>
+<div class="font-mono-table text-mono-table text-secondary font-bold mt-space-2xs">40 ns</div>
+<div class="font-mono-micro text-mono-micro text-secondary">T+180ns</div>
+</div>
+</div>
+<!-- Micro SVG Logic Gate Visualizer -->
+<div class="mt-space-xs bg-surface-container-lowest p-space-xs rounded">
+<svg class="w-full h-12 text-primary" fill="none" preserveAspectRatio="none" viewBox="0 0 600 48">
+<path class="opacity-40" d="M 0 24 L 80 24 L 100 8 L 160 8 L 180 24 L 260 24 L 280 40 L 340 40 L 360 24 L 460 24 L 480 12 L 540 12 L 560 24 L 600 24" stroke="currentColor" stroke-dasharray="4 2" stroke-width="1.5"></path>
+<circle cx="100" cy="8" fill="#4edea3" r="3"></circle>
+<circle cx="280" cy="40" fill="#8ed5ff" r="3"></circle>
+<circle cx="480" cy="12" fill="#4edea3" r="3"></circle>
+<text fill="#bdc8d1" font-family="JetBrains Mono" font-size="9" x="110" y="14">SYNTHESIS_PASS</text>
+<text fill="#bdc8d1" font-family="JetBrains Mono" font-size="9" x="290" y="44">L3_DELTA_MATCH</text>
+<text fill="#bdc8d1" font-family="JetBrains Mono" font-size="9" x="490" y="18">ORDER_SUBMIT_TRIG</text>
+</svg>
+</div>
+</div>
+<!-- FPGA Resource Utilization -->
+<div class="grid grid-cols-4 gap-space-xs mt-space-xs">
+<div class="bg-surface-container-low p-space-xs rounded">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">Clock Rate</div>
+<div class="font-mono-table text-mono-table text-on-surface font-bold mt-space-2xs">400 MHz</div>
+<div class="font-mono-micro text-mono-micro text-secondary">Zero skew</div>
+</div>
+<div class="bg-surface-container-low p-space-xs rounded">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">Logic LUTs</div>
+<div class="font-mono-table text-mono-table text-on-surface font-bold mt-space-2xs">62.4%</div>
+<div class="w-full bg-surface-container h-1 rounded mt-space-2xs overflow-hidden">
+<div class="bg-primary h-full w-[62.4%]"></div>
+</div>
+</div>
+<div class="bg-surface-container-low p-space-xs rounded">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">BRAM Blocks</div>
+<div class="font-mono-table text-mono-table text-on-surface font-bold mt-space-2xs">54.1%</div>
+<div class="w-full bg-surface-container h-1 rounded mt-space-2xs overflow-hidden">
+<div class="bg-primary h-full w-[54.1%]"></div>
+</div>
+</div>
+<div class="bg-surface-container-low p-space-xs rounded">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">DSP Units</div>
+<div class="font-mono-table text-mono-table text-on-surface font-bold mt-space-2xs">41.8%</div>
+<div class="w-full bg-surface-container h-1 rounded mt-space-2xs overflow-hidden">
+<div class="bg-primary h-full w-[41.8%]"></div>
+</div>
+</div>
+</div>
+<!-- Actions -->
+<div class="mt-space-xs flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<button class="px-space-sm py-space-2xs bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-mono-micro text-mono-micro rounded transition-colors" type="button">
+              Reload Bitstream
+            </button>
+<button class="px-space-sm py-space-2xs bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-mono-micro text-mono-micro rounded transition-colors" type="button">
+              Hot-Flash Firmware
+            </button>
+</div>
+<button class="px-space-sm py-space-2xs bg-error-container hover:bg-error text-on-error font-mono-micro text-mono-micro rounded transition-colors" type="button">
+            Force CPU Fallback
+          </button>
+</div>
+</div>
+<!-- Right Panel: IEEE 1588 PTP Grandmaster & Clock Calibration (6 Cols) -->
+<div class="xl:col-span-6 bg-surface-container-lowest p-space-sm rounded shadow-sm">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-[18px]">alarm_on</span>
+<span class="font-headline-sm text-headline-sm text-on-surface uppercase tracking-wide">IEEE 1588 PTP Grandmaster Calibration</span>
+</div>
+<span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-secondary/10 text-secondary rounded">RUBIDIUM LOCKED</span>
+</div>
+<div class="grid grid-cols-3 gap-space-xs mt-space-xs">
+<div class="bg-surface-container-low p-space-xs rounded">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">Phase Offset</div>
+<div class="font-mono-metric-lg text-mono-metric-lg text-secondary mt-space-2xs">+1.4 ns</div>
+<div class="font-mono-micro text-mono-micro text-on-surface-variant">Limit ±25.0 ns</div>
+</div>
+<div class="bg-surface-container-low p-space-xs rounded">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">Freq Drift</div>
+<div class="font-mono-metric-lg text-mono-metric-lg text-secondary mt-space-2xs">+0.02 ppb</div>
+<div class="font-mono-micro text-mono-micro text-on-surface-variant">Holdover Ready</div>
+</div>
+<div class="bg-surface-container-low p-space-xs rounded">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">PPS Jitter</div>
+<div class="font-mono-metric-lg text-mono-metric-lg text-secondary mt-space-2xs">0.12 ns</div>
+<div class="font-mono-micro text-mono-micro text-on-surface-variant">GNSS Locked (16 SVs)</div>
+</div>
+</div>
+<!-- 60-Minute Real-Time Clock Jitter Sparkline Chart -->
+<div class="mt-space-xs bg-surface-container-low p-space-xs rounded">
+<div class="flex items-center justify-between text-mono-micro font-mono-micro text-on-surface-variant mb-space-xs">
+<span class="">PTP Servo Phase Error (Past 60 Minutes - 1s Polling)</span>
+<span class="text-secondary font-mono-table text-mono-table">Max: +3.1ns | Min: -0.8ns</span>
+</div>
+<div class="h-28 w-full relative">
+<!-- Grid lines -->
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
+<div class="w-full h-px bg-on-surface-variant"></div>
+<div class="w-full h-px bg-on-surface-variant"></div>
+<div class="w-full h-px bg-on-surface-variant"></div>
+</div>
+<svg class="w-full h-full text-secondary" fill="none" preserveAspectRatio="none" viewBox="0 0 500 100">
+<!-- Threshold bands -->
+<rect fill="currentColor" fill-opacity="0.05" height="40" width="500" x="0" y="30"></rect>
+<line opacity="0.3" stroke="#87929a" stroke-dasharray="3 3" stroke-width="0.8" x1="0" x2="500" y1="50" y2="50"></line>
+<!-- Realtime jitter plot -->
+<path d="M 0 51 Q 20 48 40 52 T 80 49 T 120 53 T 160 48 T 200 52 T 240 50 T 280 47 T 320 52 T 360 49 T 400 51 T 440 50 T 480 48 L 500 49" stroke="#4edea3" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+<circle class="animate-ping" cx="500" cy="49" fill="#4edea3" r="3.5"></circle>
+<circle cx="500" cy="49" fill="#4edea3" r="3"></circle>
+</svg>
+</div>
+<div class="mt-space-2xs flex items-center justify-between text-mono-micro font-mono-micro text-on-surface-variant">
+<span class="">-60 MIN</span>
+<span class="">-30 MIN</span>
+<span class="text-secondary font-bold">CURRENT SYNC (T0)</span>
+</div>
+</div>
+<div class="mt-space-xs flex items-center justify-between text-mono-micro font-mono-micro text-on-surface-variant">
+<div class="">Profile: <span class="text-on-surface">Telecom G.8275.1 / PTP Domain 24</span></div>
+<div class="">Antenna Feed: <span class="text-secondary">Trimble Acutime 360 L1/L2 Active</span></div>
+</div>
+</div>
+</section>
+<!-- Bottom Deck: Credential Vault, Sensors & Circuit Breakers -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-space-sm">
+<!-- Sub-panel 1: Secure Credential & FIX Session Vault -->
+<div class="bg-surface-container-lowest p-space-sm rounded shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[18px]">key</span>
+<span class="font-headline-sm text-headline-sm text-on-surface uppercase tracking-wide">Key Vault &amp; Sessions</span>
+</div>
+<span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-surface-container-high text-on-surface-variant rounded">HSM ENCLAVE</span>
+</div>
+<div class="flex flex-col gap-space-xs mt-space-xs">
+<div class="bg-surface-container-low p-space-xs rounded flex items-center justify-between">
+<div>
+<div class="font-mono-table text-mono-table text-on-surface">BINANCE-NY4-FIX-01</div>
+<div class="font-mono-micro text-mono-micro text-on-surface-variant">Ed25519 // Exp: 84d</div>
+</div>
+<span class="px-space-xs py-space-2xs bg-secondary/15 text-secondary text-mono-micro font-mono-micro rounded">VALID</span>
+</div>
+<div class="bg-surface-container-low p-space-xs rounded flex items-center justify-between">
+<div>
+<div class="font-mono-table text-mono-table text-on-surface">BYBIT-PROD-HMAC-MM</div>
+<div class="font-mono-micro text-mono-micro text-on-surface-variant">SHA256 Secret // Exp: 12d</div>
+</div>
+<span class="px-space-xs py-space-2xs bg-primary/15 text-primary text-mono-micro font-mono-micro rounded">AUTO-ROTATE</span>
+</div>
+<div class="bg-surface-container-low p-space-xs rounded flex items-center justify-between">
+<div>
+<div class="font-mono-table text-mono-table text-on-surface">DERIBIT-mTLS-CERT</div>
+<div class="font-mono-micro text-mono-micro text-on-surface-variant">RSA 4096-bit // Exp: 312d</div>
+</div>
+<span class="px-space-xs py-space-2xs bg-secondary/15 text-secondary text-mono-micro font-mono-micro rounded">VALID</span>
+</div>
+</div>
+</div>
+<div class="mt-space-xs pt-space-xs flex items-center justify-between">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">Auto-Rotation Cadence: 30 Days</span>
+<button class="px-space-xs py-space-2xs bg-surface-container-high text-on-surface hover:bg-surface-container-highest font-mono-micro text-mono-micro rounded transition-colors" type="button">
+            Enclave Passkey
+          </button>
+</div>
+</div>
+<!-- Sub-panel 2: Colocation Environment & Power Sensors -->
+<div class="bg-surface-container-lowest p-space-sm rounded shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-[18px]">thermostat</span>
+<span class="font-headline-sm text-headline-sm text-on-surface uppercase tracking-wide">Rack Sensors &amp; Power</span>
+</div>
+<span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-secondary/10 text-secondary rounded">ALL NOMINAL</span>
+</div>
+<div class="grid grid-cols-2 gap-space-xs mt-space-xs">
+<div class="bg-surface-container-low p-space-xs rounded">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">Rack Ambient Temp</div>
+<div class="font-mono-metric-lg text-mono-metric-lg text-on-surface mt-space-2xs">19.4°C</div>
+<div class="font-mono-micro text-mono-micro text-secondary">Target: 18.0 - 22.0°C</div>
+</div>
+<div class="bg-surface-container-low p-space-xs rounded">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">Humidity</div>
+<div class="font-mono-metric-lg text-mono-metric-lg text-on-surface mt-space-2xs">44.8%</div>
+<div class="font-mono-micro text-mono-micro text-secondary">Static Suppressed</div>
+</div>
+<div class="bg-surface-container-low p-space-xs rounded">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">Dual PDU Load</div>
+<div class="font-mono-metric-lg text-mono-metric-lg text-primary mt-space-2xs">3.42 kW</div>
+<div class="font-mono-micro text-mono-micro text-on-surface-variant">PDU-A 16.2A | PDU-B 15.9A</div>
+</div>
+<div class="bg-surface-container-low p-space-xs rounded">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">UPS Battery Bank</div>
+<div class="font-mono-metric-lg text-mono-metric-lg text-secondary mt-space-2xs">100%</div>
+<div class="font-mono-micro text-mono-micro text-secondary">Holdover 48 Min</div>
+</div>
+</div>
+</div>
+<div class="mt-space-xs pt-space-xs flex items-center justify-between text-mono-micro font-mono-micro text-on-surface-variant">
+<span class="">HVAC In-Row Cooling: Unit 04 Active</span>
+<span class="text-secondary">Differential ΔT: +4.2°C</span>
+</div>
+</div>
+<!-- Sub-panel 3: Automated Circuit Breakers & Kill-Switch Thresholds -->
+<div class="bg-surface-container-lowest p-space-sm rounded shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-tertiary-container text-[18px]">crisis_alert</span>
+<span class="font-headline-sm text-headline-sm text-on-surface uppercase tracking-wide">Kill-Switch Circuit Triggers</span>
+</div>
+<span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-tertiary-container/15 text-tertiary-container rounded">ACTIVE GUARD</span>
+</div>
+<div class="flex flex-col gap-space-xs mt-space-xs">
+<div class="bg-surface-container-low p-space-xs rounded flex items-center justify-between">
+<div>
+<div class="font-mono-table text-mono-table text-on-surface">HW Latency Spike &gt; 5.0ms</div>
+<div class="font-mono-micro text-mono-micro text-on-surface-variant">3 Consecutive Ticks Failure</div>
+</div>
+<span class="px-space-xs py-space-2xs bg-surface-container-highest text-secondary text-mono-micro font-mono-micro rounded">AUTO-PAUSE</span>
+</div>
+<div class="bg-surface-container-low p-space-xs rounded flex items-center justify-between">
+<div>
+<div class="font-mono-table text-mono-table text-on-surface">PTP Lock Loss Drift &gt; 500ns</div>
+<div class="font-mono-micro text-mono-micro text-on-surface-variant">Sub-microsecond violation</div>
+</div>
+<span class="px-space-xs py-space-2xs bg-error-container text-on-error text-mono-micro font-mono-micro rounded">HARD ABORT</span>
+</div>
+<div class="bg-surface-container-low p-space-xs rounded flex items-center justify-between">
+<div>
+<div class="font-mono-table text-mono-table text-on-surface">Packet CRC Checksum Errors</div>
+<div class="font-mono-micro text-mono-micro text-on-surface-variant">&gt; 3 corrupted frames in 1s</div>
+</div>
+<span class="px-space-xs py-space-2xs bg-surface-container-highest text-secondary text-mono-micro font-mono-micro rounded">DROP FLIGHT</span>
+</div>
+</div>
+</div>
+<div class="mt-space-xs pt-space-xs flex items-center justify-between">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">Audit Tape Logging: Ultra-Fast Ring</span>
+<span class="font-mono-micro text-mono-micro text-secondary">ARMED (0 TRIP)</span>
+</div>
+</div>
+</section>
+<!-- Terminal Save Changes Persistent Footer Bar -->
+<footer class="p-space-sm bg-surface-container-lowest rounded shadow-md flex flex-col md:flex-row items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="flex items-center gap-space-2xs">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-mono-table text-mono-table text-on-surface">Active Profile: <strong class="text-primary font-semibold">NY4-ULTRA-LOW-LATENCY-PROD-REV42</strong></span>
+</span>
+<span class="text-on-surface-variant font-mono-micro text-mono-micro hidden lg:inline-block">SHA256: 9b20f188c03ba88e734190c109df50aa7</span>
+</div>
+<div class="flex items-center gap-space-xs w-full md:w-auto justify-end">
+<button class="px-space-md py-space-xs bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-mono-table text-mono-table rounded flex items-center gap-space-xs transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">history</span>
+<span class="">Rollback Config</span>
+</button>
+<button class="px-space-md py-space-xs bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-mono-table text-mono-table rounded flex items-center gap-space-xs transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">download</span>
+<span class="">Export JSON / Terraform</span>
+</button>
+<button class="px-space-lg py-space-xs bg-primary hover:bg-primary-container text-on-primary font-mono-table text-mono-table font-semibold rounded flex items-center gap-space-xs shadow-sm transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">publish</span>
+<span class="">Apply to All Co-located Racks</span>
+</button>
+</div>
+</footer>
+</div>
+</div></main></div>
+
+<div id="onload-tuning-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest/80 backdrop-blur-md p-space-sm hidden" onclick="if(event.target === this) this.classList.add('hidden')"><div class="bg-surface-container-low border border-surface-container-highest rounded-lg shadow-md w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden text-on-surface" onclick="event.stopPropagation()"><div class="px-space-md py-space-sm bg-surface-container-lowest border-b border-surface-container-highest/50 flex items-center justify-between gap-space-md shrink-0"><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary"><span class="material-symbols-outlined text-[18px]">tune</span></div><div><div class="flex items-center gap-space-xs"><h3 class="font-headline-sm text-headline-sm uppercase tracking-wider text-on-surface font-semibold">SOLARFLARE ONLOAD v8.1.3 RUNTIME TUNING</h3><span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-tertiary-container/15 text-tertiary-container font-semibold rounded uppercase tracking-wider">LIVE KERNEL HOOK</span></div><div class="font-mono-micro text-mono-micro text-on-surface-variant flex items-center gap-space-xs mt-space-2xs"><span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span><span class="">TARGET: NODE-01-NY4 // Solarflare X2522 Dual 25G // PCIe Bus 0000:81:00.0</span></div></div></div><button onclick="document.getElementById('onload-tuning-modal').classList.add('hidden')" class="w-8 h-8 rounded hover:bg-surface-container text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors" type="button" aria-label="Close modal"><span class="material-symbols-outlined text-[18px]">close</span></button></div><div class="p-space-md overflow-y-auto flex flex-col gap-space-md"><div class="bg-surface-container-lowest p-space-xs border border-primary/20 rounded flex items-center justify-between text-mono-micro text-on-surface-variant"><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary text-[16px]">info</span><span class="">ZERO CONTEXT SWITCHES // 100% CPU SPINKERNEL CONSUMPTION ON PINNED CORES</span></div><span class="text-secondary font-mono-table font-semibold">EST. WIRE JITTER: &lt; 38ns</span></div><div class="grid grid-cols-1 md:grid-cols-2 gap-space-sm"><div class="bg-surface-container-lowest p-space-sm rounded border border-surface-container-highest/40 flex flex-col gap-space-xs"><div class="flex items-center justify-between"><label class="font-label-caps text-label-caps uppercase text-on-surface font-semibold">EF_POLL_USECS</label><span class="font-mono-micro text-mono-micro text-secondary font-bold">100,000 µs (PURE SPIN)</span></div><p class="font-mono-micro text-mono-micro text-on-surface-variant">Duration network stack actively polls hardware rings before falling back to interrupt wait.</p><input type="number" min="0" max="1000000" step="1000" value="100000" class="w-full bg-surface-container-high px-space-xs py-space-2xs font-mono-table text-mono-table text-primary rounded border border-surface-container-highest focus:border-primary outline-none"><div class="flex items-center gap-space-2xs flex-wrap mt-space-2xs"><span class="font-mono-micro text-mono-micro text-on-surface-variant">Presets:</span><button type="button" class="px-space-xs py-space-2xs bg-surface-container hover:bg-surface-container-highest text-on-surface font-mono-micro text-mono-micro rounded">0 (Interrupt)</button><button type="button" class="px-space-xs py-space-2xs bg-surface-container hover:bg-surface-container-highest text-on-surface font-mono-micro text-mono-micro rounded">1,000 µs</button><button type="button" class="px-space-xs py-space-2xs bg-surface-container hover:bg-surface-container-highest text-on-surface font-mono-micro text-mono-micro rounded">50,000 µs</button><button type="button" class="px-space-xs py-space-2xs bg-primary/20 text-primary font-mono-micro text-mono-micro rounded border border-primary/30">100,000 µs (Prod)</button></div></div><div class="bg-surface-container-lowest p-space-sm rounded border border-surface-container-highest/40 flex flex-col gap-space-xs"><div class="flex items-center justify-between"><label class="font-label-caps text-label-caps uppercase text-on-surface font-semibold">EF_RING_SIZE</label><span class="font-mono-micro text-mono-micro text-primary font-bold">4,096 SLOTS</span></div><p class="font-mono-micro text-mono-micro text-on-surface-variant">Number of hardware descriptor buffer slots allocated per RX/TX Onload packet ring.</p><select class="w-full bg-surface-container-high px-space-xs py-space-2xs font-mono-table text-mono-table text-primary rounded border border-surface-container-highest focus:border-primary outline-none"><option value="1024">1,024 Descriptors (Ultra-light memory)</option><option value="2048">2,048 Descriptors</option><option value="4096" selected="selected">4,096 Descriptors (Default Prod)</option><option value="8192">8,192 Descriptors (Burst absorb)</option></select><div class="flex items-center justify-between font-mono-micro text-mono-micro text-on-surface-variant mt-space-2xs"><span class="">Ring memory: 64 MB locked</span><span class="text-secondary">0 Dropped Frames</span></div></div><div class="bg-surface-container-lowest p-space-sm rounded border border-surface-container-highest/40 flex flex-col gap-space-xs"><div class="flex items-center justify-between"><label class="font-label-caps text-label-caps uppercase text-on-surface font-semibold">EF_TIMESTAMPING</label><span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-secondary/15 text-secondary rounded">1 (PHY HW LEVEL)</span></div><p class="font-mono-micro text-mono-micro text-on-surface-variant">Hardware ingress nanosecond clock stamping mode on Solarflare MAC/PHY ASIC.</p><select class="w-full bg-surface-container-high px-space-xs py-space-2xs font-mono-table text-mono-table text-secondary rounded border border-surface-container-highest focus:border-primary outline-none"><option value="1" selected="selected">1 (PHY Hardware Level - ±1.0ns precision)</option><option value="2">2 (MAC Controller Hardware Level)</option><option value="0">0 (Disabled - Host Kernel Clock fallback)</option></select></div><div class="bg-surface-container-lowest p-space-sm rounded border border-surface-container-highest/40 flex flex-col gap-space-xs"><div class="flex items-center justify-between"><label class="font-label-caps text-label-caps uppercase text-on-surface font-semibold">EF_FORCE_INTERRUPT_AFFINITY</label><span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-primary/10 text-primary rounded">CORES 65-96</span></div><p class="font-mono-micro text-mono-micro text-on-surface-variant">Affinity mask binding NIC DMA interrupt vectors &amp; polling loops to isolated cores.</p><input type="text" value="65-96 (Isolated Fastpath Numactl #0)" class="w-full bg-surface-container-high px-space-xs py-space-2xs font-mono-table text-mono-table text-on-surface rounded border border-surface-container-highest focus:border-primary outline-none"></div><div class="bg-surface-container-lowest p-space-sm rounded border border-surface-container-highest/40 flex flex-col gap-space-xs"><div class="flex items-center justify-between"><label class="font-label-caps text-label-caps uppercase text-on-surface font-semibold">EF_VI_ZERO_COPY</label><span class="font-mono-micro text-mono-micro text-secondary font-bold">ENABLED</span></div><p class="font-mono-micro text-mono-micro text-on-surface-variant">Direct user-space memory access bypassing socket layer memcpy operations.</p><div class="flex items-center justify-between bg-surface-container-high p-space-xs rounded"><span class="font-mono-micro text-mono-micro text-on-surface">Solarflare ef_vi Direct User DMA Hook</span><button type="button" class="w-12 h-6 bg-secondary rounded-full relative transition-colors"><span class="absolute right-1 top-1 w-4 h-4 bg-surface-container-lowest rounded-full"></span></button></div></div><div class="bg-surface-container-lowest p-space-sm rounded border border-surface-container-highest/40 flex flex-col gap-space-xs"><div class="flex items-center justify-between"><label class="font-label-caps text-label-caps uppercase text-on-surface font-semibold">EF_SPIN_USECS &amp; QUEUE SIZES</label><span class="font-mono-micro text-mono-micro text-primary font-bold">500 µs // RX 2048 / TX 2048</span></div><div class="grid grid-cols-2 gap-space-xs mt-space-2xs"><div><span class="font-mono-micro text-mono-micro text-on-surface-variant">EF_SPIN_USECS</span><input type="number" value="500" class="w-full bg-surface-container-high px-space-xs py-space-2xs font-mono-table text-mono-table text-on-surface rounded border border-surface-container-highest"></div><div><span class="font-mono-micro text-mono-micro text-on-surface-variant">BUFFER OVERRIDES</span><input type="text" value="4,194,304B (4MB)" class="w-full bg-surface-container-high px-space-xs py-space-2xs font-mono-table text-mono-table text-on-surface rounded border border-surface-container-highest"></div></div></div></div></div><div class="px-space-md py-space-sm bg-surface-container-lowest border-t border-surface-container-highest/50 flex flex-col sm:flex-row items-center justify-between gap-space-xs shrink-0"><div class="flex items-center gap-space-xs"><button type="button" class="px-space-sm py-space-xs bg-surface-container hover:bg-surface-container-highest text-on-surface font-mono-table text-mono-table rounded transition-colors">Reset Defaults</button><button type="button" class="px-space-sm py-space-xs bg-surface-container hover:bg-surface-container-highest text-primary font-mono-table text-mono-table rounded flex items-center gap-space-2xs transition-colors"><span class="material-symbols-outlined text-[16px]">terminal</span><span class="">Dry-Run Test</span></button></div><div class="flex items-center gap-space-xs w-full sm:w-auto justify-end"><button onclick="document.getElementById('onload-tuning-modal').classList.add('hidden')" type="button" class="px-space-md py-space-xs bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-mono-table text-mono-table rounded transition-colors">Cancel</button><button onclick="alert('Onload parameters hot-applied to Node-01-NY4 Solarflare X2522 with 0 dropped frames.'); document.getElementById('onload-tuning-modal').classList.add('hidden');" type="button" class="px-space-md py-space-xs bg-primary hover:bg-primary-container text-on-primary font-mono-table text-mono-table font-semibold rounded flex items-center gap-space-xs shadow-sm transition-colors"><span class="material-symbols-outlined text-[16px]">bolt</span><span class="">Hot-Apply to Onload Stack (Zero-Drop)</span></button></div></div></div></div>
+
+</body></html>

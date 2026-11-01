@@ -1,0 +1,823 @@
+<!DOCTYPE html><html class="dark" lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"inverse-primary":"#00668a","on-tertiary-container":"#8c0028","on-secondary-fixed":"#002113","secondary-fixed-dim":"#4edea3","secondary-fixed":"#6ffbbe","on-secondary-fixed-variant":"#005236","inverse-on-surface":"#2e3036","on-primary-fixed-variant":"#004c69","secondary-container":"#00a572","tertiary":"#ffbcbf","outline":"#87929a","surface-tint":"#7bd0ff","secondary":"#4edea3","outline-variant":"#3e484f","primary":"#8ed5ff","on-primary":"#00354a","on-error-container":"#ffdad6","tertiary-container":"#ff929a","primary-fixed-dim":"#7bd0ff","surface-variant":"#33353a","background":"#111319","surface-container-low":"#191b21","on-primary-fixed":"#001e2c","surface-dim":"#111319","tertiary-fixed-dim":"#ffb2b7","surface-container-high":"#282a30","surface-container":"#1e1f25","surface":"#111319","surface-container-highest":"#33353a","on-error":"#690005","on-tertiary-fixed-variant":"#92002a","on-surface":"#e2e2e9","on-primary-container":"#004965","on-secondary":"#003824","surface-bright":"#37393f","on-background":"#e2e2e9","inverse-surface":"#e2e2e9","on-surface-variant":"#bdc8d1","primary-fixed":"#c4e7ff","on-tertiary-fixed":"#40000d","error-container":"#93000a","error":"#ffb4ab","primary-container":"#38bdf8","on-tertiary":"#67001b","tertiary-fixed":"#ffdadb","surface-container-lowest":"#0c0e13","on-secondary-container":"#00311f"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"space-xl":"1.5rem","space-lg":"1rem","space-md":"0.75rem","space-2xs":"0.125rem","margin":"0.75rem","space-xs":"0.25rem","space-sm":"0.5rem","margin-compact":"0.5rem","gutter":"0.5rem","gutter-compact":"0.25rem"},"fontFamily":{"label-caps":["Inter"],"mono-table":["JetBrains Mono"],"mono-metric-xl":["JetBrains Mono"],"mono-metric-lg":["JetBrains Mono"],"body-md":["Inter"],"body-sm":["Inter"],"headline-sm":["Inter"],"headline-xl":["Inter"],"headline-md":["Inter"],"body-lg":["Inter"],"mono-micro":["JetBrains Mono"],"headline-lg":["Inter"]},"fontSize":{"label-caps":["10px",{"lineHeight":"12px","letterSpacing":"0.06em","fontWeight":"600"}],"mono-table":["12px",{"lineHeight":"16px","letterSpacing":"0em","fontWeight":"400"}],"mono-metric-xl":["24px",{"lineHeight":"28px","letterSpacing":"-0.02em","fontWeight":"600"}],"mono-metric-lg":["16px",{"lineHeight":"20px","letterSpacing":"-0.01em","fontWeight":"500"}],"body-md":["12px",{"lineHeight":"16px","letterSpacing":"0em","fontWeight":"400"}],"body-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.01em","fontWeight":"400"}],"headline-sm":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"600"}],"headline-xl":["32px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"600"}],"headline-md":["18px",{"lineHeight":"24px","letterSpacing":"-0.01em","fontWeight":"600"}],"body-lg":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}],"mono-micro":["10px",{"lineHeight":"12px","letterSpacing":"0.02em","fontWeight":"500"}],"headline-lg":["24px",{"lineHeight":"30px","letterSpacing":"-0.015em","fontWeight":"600"}]}}}};</script></head><body class="bg-background font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container"><header class="fixed top-0 left-0 right-0 z-50 bg-surface-container-lowest/95 backdrop-blur-md"><div class="h-16 w-full px-space-md flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md shrink-0"><img alt="Zien Logo" class="h-10 w-auto object-contain shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2o_0kwoCNyXDyG7fiG7kA0jhTO5jYBrX2ibqU1iRwxjxk7YoV9xidprg7KIyzYJW43WxJ2l2v4rjiba9PLOvK2eM2i0NGe5taLiMp_Dp3F5bW5k-jhhyG4T0dfi3pRuJlgQqDzJgCZ6HYYfPNPcqVmdxNQAuOMcFOWH93c0-kNxPFZkpyFjNkb5UnaIo_-bSXsEbQn_BCsKgIsO1WZwpc6RXsx4MUOI8rWDaiZSeiO_OKxsIQp4dh8Q"><div class="flex flex-col"><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm tracking-wider uppercase text-on-surface font-semibold">ZILLERS</span><span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-surface-container-highest text-primary-container rounded shrink-0">v4.2</span></div><div class="flex items-center gap-space-xs whitespace-nowrap"><span class="inline-block w-1.5 h-1.5 rounded-full bg-secondary animate-pulse shrink-0"></span><span class="font-mono-micro text-mono-micro text-secondary uppercase tracking-wider">(A Zien Organisation Company)</span></div></div></div><nav class="flex items-center gap-space-xs bg-surface-container-lowest p-space-2xs rounded-lg overflow-x-auto shrink" data-active-classes="bg-surface-container-high text-primary"><a class="px-space-md py-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded whitespace-nowrap shrink-0" data-path="zillers-tactical-workspace" href="#">Terminal</a><a class="px-space-md py-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded whitespace-nowrap shrink-0" data-path="zillers-strategy-engine" href="#">Strategy Engine</a><a class="px-space-md py-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded whitespace-nowrap shrink-0" data-path="zillers-order-book-liquidity" href="#">Order Book &amp; Liquidity</a><a class="px-space-md py-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded whitespace-nowrap shrink-0" data-path="zillers-risk-matrix" href="#">Risk Matrix</a><a class="px-space-md py-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded whitespace-nowrap shrink-0" data-path="zillers-execution-logs" href="#">Execution Logs</a><a class="px-space-md py-space-xs font-label-caps text-label-caps uppercase text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded whitespace-nowrap shrink-0" data-path="zillers-system-settings" href="#">Settings</a></nav><div class="flex items-center gap-space-sm shrink-0"><div class="hidden xl:flex items-center gap-space-md bg-surface-container-low px-space-md py-space-xs rounded"><div class="flex items-center gap-space-xs font-mono-table text-mono-table"><span class="material-symbols-outlined text-[14px] text-secondary">bolt</span><span class="text-on-surface-variant">NRT:</span><span class="text-secondary">1.8ms HND</span><span class="text-on-surface-variant">|</span><span class="text-secondary">4.2ms ORD</span></div><div class="flex items-center gap-space-xs font-mono-table text-mono-table"><span class="text-on-surface-variant">ETH-PERP FR:</span><span class="text-secondary">+0.0102%</span></div></div><div class="hidden lg:flex flex-col items-end px-space-sm bg-surface-container-low py-space-2xs rounded"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Prime AUM #084</span><span class="font-mono-metric-lg text-mono-metric-lg text-primary">$42,819,400.22</span></div><button class="flex items-center gap-space-xs px-space-md py-space-xs bg-error-container text-on-error rounded hover:bg-error transition-colors" type="button"><span class="material-symbols-outlined text-[16px]">power_settings_new</span><span class="font-mono-table text-mono-table font-semibold uppercase tracking-wider">KILL-SWITCH</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><aside class="fixed left-0 top-16 bottom-0 w-64 bg-surface-container-lowest z-40 flex flex-col justify-between py-space-md"><div class="flex flex-col gap-space-md px-space-sm"><div class="px-space-sm py-space-xs bg-surface-container-low rounded"><div class="flex items-center justify-between"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Core Telemetry</span><span class="w-2 h-2 rounded-full bg-secondary"></span></div><div class="mt-space-xs font-mono-table text-mono-table text-secondary flex items-center justify-between"><span class="">ENGINES ALL GREEN</span><span class="">100.0%</span></div></div><nav class="flex flex-col gap-space-2xs" data-active-classes="bg-surface-container-high text-primary font-semibold"><a class="flex items-center justify-between px-space-md py-space-sm rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="zillers-tactical-workspace" href="#"><span class="">Tactical Workspace</span><span class="font-mono-micro text-mono-micro text-on-surface-variant">L1</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="zillers-strategy-engine" href="#"><span class="">Alpha Algos</span><span class="font-mono-micro text-mono-micro text-secondary">12 ACT</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="zillers-order-book-liquidity" href="#"><span class="">Market Depth L3</span><span class="font-mono-micro text-mono-micro text-primary">LIVE</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="zillers-risk-matrix" href="#"><span class="">VaR &amp; Collateral</span><span class="font-mono-micro text-mono-micro text-on-surface-variant">0.04%</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="zillers-execution-logs" href="#"><span class="">SOR Audit Tape</span><span class="font-mono-micro text-mono-micro text-on-surface-variant">480 msg/s</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="zillers-system-settings" href="#"><span class="">FIX / ITCH Config</span><span class="font-mono-micro text-mono-micro text-on-surface-variant">SYS</span></a></nav></div><div class="px-space-md flex flex-col gap-space-xs font-mono-micro text-mono-micro text-on-surface-variant bg-surface-container-low mx-space-sm p-space-sm rounded"><div class="flex justify-between items-center"><span class="">GATEWAY:</span><span class="text-secondary">ONLINE</span></div><div class="flex justify-between items-center"><span class="">MEM_POOL:</span><span class="text-on-surface">14.2 GB</span></div><div class="flex justify-between items-center"><span class="">PTP CLOCK DRIFT:</span><span class="text-secondary">&lt;14ns</span></div></div></aside><div class="pl-64"><main class="w-full pt-16 bg-background min-h-screen"><div class="flex flex-col w-full">
+<!-- Dynamic Top Bar / Command Strip -->
+<div class="p-space-md flex flex-col gap-space-md">
+<!-- Primary Station Banner -->
+<div class="bg-surface-container-low rounded-lg p-space-md flex flex-col xl:flex-row items-start xl:items-center justify-between gap-space-md shadow-sm overflow-hidden">
+<div class="flex flex-wrap items-center gap-space-md overflow-hidden">
+<div class="w-10 h-10 rounded bg-surface-container flex items-center justify-center text-primary shrink-0 shadow-inner">
+<span class="material-symbols-outlined text-[24px]">terminal</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs flex-wrap">
+<span class="font-headline-sm text-headline-sm uppercase text-on-surface font-semibold tracking-wider">WORKSTATION-APEX-09</span>
+<span class="px-space-xs py-space-2xs bg-secondary/15 text-secondary font-mono-micro text-mono-micro rounded uppercase font-semibold">ONLINE // LOW-LATENCY PROFILE</span>
+<span class="px-space-xs py-space-2xs bg-surface-container-highest text-primary font-mono-micro text-mono-micro rounded">PID: 84920</span>
+</div>
+<div class="flex items-center gap-space-sm text-on-surface-variant font-mono-micro text-mono-micro mt-space-2xs flex-wrap">
+<span class="">Apple M3 Max (16C CPU / 40C GPU)</span>
+<span class="">•</span>
+<span class="">Darwin 24.2.0 (ARM64) Metal 3</span>
+<span class="">•</span>
+<span class="text-on-surface">IP: 10.240.14.88</span>
+<span class="">•</span>
+<span class="">3840x2160 @ 120Hz ProMotion HDR</span>
+</div>
+</div>
+</div>
+<!-- Quick Action Pill Group -->
+<div class="flex items-center gap-space-xs flex-wrap overflow-hidden">
+<div class="bg-surface-container-lowest px-space-sm py-space-xs rounded flex items-center gap-space-xs font-mono-table text-mono-table">
+<span class="material-symbols-outlined text-secondary text-[16px]">schedule</span>
+<span class="text-on-surface-variant font-mono-micro text-mono-micro">UPTIME:</span>
+<span class="text-on-surface font-medium">18d 04h 12m</span>
+</div>
+<div class="bg-surface-container-lowest px-space-sm py-space-xs rounded flex items-center gap-space-xs font-mono-table text-mono-table">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="text-on-surface-variant font-mono-micro text-mono-micro">OS SCHEDULER:</span>
+<span class="text-secondary font-medium">ZERO THROTTLE</span>
+</div>
+<button class="bg-surface-container-high hover:bg-surface-bright text-on-surface font-mono-micro text-mono-micro px-space-sm py-space-xs rounded transition-colors flex items-center gap-space-2xs" id="btn-gc" onclick="triggerGC()">
+<span class="material-symbols-outlined text-[14px] text-primary">cleaning_services</span>
+<span class="">FLUSH V8 HEAP</span>
+</button>
+</div>
+</div>
+<!-- Real-Time Micro Telemetry Ticker Strip -->
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-space-sm overflow-hidden">
+<!-- Metric 1: Local UI FPS -->
+<div class="bg-surface-container-low rounded-lg p-space-sm flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between text-on-surface-variant">
+<span class="font-label-caps text-label-caps uppercase">Local UI Refresh</span>
+<span class="material-symbols-outlined text-primary text-[14px]">speed</span>
+</div>
+<div class="flex items-baseline justify-between mt-space-xs">
+<span class="font-mono-metric-xl text-mono-metric-xl text-primary" id="fps-counter">119.9</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">TARGET 120 FPS</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1 mt-space-xs overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 99.8%;"></div>
+</div>
+<div class="flex justify-between items-center mt-space-2xs font-mono-micro text-mono-micro text-on-surface-variant">
+<span class="">Jitter: 0.12ms</span>
+<span class="text-secondary">FRAME LOCK</span>
+</div>
+</div>
+<!-- Metric 2: DOM Render Latency -->
+<div class="bg-surface-container-low rounded-lg p-space-sm flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between text-on-surface-variant">
+<span class="font-label-caps text-label-caps uppercase">DOM Paint Latency</span>
+<span class="material-symbols-outlined text-secondary text-[14px]">brush</span>
+</div>
+<div class="flex items-baseline justify-between mt-space-xs">
+<span class="font-mono-metric-xl text-mono-metric-xl text-secondary" id="dom-latency">1.41</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">MILLISECONDS</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1 mt-space-xs overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 17%;"></div>
+</div>
+<div class="flex justify-between items-center mt-space-2xs font-mono-micro text-mono-micro text-on-surface-variant">
+<span class="">Budget: 8.33ms</span>
+<span class="text-secondary">ACCELERATED</span>
+</div>
+</div>
+<!-- Metric 3: WebSocket Ingress -->
+<div class="bg-surface-container-low rounded-lg p-space-sm flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between text-on-surface-variant">
+<span class="font-label-caps text-label-caps uppercase">WS Ingress Rate</span>
+<span class="material-symbols-outlined text-primary-container text-[14px]">swap_vertical_circle</span>
+</div>
+<div class="flex items-baseline justify-between mt-space-xs">
+<span class="font-mono-metric-xl text-mono-metric-xl text-on-surface" id="ws-rate">18,468</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">MSGS/SEC</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1 mt-space-xs overflow-hidden">
+<div class="bg-primary-container h-full rounded-full" style="width: 46%;"></div>
+</div>
+<div class="flex justify-between items-center mt-space-2xs font-mono-micro text-mono-micro text-on-surface-variant">
+<span class="">Ring Backpressure: 0.4%</span>
+<span class="text-secondary">0 DROPS</span>
+</div>
+</div>
+<!-- Metric 4: V8 Heap -->
+<div class="bg-surface-container-low rounded-lg p-space-sm flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between text-on-surface-variant">
+<span class="font-label-caps text-label-caps uppercase">V8 Runtime Heap</span>
+<span class="material-symbols-outlined text-primary text-[14px]">memory</span>
+</div>
+<div class="flex items-baseline justify-between mt-space-xs">
+<span class="font-mono-metric-xl text-mono-metric-xl text-on-surface">1.84</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">GB / 4.0 GB MAX</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1 mt-space-xs overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 46%;"></div>
+</div>
+<div class="flex justify-between items-center mt-space-2xs font-mono-micro text-mono-micro text-on-surface-variant">
+<span class="">GC Pause p99: 0.38ms</span>
+<span class="text-secondary">STABLE</span>
+</div>
+</div>
+<!-- Metric 5: NTP / Clock Drift -->
+<div class="bg-surface-container-low rounded-lg p-space-sm flex flex-col justify-between shadow-sm col-span-2 md:col-span-1">
+<div class="flex items-center justify-between text-on-surface-variant">
+<span class="font-label-caps text-label-caps uppercase">PTP Drift Offset</span>
+<span class="material-symbols-outlined text-secondary text-[14px]">timer</span>
+</div>
+<div class="flex items-baseline justify-between mt-space-xs">
+<span class="font-mono-metric-xl text-mono-metric-xl text-secondary">+0.42</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">MICROSECONDS</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1 mt-space-xs overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 8%;"></div>
+</div>
+<div class="flex justify-between items-center mt-space-2xs font-mono-micro text-mono-micro text-on-surface-variant">
+<span class="">Ref: NY4 PTP Grandmaster</span>
+<span class="text-secondary">SYNCED</span>
+</div>
+</div>
+</div>
+<!-- Main Grid Section 1: CPU Architecture & Memory Allocations -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-space-md">
+<!-- Left: CPU Core Matrix & Thread Utilization -->
+<div class="bg-surface-container-low rounded-lg p-space-md flex flex-col justify-between shadow-sm">
+<div class="overflow-hidden">
+<!-- Header Bar -->
+<div class="flex items-center justify-between pb-space-xs bg-surface-container-low">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[18px]">developer_board</span>
+<span class="font-label-caps text-label-caps uppercase text-on-surface font-semibold tracking-wider">CPU Core Allocation &amp; Thermal Telemetry</span>
+</div>
+<div class="flex items-center gap-space-xs font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">CLOCK:</span>
+<span class="text-primary font-medium">3.98 GHz TURBO</span>
+</div>
+</div>
+<!-- Thermal and Thread Summary Bar -->
+<div class="grid grid-cols-3 gap-space-xs mt-space-sm bg-surface-container-lowest p-space-xs rounded">
+<div class="flex flex-col">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">PACKAGE TEMP</span>
+<span class="font-mono-metric-lg text-mono-metric-lg text-secondary">58.4°C</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant mt-space-2xs">+41.6°C to TJMax</span>
+</div>
+<div class="flex flex-col">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">FAN COOLING</span>
+<span class="font-mono-metric-lg text-mono-metric-lg text-on-surface">1,840 RPM</span>
+<span class="font-mono-micro text-mono-micro text-secondary mt-space-2xs">Acoustics: Quiet</span>
+</div>
+<div class="flex flex-col">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">CONTEXT SWITCHES</span>
+<span class="font-mono-metric-lg text-mono-metric-lg text-primary">1,240 <span class="font-mono-micro text-mono-micro text-on-surface-variant">ctx/s</span></span>
+<span class="font-mono-micro text-mono-micro text-secondary mt-space-2xs">0 Core Throttles</span>
+</div>
+</div>
+<!-- Core Heatmap Matrix -->
+<div class="mt-space-md">
+<div class="flex items-center justify-between font-mono-micro text-mono-micro text-on-surface-variant mb-space-xs">
+<span class="uppercase">Logical Core Matrix (16 Cores)</span>
+<span class="">24 Active / 4 Sleeping / 0 Blocked Threads</span>
+</div>
+<!-- Group A: P-Cores 0-3 (UI & WebGL Paint) -->
+<div class="mb-space-sm">
+<div class="flex items-center justify-between font-mono-micro text-mono-micro text-on-surface-variant mb-space-2xs">
+<span class="text-primary font-semibold">P-CORES 0-3: High-Priority UI Render &amp; WebGL Paint</span>
+<span class="text-on-surface">Avg 46.5%</span>
+</div>
+<div class="grid grid-cols-4 gap-space-xs">
+<div class="bg-surface-container p-space-xs rounded flex flex-col justify-between">
+<div class="flex justify-between items-center font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">C00</span>
+<span class="text-primary">54%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-space-xs overflow-hidden">
+<div class="bg-primary h-full" style="width: 54%;"></div>
+</div>
+<span class="font-mono-micro text-[9px] text-on-surface-variant mt-space-2xs">DOM Engine</span>
+</div>
+<div class="bg-surface-container p-space-xs rounded flex flex-col justify-between">
+<div class="flex justify-between items-center font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">C01</span>
+<span class="text-primary">48%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-space-xs overflow-hidden">
+<div class="bg-primary h-full" style="width: 48%;"></div>
+</div>
+<span class="font-mono-micro text-[9px] text-on-surface-variant mt-space-2xs">Metal Worker</span>
+</div>
+<div class="bg-surface-container p-space-xs rounded flex flex-col justify-between">
+<div class="flex justify-between items-center font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">C02</span>
+<span class="text-primary">46%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-space-xs overflow-hidden">
+<div class="bg-primary h-full" style="width: 46%;"></div>
+</div>
+<span class="font-mono-micro text-[9px] text-on-surface-variant mt-space-2xs">Canvas 2D</span>
+</div>
+<div class="bg-surface-container p-space-xs rounded flex flex-col justify-between">
+<div class="flex justify-between items-center font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">C03</span>
+<span class="text-primary">38%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-space-xs overflow-hidden">
+<div class="bg-primary h-full" style="width: 38%;"></div>
+</div>
+<span class="font-mono-micro text-[9px] text-on-surface-variant mt-space-2xs">Event Pump</span>
+</div>
+</div>
+</div>
+<!-- Group B: P-Cores 4-11 (SIMD & Ingress Parsing) -->
+<div class="mb-space-sm">
+<div class="flex items-center justify-between font-mono-micro text-mono-micro text-on-surface-variant mb-space-2xs">
+<span class="text-secondary font-semibold">P-CORES 4-11: SIMD FlatBuffers / Ingress Deserializer</span>
+<span class="text-on-surface">Avg 54.8%</span>
+</div>
+<div class="grid grid-cols-4 md:grid-cols-8 gap-space-xs">
+<div class="bg-surface-container p-space-xs rounded flex flex-col justify-between">
+<div class="flex justify-between items-center font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">C04</span>
+<span class="text-secondary">68%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-space-xs overflow-hidden">
+<div class="bg-secondary h-full" style="width: 68%;"></div>
+</div>
+</div>
+<div class="bg-surface-container p-space-xs rounded flex flex-col justify-between">
+<div class="flex justify-between items-center font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">C05</span>
+<span class="text-secondary">62%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-space-xs overflow-hidden">
+<div class="bg-secondary h-full" style="width: 62%;"></div>
+</div>
+</div>
+<div class="bg-surface-container p-space-xs rounded flex flex-col justify-between">
+<div class="flex justify-between items-center font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">C06</span>
+<span class="text-secondary">55%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-space-xs overflow-hidden">
+<div class="bg-secondary h-full" style="width: 55%;"></div>
+</div>
+</div>
+<div class="bg-surface-container p-space-xs rounded flex flex-col justify-between">
+<div class="flex justify-between items-center font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">C07</span>
+<span class="text-secondary">59%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-space-xs overflow-hidden">
+<div class="bg-secondary h-full" style="width: 59%;"></div>
+</div>
+</div>
+<div class="bg-surface-container p-space-xs rounded flex flex-col justify-between">
+<div class="flex justify-between items-center font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">C08</span>
+<span class="text-secondary">51%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-space-xs overflow-hidden">
+<div class="bg-secondary h-full" style="width: 51%;"></div>
+</div>
+</div>
+<div class="bg-surface-container p-space-xs rounded flex flex-col justify-between">
+<div class="flex justify-between items-center font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">C09</span>
+<span class="text-secondary">49%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-space-xs overflow-hidden">
+<div class="bg-secondary h-full" style="width: 49%;"></div>
+</div>
+</div>
+<div class="bg-surface-container p-space-xs rounded flex flex-col justify-between">
+<div class="flex justify-between items-center font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">C10</span>
+<span class="text-secondary">52%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-space-xs overflow-hidden">
+<div class="bg-secondary h-full" style="width: 52%;"></div>
+</div>
+</div>
+<div class="bg-surface-container p-space-xs rounded flex flex-col justify-between">
+<div class="flex justify-between items-center font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">C11</span>
+<span class="text-secondary">42%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-space-xs overflow-hidden">
+<div class="bg-secondary h-full" style="width: 42%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Group C: E-Cores 12-15 (Telemetry & Sync) -->
+<div>
+<div class="flex items-center justify-between font-mono-micro text-mono-micro text-on-surface-variant mb-space-2xs">
+<span class="text-on-surface font-semibold">E-CORES 12-15: Background Heartbeats &amp; Disk Sync</span>
+<span class="text-on-surface">Avg 15.2%</span>
+</div>
+<div class="grid grid-cols-4 gap-space-xs">
+<div class="bg-surface-container p-space-xs rounded flex flex-col justify-between">
+<div class="flex justify-between items-center font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">C12</span>
+<span class="text-on-surface">19%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-space-xs overflow-hidden">
+<div class="bg-on-surface-variant h-full" style="width: 19%;"></div>
+</div>
+</div>
+<div class="bg-surface-container p-space-xs rounded flex flex-col justify-between">
+<div class="flex justify-between items-center font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">C13</span>
+<span class="text-on-surface">16%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-space-xs overflow-hidden">
+<div class="bg-on-surface-variant h-full" style="width: 16%;"></div>
+</div>
+</div>
+<div class="bg-surface-container p-space-xs rounded flex flex-col justify-between">
+<div class="flex justify-between items-center font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">C14</span>
+<span class="text-on-surface">14%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-space-xs overflow-hidden">
+<div class="bg-on-surface-variant h-full" style="width: 14%;"></div>
+</div>
+</div>
+<div class="bg-surface-container p-space-xs rounded flex flex-col justify-between">
+<div class="flex justify-between items-center font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">C15</span>
+<span class="text-on-surface">12%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-space-xs overflow-hidden">
+<div class="bg-on-surface-variant h-full" style="width: 12%;"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Micro Footer Indicator -->
+<div class="mt-space-md pt-space-xs flex items-center justify-between font-mono-micro text-mono-micro text-on-surface-variant bg-surface-container-lowest p-space-xs rounded overflow-hidden">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="">NUMA NODE #0: ALLOCATED STRICT LOCAL</span>
+</div>
+<span class="text-primary">AVX-512 / NEON ACCEL ACTIVE</span>
+</div>
+</div>
+<!-- Right: Memory Allocation & Heap Profiler -->
+<div class="bg-surface-container-low rounded-lg p-space-md flex flex-col justify-between shadow-sm">
+<div class="overflow-hidden">
+<!-- Header Bar -->
+<div class="flex items-center justify-between pb-space-xs bg-surface-container-low">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-[18px]">memory_alt</span>
+<span class="font-label-caps text-label-caps uppercase text-on-surface font-semibold tracking-wider">Memory Allocation &amp; Garbage Collection</span>
+</div>
+<span class="font-mono-micro text-mono-micro text-secondary">LPDDR5X // 128 GB UNIFIED</span>
+</div>
+<!-- High-Level RAM Usage Bar -->
+<div class="bg-surface-container-lowest p-space-sm rounded mt-space-sm">
+<div class="flex items-center justify-between font-mono-table text-mono-table mb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="text-on-surface font-semibold">34.2 GB Used</span>
+<span class="text-on-surface-variant font-mono-micro text-mono-micro">(26.7%)</span>
+</div>
+<span class="text-on-surface-variant font-mono-micro text-mono-micro">65.4 GB Free • 28.4 GB Cache • 0.0 Compressed</span>
+</div>
+<!-- Stacked Hardware Memory Bar -->
+<div class="w-full bg-surface-container-highest rounded-full h-2 flex overflow-hidden">
+<div class="bg-primary h-full" style="width: 26.7%;"></div>
+<div class="bg-surface-bright h-full" style="width: 22.2%;"></div>
+<div class="bg-surface-container-lowest h-full" style="width: 51.1%;"></div>
+</div>
+<div class="flex items-center gap-space-md mt-space-xs font-mono-micro text-mono-micro text-on-surface-variant">
+<span class="flex items-center gap-space-2xs"><span class="w-2 h-2 rounded-full bg-primary inline-block"></span> Client Engine Used (34.2GB)</span>
+<span class="flex items-center gap-space-2xs"><span class="w-2 h-2 rounded-full bg-surface-bright inline-block"></span> OS &amp; Inactive Cache (28.4GB)</span>
+<span class="flex items-center gap-space-2xs"><span class="w-2 h-2 rounded-full bg-surface-container-highest inline-block"></span> Free Headroom (65.4GB)</span>
+</div>
+</div>
+<!-- Terminal Client Sub-Allocations Breakdown -->
+<div class="mt-space-md">
+<span class="font-mono-micro text-mono-micro uppercase text-on-surface-variant block mb-space-xs">Terminal Process Memory Sub-Systems</span>
+<div class="flex flex-col gap-space-xs">
+<!-- Sub item 1 -->
+<div class="bg-surface-container p-space-xs rounded flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[16px]">account_tree</span>
+<div class="flex flex-col">
+<span class="font-mono-table text-mono-table text-on-surface">L3 Order Book In-Memory Tree</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">Red-Black B-Tree, 120 Depth Levels</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="font-mono-metric-lg text-mono-metric-lg text-primary">640 MB</span>
+<span class="font-mono-micro text-mono-micro text-secondary">34.8% of Alloc</span>
+</div>
+</div>
+<!-- Sub item 2 -->
+<div class="bg-surface-container p-space-xs rounded flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-secondary text-[16px]">layers</span>
+<div class="flex flex-col">
+<span class="font-mono-table text-mono-table text-on-surface">WebGL Texture &amp; Depth Heatmap Buffers</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">Shared GPU Unified Unified RAM</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="font-mono-metric-lg text-mono-metric-lg text-secondary">512 MB</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">27.8% of Alloc</span>
+</div>
+</div>
+<!-- Sub item 3 -->
+<div class="bg-surface-container p-space-xs rounded flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary-container text-[16px]">history</span>
+<div class="flex flex-col">
+<span class="font-mono-table text-mono-table text-on-surface">Historical Tape Circular Ring Buffer</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">1,000,000 In-Flight Ticks Cached</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="font-mono-metric-lg text-mono-metric-lg text-on-surface">420 MB</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">22.8% of Alloc</span>
+</div>
+</div>
+<!-- Sub item 4 -->
+<div class="bg-surface-container p-space-xs rounded flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-on-surface text-[16px]">code</span>
+<div class="flex flex-col">
+<span class="font-mono-table text-mono-table text-on-surface">JavaScript V8 Engine &amp; WASM Heap</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">SIMD WebAssembly Parser Module</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="font-mono-metric-lg text-mono-metric-lg text-on-surface">268 MB</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">14.6% of Alloc</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- GC Diagnostics Footer -->
+<div class="mt-space-md pt-space-xs bg-surface-container-lowest p-space-xs rounded grid grid-cols-4 gap-space-2xs text-center font-mono-micro text-mono-micro overflow-hidden">
+<div>
+<span class="text-on-surface-variant block">LAST GC</span>
+<span class="text-on-surface font-semibold" id="last-gc-time">3.2s ago</span>
+</div>
+<div>
+<span class="text-on-surface-variant block">MINOR SCAVENGE</span>
+<span class="text-secondary font-semibold">0.14 ms</span>
+</div>
+<div>
+<span class="text-on-surface-variant block">MAJOR MARK-SWEEP</span>
+<span class="text-primary font-semibold">1.10 ms</span>
+</div>
+<div>
+<span class="text-on-surface-variant block">GC CPU COST</span>
+<span class="text-secondary font-semibold">0.08%</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Grid Section 2: Network Stack & GPU Compute Pipeline -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-space-md">
+<!-- Left Bottom: Local WebSocket & Network Stack Diagnostics -->
+<div class="bg-surface-container-low rounded-lg p-space-md flex flex-col justify-between shadow-sm">
+<div class="overflow-hidden">
+<!-- Header Bar -->
+<div class="flex items-center justify-between pb-space-xs bg-surface-container-low">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[18px]">lan</span>
+<span class="font-label-caps text-label-caps uppercase text-on-surface font-semibold tracking-wider">Local Network Stack &amp; WebSocket Ingress</span>
+</div>
+<span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-secondary/15 text-secondary rounded uppercase">Thunderbolt 10GbE SFP+ (en0)</span>
+</div>
+<!-- Bandwidth Telemetry Strip with Sparkline -->
+<div class="bg-surface-container-lowest p-space-sm rounded mt-space-sm flex flex-col sm:flex-row items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-lg w-full sm:w-auto">
+<div class="flex flex-col">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant uppercase">RX INGRESS RATE</span>
+<span class="font-mono-metric-xl text-mono-metric-xl text-secondary">14.8 <span class="font-mono-table text-mono-table text-on-surface-variant">MB/s</span></span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">Peak: 38.2 MB/s</span>
+</div>
+<div class="flex flex-col">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant uppercase">TX EGRESS RATE</span>
+<span class="font-mono-metric-xl text-mono-metric-xl text-primary">420 <span class="font-mono-table text-mono-table text-on-surface-variant">KB/s</span></span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">Orders &amp; Heartbeats</span>
+</div>
+</div>
+<!-- Inline Mini Sparkline Chart -->
+<div class="w-full sm:w-44 h-12 flex flex-col justify-end">
+<div class="flex items-center justify-between font-mono-micro text-mono-micro text-on-surface-variant mb-1">
+<span class="">Ingress 60s Trend</span>
+<span class="text-secondary">0.000% Loss</span>
+</div>
+<svg class="w-full h-8 text-secondary overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 24">
+<path d="M0,20 Q10,12 20,18 T40,6 T60,14 T80,4 L100,10" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M0,20 Q10,12 20,18 T40,6 T60,14 T80,4 L100,10 L100,24 L0,24 Z" fill="currentColor" fill-opacity="0.12"></path>
+</svg>
+</div>
+</div>
+<!-- Socket Connection Pool Table -->
+<div class="mt-space-md overflow-x-auto">
+<span class="font-mono-micro text-mono-micro uppercase text-on-surface-variant block mb-space-xs">Low-Latency Multiplexed TCP Sockets</span>
+<table class="w-full text-left font-mono-table text-mono-table">
+<thead>
+<tr class="text-on-surface-variant font-mono-micro text-mono-micro uppercase bg-surface-container">
+<th class="py-space-xs px-space-xs rounded-l">Endpoint Target</th>
+<th class="py-space-xs px-space-xs">State / Protocol</th>
+<th class="py-space-xs px-space-xs">RTT</th>
+<th class="py-space-xs px-space-xs">Throughput</th>
+<th class="py-space-xs px-space-xs text-right rounded-r">Msg Rate</th>
+</tr>
+</thead>
+<tbody class="divide-y-0">
+<tr class="bg-surface-container-lowest/60 hover:bg-surface-container transition-colors">
+<td class="py-space-xs px-space-xs text-on-surface font-medium">
+<div class="flex items-center gap-space-2xs">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="">feed-ny4.zillers.internal</span>
+</div>
+</td>
+<td class="py-space-xs px-space-xs">
+<span class="px-space-xs py-space-2xs bg-secondary/15 text-secondary font-mono-micro text-mono-micro rounded">ACTIVE // TLS 1.3</span>
+</td>
+<td class="py-space-xs px-space-xs text-secondary font-semibold">1.8 ms</td>
+<td class="py-space-xs px-space-xs text-on-surface">12.4 MB/s</td>
+<td class="py-space-xs px-space-xs text-right text-primary font-medium">14,200 /s</td>
+</tr>
+<tr class="bg-surface-container-lowest/40 hover:bg-surface-container transition-colors">
+<td class="py-space-xs px-space-xs text-on-surface font-medium">
+<div class="flex items-center gap-space-2xs">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span class="">feed-ld4.zillers.internal</span>
+</div>
+</td>
+<td class="py-space-xs px-space-xs">
+<span class="px-space-xs py-space-2xs bg-primary/10 text-primary font-mono-micro text-mono-micro rounded">STANDBY // TLS 1.3</span>
+</td>
+<td class="py-space-xs px-space-xs text-on-surface-variant">38.4 ms</td>
+<td class="py-space-xs px-space-xs text-on-surface">1.1 MB/s</td>
+<td class="py-space-xs px-space-xs text-right text-on-surface font-medium">4,250 /s</td>
+</tr>
+<tr class="bg-surface-container-lowest/60 hover:bg-surface-container transition-colors">
+<td class="py-space-xs px-space-xs text-on-surface font-medium">
+<div class="flex items-center gap-space-2xs">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="">api-sor.zillers.internal/v2</span>
+</div>
+</td>
+<td class="py-space-xs px-space-xs">
+<span class="px-space-xs py-space-2xs bg-secondary/15 text-secondary font-mono-micro text-mono-micro rounded">ROUTER // HTTP/2</span>
+</td>
+<td class="py-space-xs px-space-xs text-secondary font-semibold">1.4 ms</td>
+<td class="py-space-xs px-space-xs text-on-surface">1.3 MB/s</td>
+<td class="py-space-xs px-space-xs text-right text-secondary font-medium">820 /s</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Network Diagnostic Meta Footnote -->
+<div class="mt-space-md pt-space-xs flex items-center justify-between font-mono-micro text-mono-micro text-on-surface-variant bg-surface-container-lowest p-space-xs rounded overflow-hidden">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[14px] text-secondary">wifi</span>
+<span class="">FALLBACK ADAPTER: Wi-Fi 6E (en1) - STANDBY READY</span>
+</div>
+<span class="text-secondary font-semibold">SOCKET BUFFER BACKPRESSURE: 0 BYTES</span>
+</div>
+</div>
+<!-- Right Bottom: GPU Acceleration & Render Pipeline Monitor -->
+<div class="bg-surface-container-low rounded-lg p-space-md flex flex-col justify-between shadow-sm">
+<div class="overflow-hidden">
+<!-- Header Bar -->
+<div class="flex items-center justify-between pb-space-xs bg-surface-container-low">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[18px]">videogame_asset</span>
+<span class="font-label-caps text-label-caps uppercase text-on-surface font-semibold tracking-wider">Metal 3 GPU Acceleration &amp; Render Pipeline</span>
+</div>
+<span class="font-mono-micro text-mono-micro text-primary">APPLE M3 MAX 40-CORE GPU</span>
+</div>
+<!-- GPU Engine Telemetry Summary -->
+<div class="grid grid-cols-4 gap-space-xs mt-space-sm bg-surface-container-lowest p-space-xs rounded text-center">
+<div class="flex flex-col">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">GPU LOAD</span>
+<span class="font-mono-metric-lg text-mono-metric-lg text-primary">24.6%</span>
+<span class="font-mono-micro text-mono-micro text-secondary mt-space-2xs">Optimal</span>
+</div>
+<div class="flex flex-col">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">VRAM ALLOC</span>
+<span class="font-mono-metric-lg text-mono-metric-lg text-on-surface">4.12 GB</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant mt-space-2xs">Unified Pool</span>
+</div>
+<div class="flex flex-col">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">CORE CLOCK</span>
+<span class="font-mono-metric-lg text-mono-metric-lg text-on-surface">1,380 MHz</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant mt-space-2xs">Power P-State</span>
+</div>
+<div class="flex flex-col">
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">DIE TEMP</span>
+<span class="font-mono-metric-lg text-mono-metric-lg text-secondary">52.0°C</span>
+<span class="font-mono-micro text-mono-micro text-secondary mt-space-2xs">Nominal</span>
+</div>
+</div>
+<!-- Frame Budget Visualizer -->
+<div class="mt-space-md">
+<div class="flex items-center justify-between font-mono-micro text-mono-micro mb-space-2xs">
+<span class="text-on-surface uppercase font-semibold">120Hz Frame Budget Utilization (8.33ms Max)</span>
+<span class="text-secondary font-semibold">1.85ms Render Time • 78% Headroom</span>
+</div>
+<!-- Multi-phase Frame Render Bar -->
+<div class="w-full bg-surface-container-highest rounded-full h-3 flex overflow-hidden">
+<div class="bg-primary h-full" style="width: 5.4%;" title="Vertex Transform: 0.18ms"></div>
+<div class="bg-secondary h-full" style="width: 13.5%;" title="Fragment Shader: 0.45ms"></div>
+<div class="bg-primary-container h-full" style="width: 6.6%;" title="Blit to Screen: 0.22ms"></div>
+<div class="bg-surface-container-lowest h-full" style="width: 74.5%;" title="Free Budget"></div>
+</div>
+<div class="flex items-center justify-between mt-space-2xs font-mono-micro text-mono-micro text-on-surface-variant">
+<div class="flex items-center gap-space-sm flex-wrap">
+<span class="flex items-center gap-space-2xs"><span class="w-2 h-2 rounded-full bg-primary inline-block"></span> Vertex (0.18ms)</span>
+<span class="flex items-center gap-space-2xs"><span class="w-2 h-2 rounded-full bg-secondary inline-block"></span> Fragment (0.45ms)</span>
+<span class="flex items-center gap-space-2xs"><span class="w-2 h-2 rounded-full bg-primary-container inline-block"></span> Screen Blit (0.22ms)</span>
+</div>
+<span class="text-on-surface font-semibold">142 Draw Calls / Frame</span>
+</div>
+</div>
+<!-- Canvas Rendering Layer Stacks -->
+<div class="mt-space-md flex flex-col gap-space-xs">
+<div class="bg-surface-container p-space-xs rounded flex items-center justify-between font-mono-table text-mono-table">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[16px] text-primary">view_quilt</span>
+<span class="text-on-surface">Order Depth Heatmap Matrix</span>
+</div>
+<div class="flex items-center gap-space-md font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">OffscreenCanvas • 1.8M Vertices/sec</span>
+<span class="text-secondary font-semibold">60.0 FPS LOCKED</span>
+</div>
+</div>
+<div class="bg-surface-container p-space-xs rounded flex items-center justify-between font-mono-table text-mono-table">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[16px] text-secondary">reorder</span>
+<span class="text-on-surface">Level 3 Virtualized DOM Ladder</span>
+</div>
+<div class="flex items-center gap-space-md font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">Shadow DOM • 0 Force Reflows</span>
+<span class="text-secondary font-semibold">120.0 FPS LOCKED</span>
+</div>
+</div>
+<div class="bg-surface-container p-space-xs rounded flex items-center justify-between font-mono-table text-mono-table">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[16px] text-primary-container">waterfall_chart</span>
+<span class="text-on-surface">Real-Time PnL &amp; Tick Tape Overlay</span>
+</div>
+<div class="flex items-center gap-space-md font-mono-micro text-mono-micro">
+<span class="text-on-surface-variant">Direct2D Metal Backend</span>
+<span class="text-secondary font-semibold">120.0 FPS LOCKED</span>
+</div>
+</div>
+</div>
+</div>
+<!-- GPU Pipeline Footer -->
+<div class="mt-space-md pt-space-xs flex items-center justify-between font-mono-micro text-mono-micro text-on-surface-variant bg-surface-container-lowest p-space-xs rounded overflow-hidden">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="">DISPLAY PROMOTION SYNC: 120.000 Hz LOCKED</span>
+</div>
+<span class="text-primary font-semibold">METAL SHADER COMPILER: CACHED (0 JANK)</span>
+</div>
+</div>
+</div>
+<!-- Bottom Section: Workstation Health, NVMe I/O & Quick Diagnostic Controls -->
+<div class="bg-surface-container-low rounded-lg p-space-md shadow-sm flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-space-md">
+<!-- Power & Storage Diagnostic Sub-modules -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md w-full xl:w-2/3 overflow-hidden">
+<!-- Power Submodule -->
+<div class="bg-surface-container p-space-sm rounded flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded bg-secondary/15 flex items-center justify-center text-secondary shrink-0">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps uppercase text-on-surface font-semibold">Power &amp; Thermal Governor</span>
+<span class="font-mono-micro text-mono-micro text-secondary font-medium">140W MagSafe 3 Connected</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">High Power Mode Active (No Throttling)</span>
+</div>
+</div>
+<!-- Wake Lock Submodule -->
+<div class="bg-surface-container p-space-sm rounded flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[18px]">screen_lock_rotation</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps uppercase text-on-surface font-semibold">Display Sleep Prevention</span>
+<span class="font-mono-micro text-mono-micro text-primary font-medium">WAKELOCK_ENGAGED</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">Lock active during NY/LDN core hours</span>
+</div>
+</div>
+<!-- NVMe Submodule -->
+<div class="bg-surface-container p-space-sm rounded flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded bg-surface-container-highest flex items-center justify-center text-on-surface shrink-0">
+<span class="material-symbols-outlined text-[18px]">storage</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps uppercase text-on-surface font-semibold">NVMe SQLite Audit Cache</span>
+<span class="font-mono-micro text-mono-micro text-on-surface font-medium">R: 1.2 MB/s • W: 8.4 MB/s</span>
+<span class="font-mono-micro text-mono-micro text-on-surface-variant">Health: 99% (42.1 TBW) • 38°C</span>
+</div>
+</div>
+</div>
+<!-- Quick Action Controls -->
+<div class="flex flex-wrap items-center justify-end gap-space-xs w-full xl:w-1/3 overflow-hidden">
+<button class="px-space-md py-space-xs bg-surface-container-high hover:bg-surface-bright text-on-surface font-mono-table text-mono-table rounded flex items-center gap-space-2xs transition-colors" onclick="runLocalBenchmark()">
+<span class="material-symbols-outlined text-primary text-[16px]">data_usage</span>
+<span class="">BENCHMARK WORKSTATION</span>
+</button>
+<button class="px-space-md py-space-xs bg-surface-container-high hover:bg-surface-bright text-on-surface font-mono-table text-mono-table rounded flex items-center gap-space-2xs transition-colors" id="btn-metal-debug" onclick="toggleMetalOverlay()">
+<span class="material-symbols-outlined text-secondary text-[16px]">visibility</span>
+<span class="">TOGGLE METAL HUD</span>
+</button>
+<button class="px-space-md py-space-xs bg-primary hover:bg-primary-container text-on-primary font-mono-table text-mono-table font-semibold rounded flex items-center gap-space-2xs shadow-sm transition-colors" onclick="exportDiagnosticReport()">
+<span class="material-symbols-outlined text-[16px]">download</span>
+<span class="">EXPORT REPORT (.JSON)</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<script>
+  // Live micro-interactions and ticker jitter simulation
+  function triggerGC() {
+    const btn = document.getElementById('btn-gc');
+    const lastGc = document.getElementById('last-gc-time');
+    btn.innerHTML = '<span class="material-symbols-outlined text-[14px] text-secondary animate-spin">refresh</span><span>SWEEPING HEAP...</span>';
+    setTimeout(() => {
+      btn.innerHTML = '<span class="material-symbols-outlined text-[14px] text-secondary">check</span><span>GC COMPLETED (214 MB RECLAIMED)</span>';
+      if (lastGc) lastGc.innerText = '0.1s ago';
+      setTimeout(() => {
+        btn.innerHTML = '<span class="material-symbols-outlined text-[14px] text-primary">cleaning_services</span><span>FLUSH V8 HEAP</span>';
+      }, 3000);
+    }, 450);
+  }
+
+  function runLocalBenchmark() {
+    alert("Running workstation thread loop test...\n16 Cores Pinned.\nResults: SIMD Deserialization throughput: 2,420,000 JSON msgs/sec.\nAll 0 latency breaches detected.");
+  }
+
+  let metalOverlayActive = false;
+  function toggleMetalOverlay() {
+    metalOverlayActive = !metalOverlayActive;
+    const btn = document.getElementById('btn-metal-debug');
+    if (metalOverlayActive) {
+      btn.classList.add('bg-primary', 'text-on-primary');
+      btn.classList.remove('bg-surface-container-high', 'text-on-surface');
+      alert("Metal 3 HUD Overlay enabled: Rendering live draw-call pass timings on Primary Display.");
+    } else {
+      btn.classList.remove('bg-primary', 'text-on-primary');
+      btn.classList.add('bg-surface-container-high', 'text-on-surface');
+      alert("Metal 3 HUD Overlay disabled.");
+    }
+  }
+
+  function exportDiagnosticReport() {
+    const reportData = {
+      workstation: "WORKSTATION-APEX-09",
+      timestamp: new Date().toISOString(),
+      architecture: "Apple M3 Max 16C/40C",
+      ram_unified_gb: 128,
+      ram_used_gb: 34.2,
+      v8_heap_mb: 1840,
+      render_fps: 119.8,
+      paint_latency_ms: 1.42,
+      ptp_drift_ns: 420,
+      ws_ingress_msg_sec: 18450,
+      nvme_wear_tbw: 42.1
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(reportData, null, 2));
+    const dlAnchorElem = document.createElement('a');
+    dlAnchorElem.setAttribute("href", dataStr);
+    dlAnchorElem.setAttribute("download", "ZILLERS_Workstation_Apex09_Diagnostic.json");
+    dlAnchorElem.click();
+  }
+
+  // Realistic jitter simulation on FPS and WebSocket ingress
+  setInterval(() => {
+    const fps = document.getElementById('fps-counter');
+    if (fps) {
+      const val = (119.6 + Math.random() * 0.4).toFixed(1);
+      fps.innerText = val;
+    }
+    const ws = document.getElementById('ws-rate');
+    if (ws) {
+      const base = 18400 + Math.floor(Math.random() * 120);
+      ws.innerText = base.toLocaleString();
+    }
+    const dom = document.getElementById('dom-latency');
+    if (dom) {
+      dom.innerText = (1.38 + Math.random() * 0.08).toFixed(2);
+    }
+  }, 1600);
+</script></main></div>
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest/80 backdrop-blur-md p-space-sm hidden" id="onload-tuning-modal" onclick="if(event.target === this) this.classList.add('hidden')"><div class="bg-surface-container-low border border-surface-container-highest rounded-lg shadow-md w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden text-on-surface" onclick="event.stopPropagation()"><div class="px-space-md py-space-sm bg-surface-container-lowest border-b border-surface-container-highest/50 flex items-center justify-between gap-space-md shrink-0"><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary"><span class="material-symbols-outlined text-[18px]">tune</span></div><div><div class="flex items-center gap-space-xs"><h3 class="font-headline-sm text-headline-sm uppercase tracking-wider text-on-surface font-semibold">SOLARFLARE ONLOAD v8.1.3 RUNTIME TUNING</h3><span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-tertiary-container/15 text-tertiary-container font-semibold rounded uppercase tracking-wider">LIVE KERNEL HOOK</span></div><div class="font-mono-micro text-mono-micro text-on-surface-variant flex items-center gap-space-xs mt-space-2xs"><span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span><span class="">TARGET: NODE-01-NY4 // Solarflare X2522 Dual 25G // PCIe Bus 0000:81:00.0</span></div></div></div><button aria-label="Close modal" class="w-8 h-8 rounded hover:bg-surface-container text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors" onclick="document.getElementById('onload-tuning-modal').classList.add('hidden')" type="button"><span class="material-symbols-outlined text-[18px]">close</span></button></div><div class="p-space-md overflow-y-auto flex flex-col gap-space-md"><div class="bg-surface-container-lowest p-space-xs border border-primary/20 rounded flex items-center justify-between text-mono-micro text-on-surface-variant"><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary text-[16px]">info</span><span class="">ZERO CONTEXT SWITCHES // 100% CPU SPINKERNEL CONSUMPTION ON PINNED CORES</span></div><span class="text-secondary font-mono-table font-semibold">EST. WIRE JITTER: &lt; 38ns</span></div><div class="grid grid-cols-1 md:grid-cols-2 gap-space-sm"><div class="bg-surface-container-lowest p-space-sm rounded border border-surface-container-highest/40 flex flex-col gap-space-xs"><div class="flex items-center justify-between"><label class="font-label-caps text-label-caps uppercase text-on-surface font-semibold">EF_POLL_USECS</label><span class="font-mono-micro text-mono-micro text-secondary font-bold">100,000 µs (PURE SPIN)</span></div><p class="font-mono-micro text-mono-micro text-on-surface-variant">Duration network stack actively polls hardware rings before falling back to interrupt wait.</p><input class="w-full bg-surface-container-high px-space-xs py-space-2xs font-mono-table text-mono-table text-primary rounded border border-surface-container-highest focus:border-primary outline-none" max="1000000" min="0" step="1000" type="number" value="100000"><div class="flex items-center gap-space-2xs flex-wrap mt-space-2xs"><span class="font-mono-micro text-mono-micro text-on-surface-variant">Presets:</span><button class="px-space-xs py-space-2xs bg-surface-container hover:bg-surface-container-highest text-on-surface font-mono-micro text-mono-micro rounded" type="button">0 (Interrupt)</button><button class="px-space-xs py-space-2xs bg-surface-container hover:bg-surface-container-highest text-on-surface font-mono-micro text-mono-micro rounded" type="button">1,000 µs</button><button class="px-space-xs py-space-2xs bg-surface-container hover:bg-surface-container-highest text-on-surface font-mono-micro text-mono-micro rounded" type="button">50,000 µs</button><button class="px-space-xs py-space-2xs bg-primary/20 text-primary font-mono-micro text-mono-micro rounded border border-primary/30" type="button">100,000 µs (Prod)</button></div></div><div class="bg-surface-container-lowest p-space-sm rounded border border-surface-container-highest/40 flex flex-col gap-space-xs"><div class="flex items-center justify-between"><label class="font-label-caps text-label-caps uppercase text-on-surface font-semibold">EF_RING_SIZE</label><span class="font-mono-micro text-mono-micro text-primary font-bold">4,096 SLOTS</span></div><p class="font-mono-micro text-mono-micro text-on-surface-variant">Number of hardware descriptor buffer slots allocated per RX/TX Onload packet ring.</p><select class="w-full bg-surface-container-high px-space-xs py-space-2xs font-mono-table text-mono-table text-primary rounded border border-surface-container-highest focus:border-primary outline-none"><option value="1024">1,024 Descriptors (Ultra-light memory)</option><option value="2048">2,048 Descriptors</option><option selected="selected" value="4096">4,096 Descriptors (Default Prod)</option><option value="8192">8,192 Descriptors (Burst absorb)</option></select><div class="flex items-center justify-between font-mono-micro text-mono-micro text-on-surface-variant mt-space-2xs"><span class="">Ring memory: 64 MB locked</span><span class="text-secondary">0 Dropped Frames</span></div></div><div class="bg-surface-container-lowest p-space-sm rounded border border-surface-container-highest/40 flex flex-col gap-space-xs"><div class="flex items-center justify-between"><label class="font-label-caps text-label-caps uppercase text-on-surface font-semibold">EF_TIMESTAMPING</label><span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-secondary/15 text-secondary rounded">1 (PHY HW LEVEL)</span></div><p class="font-mono-micro text-mono-micro text-on-surface-variant">Hardware ingress nanosecond clock stamping mode on Solarflare MAC/PHY ASIC.</p><select class="w-full bg-surface-container-high px-space-xs py-space-2xs font-mono-table text-mono-table text-secondary rounded border border-surface-container-highest focus:border-primary outline-none"><option selected="selected" value="1">1 (PHY Hardware Level - ±1.0ns precision)</option><option value="2">2 (MAC Controller Hardware Level)</option><option value="0">0 (Disabled - Host Kernel Clock fallback)</option></select></div><div class="bg-surface-container-lowest p-space-sm rounded border border-surface-container-highest/40 flex flex-col gap-space-xs"><div class="flex items-center justify-between"><label class="font-label-caps text-label-caps uppercase text-on-surface font-semibold">EF_FORCE_INTERRUPT_AFFINITY</label><span class="font-mono-micro text-mono-micro px-space-xs py-space-2xs bg-primary/10 text-primary rounded">CORES 65-96</span></div><p class="font-mono-micro text-mono-micro text-on-surface-variant">Affinity mask binding NIC DMA interrupt vectors &amp; polling loops to isolated cores.</p><input class="w-full bg-surface-container-high px-space-xs py-space-2xs font-mono-table text-mono-table text-on-surface rounded border border-surface-container-highest focus:border-primary outline-none" type="text" value="65-96 (Isolated Fastpath Numactl #0)"></div><div class="bg-surface-container-lowest p-space-sm rounded border border-surface-container-highest/40 flex flex-col gap-space-xs"><div class="flex items-center justify-between"><label class="font-label-caps text-label-caps uppercase text-on-surface font-semibold">EF_VI_ZERO_COPY</label><span class="font-mono-micro text-mono-micro text-secondary font-bold">ENABLED</span></div><p class="font-mono-micro text-mono-micro text-on-surface-variant">Direct user-space memory access bypassing socket layer memcpy operations.</p><div class="flex items-center justify-between bg-surface-container-high p-space-xs rounded"><span class="font-mono-micro text-mono-micro text-on-surface">Solarflare ef_vi Direct User DMA Hook</span><button class="w-12 h-6 bg-secondary rounded-full relative transition-colors" type="button"><span class="absolute right-1 top-1 w-4 h-4 bg-surface-container-lowest rounded-full"></span></button></div></div><div class="bg-surface-container-lowest p-space-sm rounded border border-surface-container-highest/40 flex flex-col gap-space-xs"><div class="flex items-center justify-between"><label class="font-label-caps text-label-caps uppercase text-on-surface font-semibold">EF_SPIN_USECS &amp; QUEUE SIZES</label><span class="font-mono-micro text-mono-micro text-primary font-bold">500 µs // RX 2048 / TX 2048</span></div><div class="grid grid-cols-2 gap-space-xs mt-space-2xs"><div><span class="font-mono-micro text-mono-micro text-on-surface-variant">EF_SPIN_USECS</span><input class="w-full bg-surface-container-high px-space-xs py-space-2xs font-mono-table text-mono-table text-on-surface rounded border border-surface-container-highest" type="number" value="500"></div><div><span class="font-mono-micro text-mono-micro text-on-surface-variant">BUFFER OVERRIDES</span><input class="w-full bg-surface-container-high px-space-xs py-space-2xs font-mono-table text-mono-table text-on-surface rounded border border-surface-container-highest" type="text" value="4,194,304B (4MB)"></div></div></div></div></div><div class="px-space-md py-space-sm bg-surface-container-lowest border-t border-surface-container-highest/50 flex flex-col sm:flex-row items-center justify-between gap-space-xs shrink-0"><div class="flex items-center gap-space-xs"><button class="px-space-sm py-space-xs bg-surface-container hover:bg-surface-container-highest text-on-surface font-mono-table text-mono-table rounded transition-colors" type="button">Reset Defaults</button><button class="px-space-sm py-space-xs bg-surface-container hover:bg-surface-container-highest text-primary font-mono-table text-mono-table rounded flex items-center gap-space-2xs transition-colors" type="button"><span class="material-symbols-outlined text-[16px]">terminal</span><span class="">Dry-Run Test</span></button></div><div class="flex items-center gap-space-xs w-full sm:w-auto justify-end"><button class="px-space-md py-space-xs bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-mono-table text-mono-table rounded transition-colors" onclick="document.getElementById('onload-tuning-modal').classList.add('hidden')" type="button">Cancel</button><button class="px-space-md py-space-xs bg-primary hover:bg-primary-container text-on-primary font-mono-table text-mono-table font-semibold rounded flex items-center gap-space-xs shadow-sm transition-colors" onclick="alert('Onload parameters hot-applied to Node-01-NY4 Solarflare X2522 with 0 dropped frames.'); document.getElementById('onload-tuning-modal').classList.add('hidden');" type="button"><span class="material-symbols-outlined text-[16px]">bolt</span><span class="">Hot-Apply to Onload Stack (Zero-Drop)</span></button></div></div></div></div>
+
+
+
+</body></html>

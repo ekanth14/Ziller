@@ -1,0 +1,9 @@
+{
+  "source": "synthetic_example_replace_with_fixed_interval_history",
+  "confidence": 0.95,
+  "pnl_usd": [-100, -50, 20, 30],
+  "returns_pct": [-1, -0.5, 0.2, 0.3],
+  "positions": [
+    {"id": "BTC-example", "platform": "binance-spot", "value": 1000, "pnlPct": 0, "side": "long"}
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "order": "04",
+  "folder": "04-zillers-algorithmic-strategy-engine",
+  "id": "dd6505323ba646678ec39d2237fb1a12",
+  "title": "ZILLERS - Algorithmic Strategy Engine",
+  "resourceName": "projects/11951265260504602280/screens/dd6505323ba646678ec39d2237fb1a12",
+  "width": "2560",
+  "height": "2512",
+  "htmlCode": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/41853657167522763:download",
+    "mimeType": "text/html",
+    "name": "projects/11951265260504602280/files/41853657167522763"
+  },
+  "screenshot": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/11951265260504602280/files/5168780192494306554:download",
+    "mimeType": "image/jpeg",
+    "name": "projects/11951265260504602280/files/5168780192494306554"
+  },
+  "imageOnly": false,
+  "files": [
+    {
+      "name": "preview.jpg",
+      "bytes": 680923,
+      "mimeType": "image/jpeg",
+      "sha256": "501a2e7b4055532c016562b4d990a1658690a41b4e97069e4b33725f2695f47b"
+    },
+    {
+      "name": "index.html",
+      "bytes": 68356,
+      "mimeType": "text/html",
+      "sha256": "8dd81f5d8b81e669e416aa02ed1822afb701d49698581ef031641b1082a8ba94"
+    }
+  ],
+  "preview": "preview.jpg",
+  "verifiedImageDimensions": {
+    "width": 2560,
+    "height": 3266
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "repository": "https://github.com/shiyu-coder/Kronos",
+  "commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+  "license": "MIT",
+  "files": [
+    {
+      "path": "model/__init__.py",
+      "git_blob_sha": "718d07a21b53b7eff4a6564e6dfcae8ee7e8c6b1"
+    },
+    {
+      "path": "model/kronos.py",
+      "git_blob_sha": "ce4494ee0b3ec8751b09d5488c93bde995e008e0"
+    },
+    {
+      "path": "model/module.py",
+      "git_blob_sha": "f2a05158b48a56e9235426f6583e384360d761f9"
+    },
+    {
+      "path": "LICENSE",
+      "git_blob_sha": "88b04125e828241d8aada64bfe7f700bb03bcef8"
+    }
+  ],
+  "scope": "Unmodified inference model code only; no web UI, training or example scripts."
+}
