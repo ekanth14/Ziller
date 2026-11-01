@@ -18,6 +18,7 @@ This document provides a comprehensive technical audit of all architectural chan
    - [Phase 8: Execution Engine, 5-Gate Live Multi-Governor & Master Kill-Switch](#phase-8-execution-engine-5-gate-live-multi-governor--master-kill-switch)
    - [Phase 9: Production Readiness, Non-Root Docker, CI & Disclaimers](#phase-9-production-readiness-non-root-docker-ci--disclaimers)
    - [Phase 10: Review Pass Hardening & Security Fortification](#phase-10-review-pass-hardening--security-fortification)
+   - [Phase 11: Candlestick Bars, Multi-Asset Chart Switcher & Real-Time Stream](#phase-11-candlestick-bars-multi-asset-chart-switcher--real-time-stream)
 3. [File Manifest: Created, Modified, and Deleted Files](#file-manifest-created-modified-and-deleted-files)
 4. [Verification & Test Suite Audit (113 Tests: 106 Passed, 7 Skipped)](#4-verification--test-suite-audit-113-tests-106-passed-7-skipped)
 5. [Git Commit Audit Trail](#git-commit-audit-trail)
@@ -211,6 +212,27 @@ The system was transformed from an Indian equity / hybrid stock terminal into **
   - Integrated `pip-audit` into CI pipeline (0 vulnerabilities across project dependencies).
   - Executed `gitleaks` (v8.30.1) security scan across full commit history: **19 commits scanned, 0 leaks found**.
 
+### Phase 11: Candlestick Bars, Multi-Asset Chart Switcher & Real-Time Stream
+- **Institutional Candlestick Graph:**
+  - Replaced legacy 2D line/polygon chart with real candlestick bars (bullish green `#10b981` / bearish rose `#f43f5e`, wicks, bodies, and semi-transparent volume bars).
+  - Integrated 20-period Exponential Moving Average (EMA-20) curve in `#38bdf8` cyan.
+  - Added real-time current price reference dashed line with dynamic price badge on the Y axis.
+  - Added Candlestick Bar HUD: displays live Open, High, Low, Close, Volume, and Change% on hover and cursor crosshair tracking.
+- **Dynamic Multi-Asset Chart Switcher & Candle API:**
+  - Added `GET /api/market/candles?symbol=ETHUSDT&interval=5m&limit=200` endpoint backed by SQLite WAL `CandleStore` and live Binance spot fallback.
+  - Pre-populated initial snapshots for `BTCUSDT`, `ETHUSDT`, `SOLUSDT` in `DashboardData.overview()`.
+  - Expanded symbol selector dropdown with top liquid crypto assets (`BTCUSDT`, `ETHUSDT`, `SOLUSDT`, `BNBUSDT`, `XRPUSDT`, `DOGEUSDT`, `ADAUSDT`, `AVAXUSDT`, `LINKUSDT`, `SUIUSDT`, etc.) dynamically merged with CoinGecko listings.
+  - Selecting any asset immediately loads its real candlestick chart and updates the live order book.
+- **Crypto Listings Screener & Navigation Fix:**
+  - Resolved panel anchor mismatch (`#listings` vs `#view-listings`); top navigation and sidebar links now smoothly scroll to the Screener table.
+  - Fixed ticker property bindings in `renderListings()` (`sources_reporting`, `change_24h_pct`, `max_deviation_pct`) eliminating previous runtime `TypeError`.
+  - Clicking "Chart ↗" on any coin in the 100+ screener immediately loads that crypto into the main Candlestick Chart and scrolls to the Tactical Workspace.
+- **Live Real-Time SSE Stream Integration:**
+  - Bound `/api/market/stream` SSE events to real-time price updates: flashes green/red on incoming ticks.
+  - Updated latest candlestick's close/high/low dynamically on live price ticks.
+  - Updated live Order Book bids, asks, spread, and midpoint in real-time.
+  - Kept connection telemetry status as `LIVE STREAMING` with active pulsing emerald dot.
+
 ---
 
 ## 3. File Manifest: Created, Modified, and Deleted Files
@@ -271,7 +293,7 @@ The system was transformed from an Indian equity / hybrid stock terminal into **
 
 ## 4. Verification & Test Suite Audit (115 Tests: 108 Passed, 7 Skipped)
 
-The terminal contains **115 unit and integration tests**, achieving 100% pass rate:
+The terminal contains **116 unit and integration tests**, achieving 100% pass rate:
 
 ```
 ============================= test session starts =============================
@@ -280,7 +302,7 @@ rootdir: /workspace/zien-crypto
 configfile: pytest.ini
 testpaths: cryptoscope/tests
 plugins: platformdirs-4.13.5
-collected 115 items
+collected 116 items
 
 cryptoscope/tests/test_auth.py ..............                            [ 12%]
 cryptoscope/tests/test_autotrader.py ..................                  [ 27%]
@@ -292,9 +314,9 @@ cryptoscope/tests/test_governor.py ........                              [ 56%]
 cryptoscope/tests/test_market_data.py .............                      [ 67%]
 cryptoscope/tests/test_repository_extensions.py ......sss                [ 75%]
 cryptoscope/tests/test_research_backend.py ....................          [ 93%]
-cryptoscope/tests/test_server_endpoints.py ........                      [100%]
+cryptoscope/tests/test_server_endpoints.py .........                     [100%]
 
-============= 108 passed, 7 skipped, 31 subtests passed in 22.62s =============
+============= 109 passed, 7 skipped, 31 subtests passed in 21.71s =============
 ```
 
 ### Skipped Tests Documentation (7 Tests):
@@ -310,6 +332,8 @@ These optional research packages are decoupled from the core real-time autonomou
 ## 5. Git Commit Audit Trail
 
 ```
+21ada0b feat(ui): implement candlestick bars, multi-asset chart switcher, fix crypto listings, and enable real-time SSE streaming
+03c7202 fix(review-pass-2): add scrypt semaphore, gate 3 trade timestamp derivation, testnet withdrawal blocking, and laya selftest
 1cf4279 docs: update TRANSFORMATION_CHANGES.md with review pass, test suite counts, and commit audit
 fc13926 fix(review): complete review pass on auth, governor, kill-switch, execution, laya, freshness, ci, and docs
 87266ec feat(prod): finalize production readiness, non-root docker setup, ci matrix, and regulatory disclaimers
