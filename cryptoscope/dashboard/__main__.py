@@ -122,11 +122,23 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 name, kind = assets[url.path]
                 return self.send(200, (STATIC / name).read_bytes(), kind + "; charset=utf-8")
 
+            if url.path in {"/landing", "/docs", "/about", "/landing/"}:
+                landing_html = STATIC / "landing" / "index.html"
+                if landing_html.is_file():
+                    return self.send(200, landing_html.read_bytes(), "text/html; charset=utf-8")
+
+            if url.path.startswith("/landing/"):
+                subpath = url.path[len("/landing/"):].lstrip("/")
+                landing_file = (STATIC / "landing" / subpath).resolve()
+                if (STATIC / "landing") in landing_file.parents and landing_file.is_file():
+                    mime = "text/css" if landing_file.suffix == ".css" else "text/javascript" if landing_file.suffix == ".js" else "image/png" if landing_file.suffix == ".png" else "text/html"
+                    return self.send(200, landing_file.read_bytes(), f"{mime}; charset=utf-8" if "text" in mime else mime)
+
             if url.path.startswith("/assets/"):
                 asset_path = (STATIC / url.path.lstrip("/")).resolve()
                 if STATIC in asset_path.parents and asset_path.is_file():
-                    mime = "image/png" if asset_path.suffix == ".png" else "image/svg+xml" if asset_path.suffix == ".svg" else "application/octet-stream"
-                    return self.send(200, asset_path.read_bytes(), mime)
+                    mime = "text/css" if asset_path.suffix == ".css" else "text/javascript" if asset_path.suffix == ".js" else "image/png" if asset_path.suffix == ".png" else "image/svg+xml" if asset_path.suffix == ".svg" else "application/octet-stream"
+                    return self.send(200, asset_path.read_bytes(), f"{mime}; charset=utf-8" if "text" in mime else mime)
 
             # Public market data and FX APIs
             if url.path == "/api/fx/rate":

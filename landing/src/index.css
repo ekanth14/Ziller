@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    border-color: #38383C;
+  }
+  body {
+    background-color: #050505;
+    color: #F4F4F5;
+  }
+}
+
+/* Atmospheric Technical Grid Overlay */
+.technical-grid {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+}
+
+/* Subtle Star Particle Canvas / Dust */
+.star-dust {
+  background-image: radial-gradient(1px 1px at 20px 30px, rgba(255, 255, 255, 0.25), rgba(0, 0, 0, 0)),
+                    radial-gradient(1px 1px at 75px 120px, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0)),
+                    radial-gradient(1px 1px at 150px 80px, rgba(255, 255, 255, 0.15), rgba(0, 0, 0, 0)),
+                    radial-gradient(1px 1px at 220px 240px, rgba(255, 255, 255, 0.25), rgba(0, 0, 0, 0)),
+                    radial-gradient(1px 1px at 290px 180px, rgba(255, 255, 255, 0.18), rgba(0, 0, 0, 0));
+  background-repeat: repeat;
+  background-size: 320px 320px;
+}
+
+/* Metallic Silver Text Gradient */
+.text-metallic {
+  background: linear-gradient(180deg, #FFFFFF 0%, #D8D8DC 45%, #8E8E93 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Subtle Card Glow on Hover */
+.glow-card {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glow-card:hover {
+  border-color: #4D4D51;
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.03);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+::-webkit-scrollbar-thumb {
+  background: #222224;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #38383C;
+}

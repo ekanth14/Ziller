@@ -208,6 +208,15 @@ class ServerEndpointTests(unittest.TestCase):
                 for key in ("open", "high", "low", "close", "volume"):
                     self.assertIn(key, c)
 
+    def test_landing_page_and_documentation_routes(self):
+        for route in ("/landing", "/docs", "/about", "/landing/"):
+            req = Request(f"{self.base_url}{route}")
+            with urlopen(req) as resp:
+                self.assertEqual(resp.status, 200)
+                html = resp.read().decode("utf-8")
+                self.assertIn("ZILLERS", html)
+                self.assertIn("Zien Organisation", html)
+
 
 
 if __name__ == "__main__":

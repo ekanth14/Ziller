@@ -52,3 +52,9 @@ desktop.ini
 *.log
 logs/
 .system_generated/
+
+# Node & Frontend Build Artifacts
+node_modules/
+landing/node_modules/
+landing/dist/
+
