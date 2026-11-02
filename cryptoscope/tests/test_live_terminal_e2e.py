@@ -10,6 +10,7 @@ Tests every feature and function:
 7. Quantitative Alpha Strategies (Volume Breakout, Shrink Pullback, Box Oscillation)
 8. 5-Gate Pre-Trade Risk Governor with Token Safety check
 9. Static production assets integrity (index.html, app.js, style.css)
+10. CoinGecko listings filter: strictly excludes delisted/unlisted tokens (XMR, WBT, LEO) and includes real prices
 """
 import json
 from pathlib import Path
@@ -19,6 +20,7 @@ import unittest
 from cryptoscope.dashboard.data import DashboardData
 from cryptoscope.market_data.candle_store import CandleStore
 from cryptoscope.market_data.aggregator import MarketDataAggregator
+from cryptoscope.market_data.coingecko import CoinGeckoService
 from cryptoscope.simulation.time_machine import simulate_trade_odds
 from cryptoscope.agents.consensus import DeliberationConsensusEngine
 from cryptoscope.agents.analysts.market import technical
@@ -206,6 +208,27 @@ class TestLiveTerminalE2E(unittest.TestCase):
         self.assertIn('initDeliberationDesk', app_js)
         self.assertIn('initTokenAuditTool', app_js)
         self.assertIn('initMonteCarloModal', app_js)
+
+    def test_09_listings_filter_unlisted_tokens(self):
+        """Verify CoinGecko listings filter strictly excludes unlisted tokens and includes real prices."""
+        cg = CoinGeckoService()
+        data = cg.get_top_listings(per_page=50, page=1)
+        items = data.get("items", [])
+        self.assertGreater(len(items), 0)
+
+        symbols = [it["symbol"] for it in items]
+        # Unlisted tokens must NEVER be present
+        self.assertNotIn("XMRUSDT", symbols, "Delisted Monero should not be in active listings")
+        self.assertNotIn("WBTUSDT", symbols, "WhiteBIT token should not be in active listings")
+        self.assertNotIn("LEOUSDT", symbols, "LEO token should not be in active listings")
+        self.assertNotIn("USDTUSDT", symbols, "Redundant USDTUSDT should not be in active listings")
+
+        # Top coins must be present and have real numeric prices
+        for it in items[:5]:
+            self.assertIn("current_price", it)
+            self.assertIn("price_usd", it)
+            self.assertGreater(it["current_price"], 0.0)
+            self.assertIn("change_24h_pct", it)
 
 
 if __name__ == "__main__":

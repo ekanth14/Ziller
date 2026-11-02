@@ -244,7 +244,9 @@ function renderCustomSymbolDropdown(allSymbols, currentVal) {
     const fullName = found?.name || baseName;
     const cat = getSymbolCategory(sym);
 
-    const ticker = state.tickers?.[sym] || state.tickers?.[baseName] || (found ? { price: found.price_usd, change_24h_pct: found.change_24h_pct } : null);
+    const foundPrice = found?.current_price ?? found?.price_usd ?? found?.price;
+    const foundChange = found?.price_change_percentage_24h ?? found?.change_24h_pct;
+    const ticker = state.tickers?.[sym] || state.tickers?.[baseName] || (found && Number.isFinite(foundPrice) ? { price: foundPrice, change_24h_pct: foundChange } : null);
     const priceText = ticker && Number.isFinite(ticker.price) ? money(ticker.price) : '—';
     const changePct = ticker && Number.isFinite(ticker.change_24h_pct) ? ticker.change_24h_pct : null;
     const changeClass = changePct !== null ? (changePct >= 0 ? 'up' : 'down') : '';
@@ -370,7 +372,9 @@ function updateSymbolDropdown(customSymbols = []) {
   (state.listings || []).forEach(item => {
     if (item.symbol) {
       const sym = item.symbol.toUpperCase();
-      set.add(sym.endsWith('USDT') ? sym : sym + 'USDT');
+      if (sym === 'USDTUSDT' || sym === 'USDCUSDT' || sym === 'DAIUSDT') return;
+      const fullSym = sym.endsWith('USDT') ? sym : sym + 'USDT';
+      set.add(fullSym);
     }
   });
   const allSymbols = Array.from(set);
@@ -1414,6 +1418,16 @@ async function fetchListings() {
     } else if (tickersRes?.tickers && typeof tickersRes.tickers === 'object') {
       Object.assign(tickerMap, tickersRes.tickers);
     }
+    (state.listings || []).forEach(item => {
+      if (item.symbol) {
+        const s = item.symbol.toUpperCase();
+        const p = item.current_price ?? item.price_usd ?? item.price;
+        const c = item.price_change_percentage_24h ?? item.change_24h_pct;
+        if (Number.isFinite(p) && (!tickerMap[s] || !Number.isFinite(tickerMap[s].price))) {
+          tickerMap[s] = { symbol: s, price: p, change_24h_pct: c, source: 'coingecko' };
+        }
+      }
+    });
     state.tickers = { ...state.tickers, ...tickerMap };
     updateSymbolDropdown();
     renderListings();
