@@ -6,6 +6,7 @@ from cryptoscope.orchestrator.bots.analyst_bot import AnalystBot
 from cryptoscope.orchestrator.bots.quant_bot import QuantBot
 from cryptoscope.orchestrator.bots.strategy_bot import StrategyBot
 from cryptoscope.orchestrator.bots.debate_bot import DebateBot
+from cryptoscope.orchestrator.bots.risk_bot import RiskBot
 
 __all__ = [
     "SupervisorBot",
@@ -14,4 +15,5 @@ __all__ = [
     "QuantBot",
     "StrategyBot",
     "DebateBot",
+    "RiskBot",
 ]
