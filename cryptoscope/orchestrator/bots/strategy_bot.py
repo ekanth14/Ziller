@@ -18,16 +18,28 @@ class StrategyBot(BaseBot):
     and take-profit targets, submitting proposals to the Debate layer.
     """
 
-    def __init__(self, bus: EventBus, name: str = "strategy_bot", min_confidence: float = 0.65):
+    def __init__(
+        self,
+        bus: EventBus,
+        name: str = "strategy_bot",
+        min_confidence: float = 0.65,
+        cooldown_sec: float = 5.0
+    ):
         super().__init__(name, bus)
         self.min_confidence = min_confidence
+        self.cooldown_sec = cooldown_sec
         self.is_paused: bool = False
         self.pause_reason: str = ""
         self.latest_prices: Dict[str, float] = {}
+        self.last_signal_time: Dict[str, float] = {}
         self.proposed_intents_count: int = 0
 
         self.subscribe(MarketUpdate)
         self.subscribe(Signal)
+
+    @property
+    def paused(self) -> bool:
+        return self.is_paused
 
     def pause(self, reason: str = "Operator paused") -> None:
         self.is_paused = True
@@ -55,6 +67,13 @@ class StrategyBot(BaseBot):
 
         if sig.confidence < self.min_confidence:
             return
+
+        now = time.time()
+        last_time = self.last_signal_time.get(sig.symbol, 0.0)
+        if (now - last_time) < self.cooldown_sec:
+            logger.debug("[%s] Suppressing duplicate signal for %s within cooldown", self.name, sig.symbol)
+            return
+        self.last_signal_time[sig.symbol] = now
 
         price = sig.indicators.get("price") or self.latest_prices.get(sig.symbol)
         if not price or price <= 0:

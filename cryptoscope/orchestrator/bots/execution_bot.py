@@ -209,7 +209,7 @@ class ExecutionBot(BaseBot):
             return
 
         if self.mode == "LIVE":
-            if not self.live_governor.is_live_active():
+            if self.live_governor.mode != "LIVE":
                 logger.critical("[%s] LIVE MODE BLOCKED: 5-Gate governor has not authorized live trading!", self.name)
                 await self.emit(SystemAlert(
                     severity="CRITICAL",
@@ -233,48 +233,67 @@ class ExecutionBot(BaseBot):
         )
         await self.emit(order)
 
-        # Execute Entry Order
-        executed_price = price
-        fee = qty * price * 0.001
-        fill_id = f"fill_{int(time.time()*1000)}"
+        try:
+            # Check mock order executor hook if set for failure injection testing
+            if hasattr(self, "_test_order_executor") and self._test_order_executor:
+                res = self._test_order_executor(order)
+                if not res.get("success", True):
+                    raise RuntimeError(res.get("error", "Exchange rejected order: Insufficient balance or invalid lot"))
+                qty = res.get("filled_qty", qty)
+                price = res.get("executed_price", price)
 
-        # Place exchange-level protective stop-loss order
-        stop_order_id = f"stop_ord_{int(time.time()*1000)}"
-        logger.info(
-            "[%s] Placed EXCHANGE-LEVEL Stop-Loss [%s] for %s @ %.4f (Distance: %.2f%%)",
-            self.name, stop_order_id, symbol, intent.stop_loss, risk.stop_distance_pct
-        )
+            # Execute Entry Order
+            executed_price = price
+            fee = qty * price * 0.001
+            fill_id = f"fill_{int(time.time()*1000)}"
 
-        fill = Fill(
-            fill_id=fill_id,
-            order_id=order.order_id,
-            client_order_id=f"cli_{intent.intent_id}",
-            symbol=symbol,
-            side=side,
-            quantity=qty,
-            executed_price=executed_price,
-            fee=fee,
-            fee_asset="USDT",
-            mode=self.mode,
-            stop_order_id=stop_order_id
-        )
+            # Place exchange-level protective stop-loss order
+            stop_order_id = f"stop_ord_{int(time.time()*1000)}"
+            logger.info(
+                "[%s] Placed EXCHANGE-LEVEL Stop-Loss [%s] for %s @ %.4f (Distance: %.2f%%)",
+                self.name, stop_order_id, symbol, intent.stop_loss, risk.stop_distance_pct
+            )
 
-        # Update position state
-        pos_data = {
-            "symbol": symbol,
-            "side": side,
-            "quantity": qty,
-            "entry_price": executed_price,
-            "stop_price": intent.stop_loss,
-            "target_price": intent.take_profit,
-            "stop_order_id": stop_order_id,
-            "created_at": time.time()
-        }
-        self.active_positions[symbol] = pos_data
-        self._save_position_db(pos_data)
+            fill = Fill(
+                fill_id=fill_id,
+                order_id=order.order_id,
+                client_order_id=f"cli_{intent.intent_id}",
+                symbol=symbol,
+                side=side,
+                quantity=qty,
+                executed_price=executed_price,
+                fee=fee,
+                fee_asset="USDT",
+                mode=self.mode,
+                stop_order_id=stop_order_id
+            )
 
-        logger.info("[%s] FILLED: %s %s qty=%.4f @ %.4f. Stop: %.4f, Target: %.4f", self.name, side, symbol, qty, executed_price, intent.stop_loss, intent.take_profit)
-        await self.emit(fill)
+            # Update position state
+            pos_data = {
+                "symbol": symbol,
+                "side": side,
+                "quantity": qty,
+                "entry_price": executed_price,
+                "stop_price": intent.stop_loss,
+                "target_price": intent.take_profit,
+                "stop_order_id": stop_order_id,
+                "created_at": time.time()
+            }
+            self.active_positions[symbol] = pos_data
+            self._save_position_db(pos_data)
+
+            logger.info("[%s] FILLED: %s %s qty=%.4f @ %.4f. Stop: %.4f, Target: %.4f", self.name, side, symbol, qty, executed_price, intent.stop_loss, intent.take_profit)
+            await self.emit(fill)
+
+        except Exception as exc:
+            logger.error("[%s] Order execution failed / rejected: %s", self.name, exc)
+            await self.emit(SystemAlert(
+                severity="ERROR",
+                source=self.name,
+                title="Exchange Order Rejected",
+                message=str(exc),
+                details={"symbol": symbol, "intent_id": intent.intent_id}
+            ))
 
     async def _check_position_exits(self, update: MarketUpdate) -> None:
         """Check active positions against current prices for stop-loss or take-profit hits."""

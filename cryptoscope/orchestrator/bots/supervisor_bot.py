@@ -41,6 +41,11 @@ class SupervisorBot(BaseBot):
         # name -> timestamp when restart can be attempted
         self._next_restart_time: Dict[str, float] = {}
 
+    @property
+    def bots(self) -> Dict[str, BaseBot]:
+        """Convenience accessor for managed micro-bots."""
+        return self.managed_bots
+
     def register_bot(self, bot: BaseBot) -> None:
         """Register a bot under supervisor watchdog control."""
         self.managed_bots[bot.name] = bot
@@ -165,12 +170,19 @@ class SupervisorBot(BaseBot):
         """Aggregate health telemetry across the entire fleet."""
         uptime = (time.time() - self._start_time) if self._running else 0.0
         bot_healths = {name: bot.health().__dict__ for name, bot in self.managed_bots.items()}
+        healthy_count = sum(1 for bot in self.managed_bots.values() if bot.health().is_alive)
         all_alive = all(bot.health().is_alive for bot in self.managed_bots.values())
         return {
             "supervisor": self.name,
             "status": "HEALTHY" if all_alive else "DEGRADED",
             "uptime_seconds": round(uptime, 2),
             "managed_bots_count": len(self.managed_bots),
+            "total_bots_count": len(self.managed_bots),
+            "healthy_bots_count": healthy_count,
             "bots": bot_healths,
             "restarts": dict(self.restart_counts)
         }
+
+    def health_report(self) -> Dict[str, Any]:
+        """Convenience alias for get_system_health."""
+        return self.get_system_health()

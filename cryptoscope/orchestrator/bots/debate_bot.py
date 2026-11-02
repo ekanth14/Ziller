@@ -25,11 +25,12 @@ class DebateBot(BaseBot):
         self,
         bus: EventBus,
         name: str = "debate_bot",
-        timeout_seconds: float = 0.20,
+        timeout_seconds: Optional[float] = None,
+        timeout_sec: Optional[float] = None,
         min_conviction_threshold: float = 10.0
     ):
         super().__init__(name, bus)
-        self.timeout_seconds = timeout_seconds
+        self.timeout_seconds = timeout_seconds if timeout_seconds is not None else (timeout_sec if timeout_sec is not None else 0.20)
         self.min_conviction_threshold = min_conviction_threshold
         self.deliberation_engine = DeliberationConsensusEngine()
         self.debates_evaluated_count: int = 0

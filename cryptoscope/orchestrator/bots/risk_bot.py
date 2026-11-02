@@ -1,5 +1,6 @@
 """RiskBot: Deterministic risk controls, multi-limit gating, and fractional Kelly sizing."""
 
+import asyncio
 import logging
 import time
 from typing import Any, Dict, List, Optional, Set
@@ -12,6 +13,7 @@ from cryptoscope.orchestrator.events import (
     Fill,
     PositionClosed,
     RiskDecision,
+    SystemAlert,
     TradeIntent,
 )
 from cryptoscope.quant.sizing import optimal_trade_sizing
@@ -64,6 +66,7 @@ class RiskBot(BaseBot):
 
         # State tracking
         self.daily_realized_pnl: float = 0.0
+        self.daily_loss_circuit_breaker: bool = False
         self.open_positions: Dict[str, Dict[str, Any]] = {}
         self.cached_intents: Dict[str, TradeIntent] = {}
 
@@ -111,6 +114,17 @@ class RiskBot(BaseBot):
         self.current_nav += closed.pnl_usd
         self.peak_nav = max(self.peak_nav, self.current_nav)
         self.open_positions.pop(closed.symbol, None)
+
+        max_daily_loss_usd = self.initial_nav * self.max_daily_loss_pct
+        if self.daily_realized_pnl <= -max_daily_loss_usd:
+            self.daily_loss_circuit_breaker = True
+            asyncio.create_task(self.emit(SystemAlert(
+                severity="CRITICAL",
+                source=self.name,
+                title="Daily Loss Limit Breached",
+                message=f"Daily realized loss of ${abs(self.daily_realized_pnl):.2f} exceeds limit ${max_daily_loss_usd:.2f}."
+            )))
+
         logger.info(
             "[%s] Position %s closed. PnL: $%.2f. Daily PnL: $%.2f. NAV: $%.2f",
             self.name, closed.symbol, closed.pnl_usd, self.daily_realized_pnl, self.current_nav
