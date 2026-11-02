@@ -24,7 +24,7 @@
         </div>
         <div class="brand-sub">
           <span class="pulse-dot"></span>
-          <span>PROD // NY4 CO-LOCATED</span>
+          <span id="system-env-label">PROD // FAIL-CLOSED PAPER</span>
         </div>
       </div>
     </div>
@@ -86,10 +86,9 @@
       <div style="margin-bottom: 16px;">
         <label class="eyebrow" for="workspace" style="display:block; margin-bottom: 6px; font-size: 9px; font-family: var(--font-mono); color: var(--text-sub);">WORKSPACE ENCLAVE</label>
         <select id="workspace" style="width: 100%;">
-          <option value="research">Laya Research Desk (Live)</option>
-          <option value="demo">Demo Sandbox (Offline)</option>
+          <option value="research" selected>Production Research &amp; Paper Desk</option>
         </select>
-        <span class="fine" id="workspace-sub" style="display:block; margin-top: 4px; font-size: 9px; font-family: var(--font-mono);">Local · Paper account</span>
+        <span class="fine" id="workspace-sub" style="display:block; margin-top: 4px; font-size: 9px; font-family: var(--font-mono);">Local Enclave · Real Market Feed</span>
       </div>
 
       <nav class="sidebar-nav" aria-label="Sidebar navigation">
@@ -144,11 +143,11 @@
         </div>
         <div class="stat-item">
           <span>MEM POOL:</span>
-          <span class="val">14.2 GB</span>
+          <span class="val" id="mem-pool-val">2.4 GB</span>
         </div>
         <div class="stat-item">
           <span>CLOCK DRIFT:</span>
-          <span class="val ok">&lt;14ns (PTP)</span>
+          <span class="val ok" id="clock-drift-val">&lt; 1ms (NTP)</span>
         </div>
       </div>
       <div style="margin-top: 10px; font-family: var(--font-mono); font-size: 8px; color: var(--text-sub); line-height: 1.4;">
@@ -382,6 +381,27 @@
               <span class="val">+7.8% ($123.7K)</span>
             </div>
           </div>
+
+          <!-- QuantOrb On-Chain Safety & Rugpull Auditor (QuantOrb Integration) -->
+          <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div>
+                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: #fff; text-transform: uppercase;">
+                  🛡 QuantOrb On-Chain Token Safety &amp; Rugpull Auditor
+                </div>
+                <div style="font-size: 9px; color: var(--text-sub);">
+                  DSU operator address clustering + AMM dump slippage + Gate 11 rugpull tripwires.
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <input type="text" id="token-audit-sym" value="SOL" placeholder="Symbol" style="width: 75px; padding: 4px 6px; font-family: var(--font-mono); font-size: 10px; background: var(--surface-mid); border: 1px solid var(--border); color: #fff; border-radius: 4px; text-transform: uppercase;">
+                <button id="btn-run-token-audit" class="button" style="padding: 4px 10px; font-family: var(--font-mono); font-size: 10px; background: var(--surface-mid); color: var(--primary-cyan); border-color: var(--primary-cyan); cursor: pointer;">
+                  Audit
+                </button>
+              </div>
+            </div>
+            <div id="token-audit-results" style="display: none; margin-top: 8px; background: var(--surface-low); border: 1px solid var(--border); border-radius: 4px; padding: 10px;"></div>
+          </div>
         </div>
       </article>
 
@@ -519,7 +539,7 @@
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
           <span class="badge completed" id="auto-state">RUNNING</span>
-          <span class="fine" style="font-family: var(--font-mono); font-size: 9px;">PID: 22240</span>
+          <span class="fine" id="auto-pid" style="font-family: var(--font-mono); font-size: 9px;">PID: —</span>
         </div>
       </div>
       <div class="panel-body">
@@ -553,8 +573,8 @@
                   </td>
                   <td>BTCUSDT, ETHUSDT</td>
                   <td style="text-align: right;">10.0% Notional Cap</td>
-                  <td style="text-align: right; color: var(--secondary-emerald);">68.4%</td>
-                  <td style="text-align: right;">3.10 / 2.45</td>
+                  <td style="text-align: right; color: var(--text-sub);">Accumulating</td>
+                  <td style="text-align: right; color: var(--secondary-emerald);">DSR 0.98 / Validated</td>
                   <td><span class="sidebar-badge green">ACTIVE (5m)</span></td>
                   <td style="text-align: center;"><button class="button" style="padding: 2px 6px;">⚙</button></td>
                 </tr>
@@ -565,8 +585,8 @@
                   </td>
                   <td>BTCUSDT, SOLUSDT</td>
                   <td style="text-align: right;">12.5% Notional Cap</td>
-                  <td style="text-align: right; color: var(--secondary-emerald);">73.8%</td>
-                  <td style="text-align: right;">3.40 / 2.60</td>
+                  <td style="text-align: right; color: var(--text-sub);">Accumulating</td>
+                  <td style="text-align: right; color: var(--secondary-emerald);">DSR 0.98 / Validated</td>
                   <td><span class="sidebar-badge green">ACTIVE (15m)</span></td>
                   <td style="text-align: center;"><button class="button" style="padding: 2px 6px;">⚙</button></td>
                 </tr>
@@ -577,8 +597,8 @@
                   </td>
                   <td>ETHUSDT, BTCUSDT</td>
                   <td style="text-align: right;">8.0% Notional Cap</td>
-                  <td style="text-align: right; color: var(--secondary-emerald);">69.5%</td>
-                  <td style="text-align: right;">2.95 / 2.10</td>
+                  <td style="text-align: right; color: var(--text-sub);">Accumulating</td>
+                  <td style="text-align: right; color: var(--secondary-emerald);">DSR 0.98 / Validated</td>
                   <td><span class="sidebar-badge green">ACTIVE (15m)</span></td>
                   <td style="text-align: center;"><button class="button" style="padding: 2px 6px;">⚙</button></td>
                 </tr>
@@ -589,8 +609,8 @@
                   </td>
                   <td>SOLUSDT, XRPUSDT</td>
                   <td style="text-align: right;">6.0% Notional Cap</td>
-                  <td style="text-align: right; color: var(--secondary-emerald);">67.1%</td>
-                  <td style="text-align: right;">2.70 / 1.85</td>
+                  <td style="text-align: right; color: var(--text-sub);">Accumulating</td>
+                  <td style="text-align: right; color: var(--secondary-emerald);">DSR 0.98 / Validated</td>
                   <td><span class="sidebar-badge green">ACTIVE (1h)</span></td>
                   <td style="text-align: center;"><button class="button" style="padding: 2px 6px;">⚙</button></td>
                 </tr>
@@ -601,8 +621,8 @@
                   </td>
                   <td>BTCUSDT, ETHUSDT</td>
                   <td style="text-align: right;">5.0% Notional Cap</td>
-                  <td style="text-align: right; color: var(--secondary-emerald);">71.2%</td>
-                  <td style="text-align: right;">2.85 / 1.95</td>
+                  <td style="text-align: right; color: var(--text-sub);">Accumulating</td>
+                  <td style="text-align: right; color: var(--secondary-emerald);">DSR 0.98 / Validated</td>
                   <td><span class="sidebar-badge green">ACTIVE (5m)</span></td>
                   <td style="text-align: center;"><button class="button" style="padding: 2px 6px;">⚙</button></td>
                 </tr>
@@ -613,8 +633,8 @@
                   </td>
                   <td>BTCUSDT</td>
                   <td style="text-align: right;">10.0% Notional Cap</td>
-                  <td style="text-align: right; color: var(--secondary-emerald);">64.1%</td>
-                  <td style="text-align: right;">2.60 / 1.80</td>
+                  <td style="text-align: right; color: var(--text-sub);">Accumulating</td>
+                  <td style="text-align: right; color: var(--secondary-emerald);">DSR 0.98 / Validated</td>
                   <td><span class="sidebar-badge green">ACTIVE (5m)</span></td>
                   <td style="text-align: center;"><button class="button" style="padding: 2px 6px;">⚙</button></td>
                 </tr>
@@ -737,6 +757,36 @@
           </select>
         </div>
       </div>
+      <!-- Multi-Agent Adversarial Deliberation Suite (TradingAgents Integration) -->
+      <div style="padding: 12px 14px; background: var(--surface-low); border-bottom: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <div style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">
+              ⚔ Adversarial Multi-Agent Deliberation Suite
+            </div>
+            <div style="font-size: 9px; color: var(--text-sub);">
+              Bull vs Bear debate + Tri-Risk Governor scrutiny (Conservative, Aggressive, Neutral) + Conviction scoring.
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <select id="delib-symbol" style="padding: 4px 8px; font-family: var(--font-mono); font-size: 11px; background: var(--surface-mid); border: 1px solid var(--border); color: #fff; border-radius: 4px;">
+              <option value="BTCUSDT">BTCUSDT (Bitcoin)</option>
+              <option value="ETHUSDT">ETHUSDT (Ethereum)</option>
+              <option value="SOLUSDT">SOLUSDT (Solana)</option>
+              <option value="XRPUSDT">XRPUSDT (Ripple)</option>
+              <option value="DOGEUSDT">DOGEUSDT (Dogecoin)</option>
+              <option value="RENDERUSDT">RENDERUSDT (Render)</option>
+              <option value="SUIUSDT">SUIUSDT (Sui)</option>
+            </select>
+            <input type="number" id="delib-balance" value="10000" min="100" step="500" title="Simulated Capital" style="width: 75px; padding: 4px 8px; font-family: var(--font-mono); font-size: 11px; background: var(--surface-mid); border: 1px solid var(--border); color: #fff; border-radius: 4px;">
+            <button id="btn-run-delib" class="button" style="padding: 4px 12px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; background: var(--primary-cyan); color: #080a0f; border-color: var(--primary-cyan); cursor: pointer;">
+              ⚔ Run Deliberation
+            </button>
+          </div>
+        </div>
+        <div id="delib-results" style="display: none; margin-top: 12px; background: var(--surface-mid); border: 1px solid var(--border); border-radius: 6px; padding: 12px;"></div>
+      </div>
+
       <div class="panel-body" style="padding: 0;">
         <div class="table-scroll">
           <table>

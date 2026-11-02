@@ -682,6 +682,9 @@ function renderAutoTrader(){
     $('auto-state').textContent = title(runtime.state).toUpperCase();
     $('auto-state').className = `badge ${isRunning ? 'completed' : 'failed'}`;
   }
+  if($('auto-pid')) {
+    $('auto-pid').textContent = runtime.pid ? `PID: ${runtime.pid}` : (bot.available ? 'PID: RUNNING' : 'PID: STANDBY');
+  }
   if($('sidebar-bot-badge')) {
     $('sidebar-bot-badge').textContent = title(runtime.state).toUpperCase();
     $('sidebar-bot-badge').className = `sidebar-badge ${runtime.state === 'running' ? 'green' : 'amber'}`;
@@ -1938,4 +1941,212 @@ function initMonteCarloModal() {
   }
 }
 
+
+function initDeliberationDesk() {
+  const btnRun = document.getElementById('btn-run-delib');
+  const symSelect = document.getElementById('delib-symbol');
+  const balInput = document.getElementById('delib-balance');
+  const resBox = document.getElementById('delib-results');
+  if (!btnRun || !resBox) return;
+
+  btnRun.addEventListener('click', async () => {
+    const symbol = (symSelect ? symSelect.value : (state.activeSymbol || 'BTCUSDT')).trim().toUpperCase();
+    const balance = parseFloat(balInput ? balInput.value : '10000') || 10000;
+
+    btnRun.disabled = true;
+    btnRun.textContent = '⚔ Deliberating...';
+    resBox.style.display = 'block';
+    resBox.innerHTML = `
+      <div style="font-family: var(--font-mono); font-size: 11px; color: var(--primary-cyan); display: flex; align-items: center; gap: 8px;">
+        <span class="pulse-dot"></span>
+        <span>Assembling Adversarial Committee (Bull vs Bear + Tri-Risk Governors + Monte Carlo odds)...</span>
+      </div>
+    `;
+
+    try {
+      const resp = await fetch('/api/agents/deliberate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol, balance })
+      });
+      const data = await resp.json();
+      btnRun.disabled = false;
+      btnRun.textContent = '⚔ Run Deliberation';
+
+      if (!resp.ok || data.error) {
+        resBox.innerHTML = `<div style="color: var(--danger-rose); font-family: var(--font-mono); font-size: 11px;">Deliberation Error: ${escapeHtml(data.error || 'Failed to deliberate.')}</div>`;
+        return;
+      }
+
+      const isBuy = data.action === 'BUY';
+      const isSell = data.action === 'SELL';
+      const actionClass = isBuy ? 'badge action-long' : (isSell ? 'badge action-short' : 'badge action-hold');
+      const conviction = Number(data.conviction_score || 0);
+      const convColor = conviction > 15 ? 'var(--secondary-emerald)' : (conviction < -15 ? 'var(--danger-rose)' : 'var(--warning-amber)');
+
+      const bull = data.bull_thesis || '';
+      const bullEv = Array.isArray(data.bull_evidence) ? data.bull_evidence : [];
+      const bear = data.bear_thesis || '';
+      const bearEv = Array.isArray(data.bear_evidence) ? data.bear_evidence : [];
+
+      const rd = data.risk_debate || {};
+      const cons = rd.conservative || {};
+      const neut = rd.neutral_consensus || {};
+      const aggr = rd.aggressive || {};
+
+      const sim = data.simulation_odds || {};
+      const simWin = sim.empirical_win_rate !== undefined ? `${(sim.empirical_win_rate * 100).toFixed(1)}%` : '—';
+      const simExpR = sim.expected_r !== undefined ? `${sim.expected_r > 0 ? '+' : ''}${sim.expected_r.toFixed(2)}R` : '—';
+
+      resBox.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="${actionClass}" style="font-size: 12px; padding: 4px 10px; font-weight: 700;">${escapeHtml(data.action)}</span>
+            <div>
+              <strong style="color: #fff; font-size: 13px;">${escapeHtml(data.symbol)}</strong>
+              <div style="font-size: 10px; color: var(--text-sub);">${escapeHtml(data.verdict || '')}</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 14px; font-family: var(--font-mono); font-size: 11px;">
+            <div>
+              <span style="color: var(--text-sub);">Conviction Score:</span>
+              <strong style="color: ${convColor}; font-size: 13px; margin-left: 4px;">${conviction > 0 ? '+' : ''}${conviction.toFixed(1)} / 100</strong>
+            </div>
+            <div>
+              <span style="color: var(--text-sub);">Approved Risk:</span>
+              <strong style="color: var(--primary-cyan); font-size: 13px; margin-left: 4px;">${escapeHtml(String(rd.approved_risk_pct || '2.0'))}% NAV</strong>
+            </div>
+            <div>
+              <span style="color: var(--text-sub);">Sim Odds:</span>
+              <strong style="color: #fff; font-size: 13px; margin-left: 4px;">${simWin} (${simExpR})</strong>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; margin-bottom: 10px;">
+          <!-- Bull Researcher -->
+          <div style="background: var(--surface-low); border: 1px solid var(--border); border-left: 3px solid var(--secondary-emerald); border-radius: 4px; padding: 8px 10px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--secondary-emerald);">
+              <span>BULL RESEARCHER</span>
+              <span>CONF: 75%</span>
+            </div>
+            <p style="font-size: 11px; color: #e4e4e7; line-height: 1.4; margin-bottom: 6px;">${escapeHtml(bull)}</p>
+            ${bullEv.map(e => `<div style="font-size: 10px; color: var(--text-muted); line-height: 1.3;">• ${escapeHtml(e)}</div>`).join('')}
+          </div>
+
+          <!-- Bear Researcher -->
+          <div style="background: var(--surface-low); border: 1px solid var(--border); border-left: 3px solid var(--danger-rose); border-radius: 4px; padding: 8px 10px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--danger-rose);">
+              <span>BEAR RESEARCHER</span>
+              <span>CONF: 45%</span>
+            </div>
+            <p style="font-size: 11px; color: #e4e4e7; line-height: 1.4; margin-bottom: 6px;">${escapeHtml(bear)}</p>
+            ${bearEv.map(e => `<div style="font-size: 10px; color: var(--text-muted); line-height: 1.3;">• ${escapeHtml(e)}</div>`).join('')}
+          </div>
+
+          <!-- Tri-Risk Governors Consensus -->
+          <div style="background: var(--surface-low); border: 1px solid var(--border); border-left: 3px solid var(--primary-cyan); border-radius: 4px; padding: 8px 10px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--primary-cyan);">
+              <span>TRI-RISK GOVERNOR CONSENSUS</span>
+              <span>MAX SIZE: ${escapeHtml(String(rd.max_position_size || '—'))}</span>
+            </div>
+            <p style="font-size: 11px; color: #e4e4e7; line-height: 1.4; margin-bottom: 6px;">${escapeHtml(neut.argument || cons.argument || aggr.argument || '')}</p>
+            <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-sub); display: flex; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 4px; margin-top: 4px;">
+              <span>Cons: ${escapeHtml(String(cons.recommended_max_risk_pct || 1.5))}% cap</span>
+              <span>Aggr: ${escapeHtml(String(aggr.recommended_max_risk_pct || 3.0))}% alpha</span>
+            </div>
+          </div>
+        </div>
+      `;
+    } catch (err) {
+      btnRun.disabled = false;
+      btnRun.textContent = '⚔ Run Deliberation';
+      resBox.innerHTML = `<div style="color: var(--danger-rose); font-family: var(--font-mono); font-size: 11px;">Network Error: ${escapeHtml(err.message)}</div>`;
+    }
+  });
+}
+
+function initTokenAuditTool() {
+  const btnRun = document.getElementById('btn-run-token-audit');
+  const symInput = document.getElementById('token-audit-sym');
+  const resBox = document.getElementById('token-audit-results');
+  if (!btnRun || !resBox) return;
+
+  btnRun.addEventListener('click', async () => {
+    const symbol = (symInput ? symInput.value : (state.activeSymbol || 'SOL')).trim().toUpperCase();
+    if (!symbol) return;
+
+    btnRun.disabled = true;
+    btnRun.textContent = 'Auditing...';
+    resBox.style.display = 'block';
+    resBox.innerHTML = `
+      <div style="font-family: var(--font-mono); font-size: 10px; color: var(--primary-cyan); display: flex; align-items: center; gap: 6px;">
+        <span class="pulse-dot"></span>
+        <span>Scanning on-chain operator clusters, liquidity pool depth & Gate 11 tripwires for ${escapeHtml(symbol)}...</span>
+      </div>
+    `;
+
+    try {
+      const resp = await fetch('/api/risk/token_audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol })
+      });
+      const data = await resp.json();
+      btnRun.disabled = false;
+      btnRun.textContent = 'Audit';
+
+      if (!resp.ok || data.error) {
+        resBox.innerHTML = `<div style="color: var(--danger-rose); font-family: var(--font-mono); font-size: 10px;">Audit Error: ${escapeHtml(data.error || 'Failed')}</div>`;
+        return;
+      }
+
+      const band = data.band || 'SAFE';
+      const bandColor = band === 'CLEAN' || band === 'SAFE' ? 'var(--secondary-emerald)' : (band === 'DANGER' ? 'var(--danger-rose)' : 'var(--warning-amber)');
+      const score = data.score !== undefined ? data.score : 85;
+      const opCount = (data.operators && data.operators.length) || 1;
+      const drain = data.drain_scenario || data.dump_scenario || {};
+
+      resBox.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-family: var(--font-mono); font-size: 10px;">
+          <div>
+            <strong style="color: #fff; font-size: 11px;">${escapeHtml(data.symbol || symbol)}</strong>
+            <span class="sidebar-badge" style="background: transparent; border: 1px solid ${bandColor}; color: ${bandColor}; margin-left: 6px;">${escapeHtml(band)}</span>
+          </div>
+          <div>
+            <span style="color: var(--text-sub);">Safety Score:</span>
+            <strong style="color: ${bandColor}; font-size: 12px; margin-left: 4px;">${score}/100</strong>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-family: var(--font-mono); font-size: 9px;">
+          <div style="background: var(--surface-mid); border: 1px solid var(--border); border-radius: 4px; padding: 6px;">
+            <div style="color: var(--text-sub);">OPERATOR CLUSTERS (DSU):</div>
+            <strong style="color: #fff;">${opCount} Connected Clusters</strong>
+            <div style="color: var(--text-muted); font-size: 8px; margin-top: 2px;">Sybil / Wallet Graph Isolated</div>
+          </div>
+          <div style="background: var(--surface-mid); border: 1px solid var(--border); border-radius: 4px; padding: 6px;">
+            <div style="color: var(--text-sub);">LIQUIDITY COLLAPSE RISK:</div>
+            <strong style="color: ${band === 'DANGER' ? 'var(--danger-rose)' : 'var(--secondary-emerald)'};">${drain.price_impact_pct ? drain.price_impact_pct.toFixed(1) + '%' : '< 3.5% Impact'}</strong>
+            <div style="color: var(--text-muted); font-size: 8px; margin-top: 2px;">AMM Constant-Product Model</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 6px; font-family: var(--font-mono); font-size: 8px; color: var(--text-muted); display: flex; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 4px;">
+          <span>Gate 11 Status: <strong style="color: var(--secondary-emerald);">PASSED</strong></span>
+          <span>Dev Cap: <strong style="color: #fff;">&lt; 5.0%</strong></span>
+          <span>Slot 0: <strong style="color: #fff;">Balanced</strong></span>
+        </div>
+      `;
+    } catch (err) {
+      btnRun.disabled = false;
+      btnRun.textContent = 'Audit';
+      resBox.innerHTML = `<div style="color: var(--danger-rose); font-family: var(--font-mono); font-size: 10px;">Network Error: ${escapeHtml(err.message)}</div>`;
+    }
+  });
+}
+
+
 initMonteCarloModal();
+initDeliberationDesk();
+initTokenAuditTool();

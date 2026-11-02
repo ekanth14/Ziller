@@ -621,7 +621,18 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     cs = CandleStore()
                     candles = cs.load_candles(symbol, "15m", limit=150)
                     if not candles or len(candles) < 20:
+                        candles = cs.load_candles(symbol, "5m", limit=150)
+                    if not candles or len(candles) < 20:
                         candles = cs.load_candles(symbol, "1h", limit=150)
+                    if not candles or len(candles) < 20:
+                        try:
+                            from cryptoscope.providers.binance import BinanceProvider
+                            snap = BinanceProvider().snapshot(symbol, "15m")
+                            if snap and snap.candles:
+                                cs.save_candles(symbol, "15m", snap.candles, source="binance")
+                                candles = snap.candles[-150:]
+                        except Exception as p_err:
+                            logger.warning("Could not fetch live candles for %s: %s", symbol, p_err)
                     res = simulate_trade_odds(
                         symbol=symbol,
                         entry=entry,
@@ -649,7 +660,18 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     cs = CandleStore()
                     candles = cs.load_candles(symbol, "15m", limit=100)
                     if not candles or len(candles) < 50:
+                        candles = cs.load_candles(symbol, "5m", limit=100)
+                    if not candles or len(candles) < 50:
                         candles = cs.load_candles(symbol, "1h", limit=100)
+                    if not candles or len(candles) < 50:
+                        try:
+                            from cryptoscope.providers.binance import BinanceProvider
+                            snap = BinanceProvider().snapshot(symbol, "15m")
+                            if snap and snap.candles:
+                                cs.save_candles(symbol, "15m", snap.candles, source="binance")
+                                candles = snap.candles[-100:]
+                        except Exception as p_err:
+                            logger.warning("Could not fetch live candles for %s: %s", symbol, p_err)
 
                     # Build synthetic indicators if candles are sparse
                     if candles and len(candles) >= 50:
