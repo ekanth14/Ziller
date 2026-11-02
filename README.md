@@ -16,6 +16,8 @@
 
 
 > **ZILLERS** is an institutional quantitative trading, multi-source crypto market aggregation, and autonomous decision terminal engineered for 24/7 continuous digital asset markets. Built with zero unpinned external runtime dependencies, deterministic risk gating, Smart Money Concept (SMC) order block analytics, and strictly grounded local AI deliberation via Ollama.
+>
+> 📐 **Master Quantitative Architecture & Mathematical Specifications**: For an exhaustive, institutional breakdown of the core directory structure, technical multi-tier architecture, and all mathematical trading formulas (OLS Beta, Engle-Granger Cointegration, Ornstein-Uhlenbeck Mean Reversion, Parkinson / Garman-Klass / Yang-Zhang Volatility, CVD Order Flow, and Fractional Kelly Sizing), consult **[ZILLERS_QUANT_ARCHITECTURE.md](ZILLERS_QUANT_ARCHITECTURE.md)**.
 
 ---
 
