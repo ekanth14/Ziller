@@ -26,6 +26,8 @@ data/snapshots/*.db
 .env
 .env.local
 .env.*.local
+credentials.env
+*.env
 !.env.example
 
 # Testing & Coverage
