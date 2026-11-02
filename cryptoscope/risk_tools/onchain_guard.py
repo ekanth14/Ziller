@@ -153,7 +153,7 @@ def score_token(
     biggest_op = operators[0] if operators else None
 
     # Price impact of the largest operator
-    op_tokens = (biggest_op["weighted"] * float_tokens) if biggest_op else 0.0
+    op_tokens = (biggest_op.get("weighted", biggest_op.get("share", 0.0)) * float_tokens) if biggest_op else 0.0
     impact = constant_product_impact(op_tokens, reserve_tokens)
 
     non_dev = [h for h in holders if not h.get("dev")]

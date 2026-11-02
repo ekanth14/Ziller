@@ -26,6 +26,7 @@ class AuthStore:
         conn.execute("PRAGMA journal_mode = WAL")
         conn.execute("PRAGMA synchronous = NORMAL")
         conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("PRAGMA busy_timeout = 5000")
         return conn
 
     def _init_db(self):
@@ -116,8 +117,8 @@ class AuthStore:
             finally:
                 conn.close()
 
-    def bootstrap_admin(self, admin_email: str = "admin@zillers.local") -> Optional[int]:
-        """Bootstrap default administrator. Fails startup if ADMIN_INITIAL_PASSWORD is unset."""
+    def bootstrap_admin(self, admin_email: Optional[str] = None) -> Optional[int]:
+        """Bootstrap administrator from environment variables. Refuses to start on missing or weak credentials."""
         with self._lock:
             conn = self._get_connection()
             try:
@@ -127,16 +128,27 @@ class AuthStore:
                 if existing:
                     return existing[0]
 
-                # No admin exists yet: require explicit environment variable
+                email = (admin_email or os.environ.get("ADMIN_EMAIL", "")).strip().lower()
+                if not email or "@" not in email:
+                    raise RuntimeError(
+                        "Startup failed: ADMIN_EMAIL environment variable must be explicitly "
+                        "set to bootstrap the administrator account. No default email permitted."
+                    )
+
                 initial_pwd = os.environ.get("ADMIN_INITIAL_PASSWORD", "").strip()
                 if not initial_pwd:
                     raise RuntimeError(
                         "Startup failed: ADMIN_INITIAL_PASSWORD environment variable must be explicitly "
                         "set to bootstrap the administrator account. No default passwords permitted."
                     )
-                if len(initial_pwd) < 10:
+                if len(initial_pwd) < 12:
                     raise RuntimeError(
-                        "Startup failed: ADMIN_INITIAL_PASSWORD must be at least 10 characters long."
+                        "Startup failed: ADMIN_INITIAL_PASSWORD must be at least 12 characters long with strong entropy."
+                    )
+                weak_passwords = {"admintestingpassword123!", "admin12345678", "password12345", "administrator12"}
+                if initial_pwd.lower() in weak_passwords:
+                    raise RuntimeError(
+                        "Startup failed: Insecure/weak default password detected in ADMIN_INITIAL_PASSWORD. Refusing to start."
                     )
 
                 now = time.time()
@@ -144,7 +156,7 @@ class AuthStore:
                 cur.execute("""
                     INSERT INTO users (email, password_hash, role, must_change_password, disabled, created_at, updated_at)
                     VALUES (?, ?, 'admin', 1, 0, ?, ?)
-                """, (admin_email.strip().lower(), phash, now, now))
+                """, (email, phash, now, now))
                 admin_id = cur.lastrowid
                 # Seed default user settings
                 cur.execute("""

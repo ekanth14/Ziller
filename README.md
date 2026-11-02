@@ -150,6 +150,7 @@ cp .env.example .env
 
 Edit `.env` and set your initial admin password:
 ```env
+ADMIN_EMAIL=admin@yourfirm.com
 ADMIN_INITIAL_PASSWORD=MySecureAdminPassword2026!
 PORT=8900
 HOST=127.0.0.1
@@ -181,7 +182,8 @@ The containerized terminal will run on port `8900` as a non-root user with autom
 
 | Variable | Default | Description |
 | :--- | :--- | :--- |
-| `ADMIN_INITIAL_PASSWORD` | **Required** | Startup fails if unset. Initial password for `admin@zillers.local`. |
+| `ADMIN_EMAIL` | **Required** | Startup fails if unset. Administrator account email address. |
+| `ADMIN_INITIAL_PASSWORD` | **Required** | Startup fails if unset, <12 chars, or default. Must be changed on first login. |
 | `PORT` | `8900` | HTTP listening port. |
 | `HOST` | `127.0.0.1` | Network interface binding. |
 | `TRUST_PROXY` | `false` | Set to `true` only when running behind trusted reverse proxies (e.g. Nginx). |

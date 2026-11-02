@@ -370,9 +370,12 @@ function updateSymbolDropdown(customSymbols = []) {
   const set = new Set(DEFAULT_SYMBOLS);
   customSymbols.forEach(s => set.add(s));
   (state.listings || []).forEach(item => {
-    if (item.symbol) {
+    if (item.symbol && item.is_listed !== false) {
       const sym = item.symbol.toUpperCase();
-      if (sym === 'USDTUSDT' || sym === 'USDCUSDT' || sym === 'DAIUSDT') return;
+      if (sym === 'USDTUSDT' || sym === 'USDCUSDT' || sym === 'DAIUSDT' || sym === 'USDUSDT') return;
+      const p = item.current_price ?? item.price_usd ?? item.price;
+      // Only include actively traded coins with a valid positive price or live ticker
+      if ((p === null || p === undefined || !Number.isFinite(p) || p <= 0) && !state.tickers[sym]) return;
       const fullSym = sym.endsWith('USDT') ? sym : sym + 'USDT';
       set.add(fullSym);
     }
@@ -647,33 +650,35 @@ function renderOrderBook() {
   let bid = ticker?.bid ?? quote?.bid;
   let ask = ticker?.ask ?? quote?.ask;
 
-  if (!bid || !ask) {
-    if (ticker?.price) {
-      const spreadStep = ticker.price > 1000 ? 0.5 : ticker.price > 10 ? 0.05 : 0.001;
-      bid = ticker.price - spreadStep;
-      ask = ticker.price + spreadStep;
-    } else {
-      return;
-    }
+  // Truthful rendering: Never fabricate synthetic bid/ask steps when exchange data is missing
+  if (!bid || !ask || !Number.isFinite(bid) || !Number.isFinite(ask) || bid <= 0 || ask <= 0) {
+    if ($('ob-spread')) $('ob-spread').textContent = '—';
+    if ($('ob-midpoint')) $('ob-midpoint').textContent = ticker?.price ? `${ticker.price.toFixed(ticker.price < 1 ? 4 : 2)} USDT (Single-Source)` : '—';
+    ['ob-bid-1', 'ob-bid-2', 'ob-bid-3', 'ob-bid-4', 'ob-ask-1', 'ob-ask-2', 'ob-ask-3', 'ob-ask-4'].forEach(id => {
+      if ($(id)) $(id).textContent = '—';
+    });
+    return;
   }
 
   const spread = ask - bid;
-  const spreadPct = (spread / (bid || 1)) * 100;
+  const spreadPct = (spread / bid) * 100;
   const mid = (ask + bid) / 2;
+  const precision = mid < 1 ? 4 : mid < 10 ? 3 : 2;
 
-  if ($('ob-spread')) $('ob-spread').textContent = `${spread.toFixed(spread < 1 ? 4 : 2)} USDT (${spreadPct.toFixed(3)}%)`;
-  if ($('ob-midpoint')) $('ob-midpoint').textContent = `${mid.toFixed(mid < 1 ? 4 : 2)} USDT`;
+  if ($('ob-spread')) $('ob-spread').textContent = `${spread.toFixed(precision)} USDT (${spreadPct.toFixed(3)}%)`;
+  if ($('ob-midpoint')) $('ob-midpoint').textContent = `${mid.toFixed(precision)} USDT`;
 
-  const step = mid > 10000 ? 2.5 : mid > 1000 ? 0.25 : mid > 50 ? 0.05 : 0.001;
-  if ($('ob-bid-1')) $('ob-bid-1').textContent = bid.toFixed(mid < 1 ? 4 : 2);
-  if ($('ob-bid-2')) $('ob-bid-2').textContent = (bid - step).toFixed(mid < 1 ? 4 : 2);
-  if ($('ob-bid-3')) $('ob-bid-3').textContent = (bid - step * 2).toFixed(mid < 1 ? 4 : 2);
-  if ($('ob-bid-4')) $('ob-bid-4').textContent = (bid - step * 3).toFixed(mid < 1 ? 4 : 2);
+  // Real L1 Best Bid / Best Ask
+  if ($('ob-bid-1')) $('ob-bid-1').textContent = bid.toFixed(precision);
+  if ($('ob-ask-1')) $('ob-ask-1').textContent = ask.toFixed(precision);
 
-  if ($('ob-ask-1')) $('ob-ask-1').textContent = ask.toFixed(mid < 1 ? 4 : 2);
-  if ($('ob-ask-2')) $('ob-ask-2').textContent = (ask + step).toFixed(mid < 1 ? 4 : 2);
-  if ($('ob-ask-3')) $('ob-ask-3').textContent = (ask + step * 2).toFixed(mid < 1 ? 4 : 2);
-  if ($('ob-ask-4')) $('ob-ask-4').textContent = (ask + step * 3).toFixed(mid < 1 ? 4 : 2);
+  // Deeper levels (L2-L4) require full L3 book feed; display '—' rather than synthetic math
+  if ($('ob-bid-2')) $('ob-bid-2').textContent = '—';
+  if ($('ob-bid-3')) $('ob-bid-3').textContent = '—';
+  if ($('ob-bid-4')) $('ob-bid-4').textContent = '—';
+  if ($('ob-ask-2')) $('ob-ask-2').textContent = '—';
+  if ($('ob-ask-3')) $('ob-ask-3').textContent = '—';
+  if ($('ob-ask-4')) $('ob-ask-4').textContent = '—';
 }
 
 function renderAutoTrader(){
@@ -1088,6 +1093,11 @@ async function fetchGovernorStatus() {
   try {
     const res = await request('/api/governor/status');
     state.governor = res;
+    const modeLabel = $('current-mode-label');
+    if (modeLabel) {
+      modeLabel.textContent = res.mode || 'PAPER';
+      modeLabel.style.color = res.mode === 'LIVE' ? '#10b981' : '#f59e0b';
+    }
     const btn = $('kill-switch-btn');
     if (!btn) return;
     if (res.kill_switch_engaged || res.emergency_halted) {
@@ -1736,11 +1746,13 @@ setInterval(()=>{
 }, 5000);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden && $('auto-refresh')?.checked) { refresh(); fetchListings(); } });
 
+let sseRetryCount = 0;
 function initSseStream() {
   if (!window.EventSource) return;
   try {
     const sse = new EventSource('/api/market/stream');
     sse.onopen = () => {
+      sseRetryCount = 0;
       if ($('feed-status-dot')) $('feed-status-dot').style.background = 'var(--secondary-emerald)';
       if ($('feed-status-text')) {
         $('feed-status-text').textContent = 'LIVE STREAMING';
@@ -1820,7 +1832,9 @@ function initSseStream() {
         $('feed-status-text').className = 'val warn';
       }
       sse.close();
-      setTimeout(initSseStream, 4000);
+      sseRetryCount++;
+      const backoffMs = Math.min(30000, 1000 * Math.pow(1.5, Math.min(sseRetryCount, 8)) + Math.random() * 500);
+      setTimeout(initSseStream, backoffMs);
     };
   } catch (err) {}
 }
@@ -2351,3 +2365,40 @@ initDeliberationDesk();
 initTokenAuditTool();
 initQuantDesk();
 
+
+// 5-Gate Live Trading Activation Toggle
+if ($('live-mode-toggle-btn')) {
+  $('live-mode-toggle-btn').addEventListener('click', async () => {
+    const isLive = state.governor?.mode === 'LIVE';
+    if (isLive) {
+      if (confirm('Switch trading terminal back to SAFE PAPER mode?')) {
+        try {
+          const res = await postJson('/api/governor/live_toggle', { mode: 'PAPER' });
+          notice('Trading mode transitioned to PAPER');
+          await fetchGovernorStatus();
+        } catch (err) {
+          notice(`Mode switch error: ${err.message}`);
+        }
+      }
+    } else {
+      const pwd = prompt('ATTEMPTING LIVE ORDER ROUTING (5-GATE PROTOCOL)\n\nEnter Administrator password to verify identity:');
+      if (!pwd) return;
+      const phrase = prompt('GATE 4 SAFETY CONFIRMATION:\n\nEnter the exact confirmation phrase:\nCONFIRM_LIVE_TRADING_BINANCE_SPOT');
+      if (!phrase) return;
+      try {
+        const res = await postJson('/api/governor/live_toggle', {
+          mode: 'LIVE',
+          password: pwd,
+          confirmation: phrase,
+          paper_trades_count: 0,
+          paper_net_pnl: 0.0
+        });
+        notice('LIVE TRADING ACTIVATED!');
+        await fetchGovernorStatus();
+      } catch (err) {
+        alert(`5-Gate Live Activation REFUSED:\n\n${err.message}`);
+        notice(`Live activation rejected: ${err.message}`);
+      }
+    }
+  });
+}

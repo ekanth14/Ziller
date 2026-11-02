@@ -24,7 +24,9 @@ class ServerEndpointTests(unittest.TestCase):
         cls.temp_dir = tempfile.TemporaryDirectory()
         cls.db_path = Path(cls.temp_dir.name) / "test_auth.db"
         cls.auth_store = AuthStore(cls.db_path)
-        os.environ["ADMIN_INITIAL_PASSWORD"] = "AdminTestingPassword123!"
+        os.environ["ADMIN_EMAIL"] = "admin@zillers.local"
+        os.environ["ADMIN_INITIAL_PASSWORD"] = "AdminSuperSecurePass2026!#"
+        os.environ["COLLAB_DESK_PASSCODE"] = "Ekanthbs@4514"
         cls.admin_id = cls.auth_store.bootstrap_admin("admin@zillers.local")
 
         cls.rate_limiter = RateLimiter(limit=50, window_sec=60)
@@ -74,7 +76,7 @@ class ServerEndpointTests(unittest.TestCase):
             self.assertIn("fx", data)
 
     def test_login_success_sets_session_cookie(self):
-        login_data = json.dumps({"email": "admin@zillers.local", "password": "AdminTestingPassword123!"}).encode()
+        login_data = json.dumps({"email": "admin@zillers.local", "password": "AdminSuperSecurePass2026!#"}).encode()
         req = Request(f"{self.base_url}/api/auth/login", data=login_data, headers={"Content-Type": "application/json"})
         with urlopen(req) as resp:
             self.assertEqual(resp.status, 200)
@@ -171,7 +173,7 @@ class ServerEndpointTests(unittest.TestCase):
         self.assertEqual(ctx.exception.code, 401)
 
         # Correct password returns 200 with reauthenticated: True
-        valid_body = json.dumps({"password": "AdminTestingPassword123!"}).encode()
+        valid_body = json.dumps({"password": "AdminSuperSecurePass2026!#"}).encode()
         req_valid = Request(
             f"{self.base_url}/api/auth/reauth",
             data=valid_body,

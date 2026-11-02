@@ -48,7 +48,8 @@ jobs:
 
       - name: Run Test Suite (pytest)
         env:
-          ADMIN_INITIAL_PASSWORD: CiAdminTestPassword123!
+          ADMIN_EMAIL: admin@zillers.local
+          ADMIN_INITIAL_PASSWORD: CiAdminTestPassword2026!#
           DATA_DIR: test_data
         run: |
           pytest -v --durations=10

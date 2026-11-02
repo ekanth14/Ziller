@@ -376,7 +376,7 @@ class RiskGovernor:
         if token_audit:
             band = token_audit.get("band", "OK")
             score = token_audit.get("score", 70)
-            if band == "DANGER" or score < 40:
+            if band == "DANGER" or score < 65:
                 reasons.append(f"ONCHAIN_SAFETY_FAIL: Token {symbol} flagged DANGER (Safety score {score}/100). Extreme operator concentration or insider dump risk.")
 
         return len(reasons) == 0, reasons
@@ -501,6 +501,7 @@ class OrderStore:
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA journal_mode = WAL")
         conn.execute("PRAGMA synchronous = NORMAL")
+        conn.execute("PRAGMA busy_timeout = 5000")
         return conn
 
     def _init_db(self):

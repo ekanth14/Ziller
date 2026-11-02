@@ -1,0 +1,25 @@
+# =============================================================================
+# Cloudflare Tunnel Configuration for ZILLERS Production Deployment
+# =============================================================================
+
+tunnel: <YOUR-TUNNEL-UUID>
+credentials-file: /etc/cloudflared/<YOUR-TUNNEL-UUID>.json
+
+ingress:
+  # Route traffic for production terminal domain
+  - hostname: terminal.zienorganisation.online
+    service: http://localhost:8900
+    originRequest:
+      connectTimeout: 10s
+      noTLSVerify: true
+      disableChunkedEncoding: false
+      keepAliveTimeout: 90s
+      keepAliveConnections: 100
+      tcpKeepAlive: 30s
+
+  # Healthcheck route
+  - hostname: health.zienorganisation.online
+    service: http://localhost:8900/health
+
+  # Default catch-all (404)
+  - service: http_status:404

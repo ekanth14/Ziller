@@ -1,0 +1,18 @@
+# =============================================================================
+# ZILLERS Institutional Crypto Terminal & Autonomous Risk Governor
+# Production Pinned Dependencies (Python 3.11 / 3.12)
+# =============================================================================
+
+# Core Networking, Feed Aggregation & Web Framework
+requests==2.34.2
+
+# Quantitative Mathematics, Time-Series & Cointegration Modeling
+numpy==2.5.4
+scipy==1.18.1
+statsmodels==0.15.0
+
+# End-to-End Browser Driving & Automated QA (Chromium)
+playwright==1.64.1
+
+# Institutional Test Suite & Verification Harness
+pytest==9.2.0

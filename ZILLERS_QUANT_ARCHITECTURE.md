@@ -549,7 +549,7 @@ pytest cryptoscope/tests/test_live_terminal_e2e.py -v
 python -m cryptoscope.dashboard --port 8900
 ```
 Then navigate to `http://localhost:8900` in any modern desktop browser.
-Admin bootstrap credentials: `admin@zillers.local` / `AdminTestingPassword123!` (or configured via environment variables).
+Administrator bootstrap: Configure `ADMIN_EMAIL` and a strong `ADMIN_INITIAL_PASSWORD` (minimum 12 characters) in your environment or `.env` file before first launch. The server refuses to start with missing, default, or weak passwords.
 
 ---
 *Architected and maintained under the Zien Organisation quantitative development guidelines.*

@@ -149,7 +149,7 @@ class AuthSecurityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "test_users.db"
             store = AuthStore(db_path)
-            with patch.dict(os.environ, {"ADMIN_INITIAL_PASSWORD": "AdminSecurePassword123!"}):
+            with patch.dict(os.environ, {"ADMIN_INITIAL_PASSWORD": "AdminSecurePassword2026!", "ADMIN_EMAIL": "admin@zillers.local"}):
                 store.bootstrap_admin()
             # Disable user
             with store._lock:
@@ -182,12 +182,26 @@ class AuthStoreTests(unittest.TestCase):
         self.addCleanup(self.temp_dir.cleanup)
         self.db_path = Path(self.temp_dir.name) / "test_users.db"
         self.store = AuthStore(self.db_path)
+        os.environ["ADMIN_EMAIL"] = "admin@zillers.local"
 
     def test_admin_bootstrap_fails_if_password_unset(self):
-        with patch.dict(os.environ, {}, clear=True):
+        # Fails if email is unset
+        with patch.dict(os.environ, {"ADMIN_INITIAL_PASSWORD": "AdminSuperSecurePass2026!"}, clear=True):
+            with self.assertRaises(RuntimeError) as ctx:
+                self.store.bootstrap_admin()
+            self.assertIn("ADMIN_EMAIL", str(ctx.exception))
+
+        # Fails if password is unset
+        with patch.dict(os.environ, {"ADMIN_EMAIL": "admin@zillers.local"}, clear=True):
             with self.assertRaises(RuntimeError) as ctx:
                 self.store.bootstrap_admin()
             self.assertIn("ADMIN_INITIAL_PASSWORD", str(ctx.exception))
+
+        # Fails on weak or default password
+        with patch.dict(os.environ, {"ADMIN_EMAIL": "admin@zillers.local", "ADMIN_INITIAL_PASSWORD": "AdminTestingPassword123!"}):
+            with self.assertRaises(RuntimeError) as ctx:
+                self.store.bootstrap_admin()
+            self.assertIn("Insecure/weak default password", str(ctx.exception))
 
     def test_admin_bootstrap_forces_password_change_on_first_login(self):
         with patch.dict(os.environ, {"ADMIN_INITIAL_PASSWORD": "AdminSuperSecurePass2026!"}):

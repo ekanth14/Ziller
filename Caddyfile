@@ -1,0 +1,61 @@
+# =============================================================================
+# ZILLERS Production Caddyfile (Reverse Proxy with Automated TLS)
+# =============================================================================
+
+{$ZILLERS_DOMAIN:terminal.zienorganisation.online} {
+    # 1. Automated HTTPS with Let's Encrypt / ZeroSSL
+    encode zstd gzip
+
+    # 2. Strict Institutional Security Headers
+    header {
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.binance.com https://api.coinbase.com https://api.kraken.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self';"
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+        -Server
+    }
+
+    # 3. Request Body Limit (Enforcing 512KB payload ceiling)
+    request_body {
+        max_size 512KB
+    }
+
+    # 4. SSE Streaming Optimization for 1 Hz Market Stream
+    @sse path /api/market/stream
+    handle @sse {
+        header {
+            Cache-Control "no-cache"
+            X-Accel-Buffering "no"
+        }
+        reverse_proxy 127.0.0.1:8900 {
+            flush_interval -1
+            transport http {
+                response_header_timeout 0
+            }
+        }
+    }
+
+    # 5. Reverse Proxy to ZILLERS Localhost Dashboard
+    reverse_proxy 127.0.0.1:8900 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+
+        # Connection health checks
+        health_uri /health
+        health_interval 10s
+        health_timeout 3s
+    }
+
+    # 6. Structured Logging
+    log {
+        output file /var/log/caddy/zillers_access.log {
+            roll_size 50mb
+            roll_keep 10
+        }
+        format json
+    }
+}

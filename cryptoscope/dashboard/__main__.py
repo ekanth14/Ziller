@@ -42,15 +42,24 @@ from cryptoscope.quant import (
 )
 
 logger = logging.getLogger("cryptoscope.server")
+
+
+class PayloadTooLargeError(Exception):
+    pass
+
 STATIC = Path(__file__).parent / "static"
 COLLAB_FILE = Path(__file__).resolve().parents[2] / "data" / "collaborations.json"
 _collab_lock = threading.Lock()
-COLLAB_DESK_PASSCODE = os.environ.get("COLLAB_DESK_PASSCODE", "Ekanthbs@4514")
+def get_collab_passcode() -> str:
+    return os.environ.get("COLLAB_DESK_PASSCODE", "")
 
 
 def is_collab_authorized(headers) -> bool:
+    passcode = get_collab_passcode()
+    if not passcode:
+        return False
     code = headers.get("X-Desk-Passcode", "")
-    if code and code.strip() == COLLAB_DESK_PASSCODE:
+    if code and code.strip() == passcode:
         return True
     cookie_str = headers.get("Cookie", "")
     if cookie_str:
@@ -58,7 +67,7 @@ def is_collab_authorized(headers) -> bool:
         try:
             c = SimpleCookie()
             c.load(cookie_str)
-            if "zillers_collab_auth" in c and c["zillers_collab_auth"].value == COLLAB_DESK_PASSCODE:
+            if "zillers_collab_auth" in c and c["zillers_collab_auth"].value == passcode:
                 return True
         except Exception:
             pass
@@ -90,7 +99,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
             self.send_header(
                 "Content-Security-Policy",
                 "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-                "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
+                "script-src 'self' 'unsafe-inline'; "
                 "font-src 'self' data: https://fonts.gstatic.com; "
                 "img-src 'self' data: https: https://assets.coingecko.com; "
                 "connect-src 'self' https://open.er-api.com; frame-ancestors 'none'; base-uri 'none'"
@@ -116,8 +125,14 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
             token = c["session_token"].value
             return auth_store.validate_session(token)
 
-        def _read_body_json(self):
+        def _read_body_json(self, max_bytes: int = 524_288):
             content_length = int(self.headers.get("Content-Length", 0))
+            if content_length > max_bytes:
+                try:
+                    self.rfile.read(content_length)
+                except Exception:
+                    pass
+                raise PayloadTooLargeError(f"Payload size ({content_length} bytes) exceeds maximum limit ({max_bytes} bytes)")
             if content_length == 0:
                 return {}
             raw = self.rfile.read(content_length).decode("utf-8")
@@ -500,6 +515,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
 
             try:
                 body = self._read_body_json()
+            except PayloadTooLargeError as err:
+                return self.json(413, {"error": str(err)})
             except Exception:
                 return self.json(400, {"error": "Invalid JSON payload"})
 
@@ -613,12 +630,13 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                         {"success": True, "message": "Logged out"},
                         cookies=["zillers_collab_auth=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"]
                     )
+                expected_passcode = get_collab_passcode()
                 passcode = body.get("passcode", "")
-                if passcode and str(passcode).strip() == COLLAB_DESK_PASSCODE:
+                if expected_passcode and passcode and str(passcode).strip() == expected_passcode:
                     return self.json(
                         200,
                         {"success": True, "message": "Passcode verified"},
-                        cookies=[f"zillers_collab_auth={COLLAB_DESK_PASSCODE}; Path=/; Max-Age=604800; HttpOnly; SameSite=Lax"]
+                        cookies=[f"zillers_collab_auth={expected_passcode}; Path=/; Max-Age=604800; HttpOnly; SameSite=Lax"]
                     )
                 return self.json(401, {"error": "Invalid operator passcode"})
 
@@ -683,11 +701,14 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
 
             # 6b. Pre-Trade Monte Carlo Odds Simulation (day-trader-skill integration)
             if url.path == "/api/market/simulate_odds":
+                if not rate_limiter.is_allowed(client_ip, "/api/market/simulate_odds", limit=20):
+                    retry = rate_limiter.retry_after(client_ip, "/api/market/simulate_odds")
+                    return self.json(429, {"error": f"Rate limit exceeded. Retry in {retry} seconds."})
                 symbol = str(body.get("symbol", "BTCUSDT")).strip().upper()
                 try:
-                    entry = float(body.get("entry", 0.0))
-                    stop = float(body.get("stop", 0.0))
-                    target = float(body.get("target", 0.0))
+                    entry = float(body.get("entry", body.get("entry_price", 0.0)))
+                    stop = float(body.get("stop", body.get("stop_price", 0.0)))
+                    target = float(body.get("target", body.get("target_price", 0.0)))
                 except (ValueError, TypeError):
                     return self.json(400, {"error": "Numeric entry, stop, and target prices are required."})
 
@@ -733,6 +754,9 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
 
             # 6c. Multi-Agent Deliberation & Consensus (TradingAgents integration)
             if url.path == "/api/agents/deliberate":
+                if not rate_limiter.is_allowed(client_ip, "/api/agents/deliberate", limit=12):
+                    retry = rate_limiter.retry_after(client_ip, "/api/agents/deliberate")
+                    return self.json(429, {"error": f"Rate limit exceeded. Retry in {retry} seconds."})
                 symbol = str(body.get("symbol", "BTCUSDT")).strip().upper()
                 balance = float(body.get("balance", 10000.0))
                 try:
@@ -797,6 +821,9 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
 
             # 6d. On-Chain Token Safety Audit & Rugpull Guard (QuantOrb integration)
             if url.path == "/api/risk/token_audit":
+                if not rate_limiter.is_allowed(client_ip, "/api/risk/token_audit", limit=25):
+                    retry = rate_limiter.retry_after(client_ip, "/api/risk/token_audit")
+                    return self.json(429, {"error": f"Rate limit exceeded. Retry in {retry} seconds."})
                 symbol = str(body.get("symbol", "SOL")).strip().upper()
                 holders = body.get("holders")
                 links = body.get("links", [])
@@ -836,6 +863,9 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
 
             # 6e. Quantitative Position Sizing & Kelly Allocator
             if url.path == "/api/quant/sizing":
+                if not rate_limiter.is_allowed(client_ip, "/api/quant/sizing", limit=30):
+                    retry = rate_limiter.retry_after(client_ip, "/api/quant/sizing")
+                    return self.json(429, {"error": f"Rate limit exceeded. Retry in {retry} seconds."})
                 account_balance = float(body.get("account_balance", 10000.0))
                 entry_price = float(body.get("entry_price", 0.0))
                 stop_loss = float(body.get("stop_loss", 0.0))
@@ -971,8 +1001,9 @@ def main():
     auth_store = AuthStore()
     # Bootstrap admin if no admin exists (fails cleanly if ADMIN_INITIAL_PASSWORD is unset)
     if not auth_store.has_admin():
-        admin_id = auth_store.bootstrap_admin()
-        print(f"[ZILLERS AUTH] Admin user bootstrapped (id={admin_id})", flush=True)
+        admin_email = os.environ.get("ADMIN_EMAIL", "").strip()
+        admin_id = auth_store.bootstrap_admin(admin_email)
+        print(f"[ZILLERS AUTH] Admin user bootstrapped (id={admin_id}, email={admin_email})", flush=True)
 
     rate_limiter = RateLimiter(limit=15, window_sec=60)
     lockout_mgr = AccountLockoutManager(threshold=5, duration=900)
