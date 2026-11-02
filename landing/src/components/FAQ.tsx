@@ -92,7 +92,7 @@ const FAQS: FAQItem[] = [
         <a href="/collaborate" className="font-bold text-white hover:text-[#D8D8DC] transition-colors">
           /collaborate
         </a>
-        . Submitted proposals are reviewed at the passcode-protected Proposals Desk.
+        . Submitted proposals are reviewed directly by the core quantitative engineering team.
       </p>
     ),
   },

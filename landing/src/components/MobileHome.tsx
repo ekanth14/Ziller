@@ -11,8 +11,6 @@ import {
   Database,
   Terminal,
   Send,
-  Lock,
-  ArrowRight,
   ChevronDown,
   HelpCircle,
   CheckCircle2,
@@ -406,7 +404,7 @@ python -m cryptoscope.dashboard --port 8900`;
         </div>
       </section>
 
-      {/* 7. COLLABORATE & PROPOSALS DESK */}
+      {/* 7. COLLABORATE */}
       <section id="mobile-collaborate" className="px-5 py-7 border-b border-[#1E1E22]">
         <div className="text-[10px] font-mono text-[#A2A2A8] uppercase tracking-wider mb-2">
           Research Intakes · Partnerships
@@ -527,24 +525,6 @@ python -m cryptoscope.dashboard --port 8900`;
             </button>
           </form>
         )}
-
-        {/* Passcode Protected Desk Entry (NO PASSCODE PRINTED) */}
-        <div className="mt-5 p-3.5 rounded-xl bg-[#121214] border border-[#27272A]">
-          <div className="flex items-center gap-2 mb-1.5">
-            <Lock className="w-3.5 h-3.5 text-amber-300" />
-            <span className="text-xs font-semibold text-white">Operator Proposals Desk</span>
-          </div>
-          <p className="text-[11px] text-[#A2A2A8] leading-relaxed mb-3">
-            Review submitted proposals and export datasets. Protected by institutional passcode.
-          </p>
-          <a
-            href="/collaborations"
-            className="inline-flex items-center gap-1.5 text-xs font-mono text-amber-300 hover:text-amber-200 transition-colors"
-          >
-            <span>Open Submissions Desk</span>
-            <ArrowRight className="w-3 h-3" />
-          </a>
-        </div>
       </section>
 
       {/* 8. SECONDARY PC/LAPTOP RECOMMENDATION & FOOTER */}

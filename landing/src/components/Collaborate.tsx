@@ -249,20 +249,6 @@ export const Collaborate: React.FC<{ isStandalone?: boolean }> = ({ isStandalone
             </a>
             . We partner with quantitative researchers, machine learning specialists, systems architects, and traders to advance autonomous market research, explainable AI deliberation, and deterministic risk governance.
           </p>
-
-          <div className="pt-2 flex items-center justify-center gap-3">
-            <a
-              href="/collaborations"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#4D4D51] hover:border-white bg-[#151515] hover:bg-[#222224] text-xs font-mono text-[#D8D8DC] hover:text-white transition-all shadow-md group"
-              title="View live submissions database"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Browse Submissions Desk</span>
-              <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform text-[#A2A2A8]" />
-            </a>
-          </div>
         </div>
 
         {/* Two-Column Grid: Form & Research Values */}
@@ -357,22 +343,13 @@ export const Collaborate: React.FC<{ isStandalone?: boolean }> = ({ isStandalone
                       </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <a
-                        href="/collaborations"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 inline-flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-wider py-3 rounded-full border border-[#4D4D51] hover:border-white bg-[#151515] text-[#F4F4F5] hover:bg-[#222224] transition-all shadow-sm group"
-                      >
-                        <span>Open Submissions Desk</span>
-                        <ExternalLink className="w-3.5 h-3.5 text-[#A2A2A8] group-hover:text-white" />
-                      </a>
+                    <div className="flex justify-center">
                       <button
                         type="button"
                         onClick={resetForm}
-                        className="flex-1 text-xs font-mono uppercase tracking-wider py-3 rounded-full border border-[#38383C] bg-[#090909] text-[#A2A2A8] hover:text-white hover:border-[#4D4D51] transition-all"
+                        className="w-full sm:w-auto px-8 text-xs font-mono uppercase tracking-wider py-3 rounded-full border border-[#38383C] bg-[#090909] text-[#A2A2A8] hover:text-white hover:border-[#4D4D51] transition-all"
                       >
-                        Submit Another
+                        Submit Another Proposal
                       </button>
                     </div>
                   </motion.div>

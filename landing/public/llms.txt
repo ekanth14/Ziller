@@ -30,7 +30,6 @@ ZILLERS is a free, open-source institutional-grade cryptocurrency trading and qu
 
 - **Public Showcase & Trading Terminal:** https://zillers.zienorganisation.online/
 - **Research Collaboration Intake:** https://zillers.zienorganisation.online/collaborate
-- **Operator Proposals Desk:** https://zillers.zienorganisation.online/collaborations (Passcode-protected)
 - **Local Installation Guide:** https://zillers.zienorganisation.online/setup
 - **Parent Venture:** https://ziennexus.app/
 - **Source Code:** https://github.com/ekanth14/Ziller
