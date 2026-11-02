@@ -14,5 +14,8 @@ statsmodels==0.15.0
 # End-to-End Browser Driving & Automated QA (Chromium)
 playwright==1.64.1
 
+# Autonomous Multi-Bot Telegram Gateway
+python-telegram-bot==22.8
+
 # Institutional Test Suite & Verification Harness
 pytest==9.2.0
