@@ -1827,3 +1827,115 @@ if ($('symbol')) {
     renderOrderBook();
   });
 }
+
+
+// Pre-Trade Monte Carlo Odds Simulation Integration (day-trader-skill)
+function initMonteCarloModal() {
+  const btnOpen = document.getElementById('btn-open-mc');
+  const dialog = document.getElementById('monte-carlo-dialog');
+  const btnClose = document.getElementById('close-mc-dialog');
+  const btnRun = document.getElementById('btn-run-mc-sim');
+
+  if (!btnOpen || !dialog) return;
+
+  btnOpen.addEventListener('click', () => {
+    const activeSym = (state && state.activeSymbol) ? state.activeSymbol : 'BTCUSDT';
+    const symInput = document.getElementById('mc-symbol');
+    const entryInput = document.getElementById('mc-entry');
+    const stopInput = document.getElementById('mc-stop');
+    const targetInput = document.getElementById('mc-target');
+
+    if (symInput) symInput.value = activeSym;
+    
+    // Auto-fill from latest market price if available
+    let price = null;
+    const priceEl = document.getElementById('market-price');
+    if (priceEl && priceEl.textContent && priceEl.textContent !== '—') {
+      const parsed = parseFloat(priceEl.textContent.replace(/[^0-9.]/g, ''));
+      if (parsed > 0) price = parsed;
+    }
+
+    if (price && entryInput && !entryInput.value) {
+      entryInput.value = price.toFixed(2);
+      if (stopInput && !stopInput.value) stopInput.value = (price * 0.985).toFixed(2);
+      if (targetInput && !targetInput.value) targetInput.value = (price * 1.03).toFixed(2);
+    }
+    dialog.showModal();
+  });
+
+  if (btnClose) {
+    btnClose.addEventListener('click', () => dialog.close());
+  }
+
+  if (btnRun) {
+    btnRun.addEventListener('click', async () => {
+      const sym = (document.getElementById('mc-symbol')?.value || 'BTCUSDT').trim().toUpperCase();
+      const entry = parseFloat(document.getElementById('mc-entry')?.value || '0');
+      const stop = parseFloat(document.getElementById('mc-stop')?.value || '0');
+      const target = parseFloat(document.getElementById('mc-target')?.value || '0');
+
+      if (!entry || !stop || !target) {
+        alert('Please specify valid numeric entry, stop loss, and take profit prices.');
+        return;
+      }
+
+      btnRun.disabled = true;
+      btnRun.textContent = 'Simulating 2,000 Replays...';
+
+      try {
+        const resp = await fetch('/api/market/simulate_odds', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            symbol: sym,
+            entry: entry,
+            stop: stop,
+            target: target,
+            horizon_bars: 40,
+            replays: 2000,
+          })
+        });
+
+        const data = await resp.json();
+        btnRun.disabled = false;
+        btnRun.textContent = '▶ Run 2,000 Replays';
+
+        if (resp.ok && data.empirical_win_rate !== undefined) {
+          const resBox = document.getElementById('mc-results');
+          if (resBox) resBox.style.display = 'block';
+
+          const winEl = document.getElementById('mc-win-rate');
+          const beEl = document.getElementById('mc-breakeven');
+          const trEl = document.getElementById('mc-target-r');
+          const erEl = document.getElementById('mc-expected-r');
+          const vdText = document.getElementById('mc-verdict-text');
+          const vdPill = document.getElementById('mc-verdict-pill');
+          const sumEl = document.getElementById('mc-summary-msg');
+
+          if (winEl) winEl.textContent = `${(data.empirical_win_rate * 100).toFixed(1)}%`;
+          if (beEl) beEl.textContent = `${(data.breakeven_win_rate * 100).toFixed(1)}%`;
+          if (trEl) trEl.textContent = `${data.target_r.toFixed(2)}R`;
+          if (erEl) {
+            erEl.textContent = `${data.expected_r > 0 ? '+' : ''}${data.expected_r.toFixed(2)}R`;
+            erEl.style.color = data.expected_r > 0 ? 'var(--secondary-emerald)' : 'var(--danger-rose)';
+          }
+
+          if (vdText) vdText.textContent = data.verdict;
+          if (vdPill) {
+            vdPill.textContent = data.verdict_code;
+            vdPill.className = data.expected_r > 0 ? 'sidebar-badge green' : 'sidebar-badge rose';
+          }
+          if (sumEl) sumEl.textContent = data.summary_message;
+        } else {
+          alert(data.error || 'Failed to compute Monte Carlo simulation.');
+        }
+      } catch (err) {
+        btnRun.disabled = false;
+        btnRun.textContent = '▶ Run 2,000 Replays';
+        alert(`Error running simulation: ${err.message}`);
+      }
+    });
+  }
+}
+
+initMonteCarloModal();

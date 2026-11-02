@@ -50,6 +50,20 @@ def analyze(snapshot):
         latest_ob=bullish_obs[-1]
         smc_rebound=(latest_ob['low']*0.998<=close<=latest_ob['high']*1.015) and close>bars[-2]['close'] and rsi>=40
 
+    # Shrink pullback: low volume retracement to EMA20 support during uptrend
+    prev_bar = bars[-2] if len(bars) >= 2 else bars[-1]
+    tested_ema = abs(bars[-1]['low'] - indicators['ema20']) / indicators['ema20'] <= 0.015 if indicators['ema20'] > 0 else False
+    shrink_pb = (indicators['ema20'] > indicators['ema50'] and tested_ema and 
+                 prev_bar['volume'] <= 0.75 * volume and close > bars[-1]['open'] and 42 <= rsi < 70)
+
+    # Box oscillation: range-bound support bounce
+    recent_low20 = min(c['low'] for c in previous) if previous else 0
+    box_height = (high - recent_low20) / recent_low20 if recent_low20 > 0 else 0
+    box_range = max(0.001, high - recent_low20)
+    box_bounce = (0.025 <= box_height <= 0.09 and 
+                  (close - recent_low20) / box_range <= 0.25 and 
+                  close > bars[-1]['open'] and rsi <= 50)
+
     checks={
         'ema_trend':indicators['ema20']>indicators['ema50'] and close>=indicators['ema20'] and 45<=rsi<70,
         'mtf_confirmation':htf_trend and indicators['ema20']>indicators['ema50'] and close>=indicators['ema20'] and 45<=rsi<70,
@@ -58,6 +72,8 @@ def analyze(snapshot):
         'smc_order_block':smc_rebound,
         'rsi_rebound':rsi<30 and close>bars[-2]['close'],
         'volume_breakout':close>high and bars[-1]['volume']>=1.2*volume and rsi<75,
+        'shrink_pullback':shrink_pb,
+        'box_oscillation':box_bounce,
     }
     return {'indicators':{k:round(indicators[k],8) for k in ('close','ema20','ema50','rsi14','atr14')},
         'candidates':[key for key,active in checks.items() if active],

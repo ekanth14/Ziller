@@ -327,5 +327,63 @@ class ServerEndpointTests(unittest.TestCase):
         self.assertEqual(ctx.exception.code, 400)
 
 
+    def test_simulate_odds_endpoint(self):
+        payload = {
+            "symbol": "BTCUSDT",
+            "entry": 50000.0,
+            "stop": 49000.0,
+            "target": 52000.0,
+            "horizon_bars": 20,
+            "replays": 150,
+        }
+        req = Request(
+            f"{self.base_url}/api/market/simulate_odds",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Host": f"localhost:{self.port}"},
+            method="POST",
+        )
+        with urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            self.assertEqual(data["symbol"], "BTCUSDT")
+            self.assertEqual(data["side"], "LONG")
+            self.assertIn("empirical_win_rate", data)
+            self.assertIn("expected_r", data)
+            self.assertIn("percentiles", data)
+
+        # Invalid zero price
+        bad_req = Request(
+            f"{self.base_url}/api/market/simulate_odds",
+            data=json.dumps({"symbol": "BTCUSDT", "entry": 0, "stop": 49000, "target": 52000}).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Host": f"localhost:{self.port}"},
+            method="POST",
+        )
+        with self.assertRaises(HTTPError) as ctx:
+            urlopen(bad_req)
+        self.assertEqual(ctx.exception.code, 400)
+
+
+    def test_agents_deliberate_endpoint(self):
+        payload = {
+            "symbol": "BTCUSDT",
+            "balance": 15000.0,
+        }
+        req = Request(
+            f"{self.base_url}/api/agents/deliberate",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Host": f"localhost:{self.port}"},
+            method="POST",
+        )
+        with urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            self.assertEqual(data["symbol"], "BTCUSDT")
+            self.assertIn(data["action"], ["BUY", "SELL", "STAND_ASIDE"])
+            self.assertIn("conviction_score", data)
+            self.assertIn("bull_thesis", data)
+            self.assertIn("bear_thesis", data)
+            self.assertIn("risk_debate", data)
+
+
 if __name__ == "__main__":
     unittest.main()

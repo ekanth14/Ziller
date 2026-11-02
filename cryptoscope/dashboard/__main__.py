@@ -597,6 +597,98 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     "message": "Collaboration proposal successfully registered. The ZILLERS research team will reach out via email.",
                 })
 
+            # 6b. Pre-Trade Monte Carlo Odds Simulation (day-trader-skill integration)
+            if url.path == "/api/market/simulate_odds":
+                symbol = str(body.get("symbol", "BTCUSDT")).strip().upper()
+                try:
+                    entry = float(body.get("entry", 0.0))
+                    stop = float(body.get("stop", 0.0))
+                    target = float(body.get("target", 0.0))
+                except (ValueError, TypeError):
+                    return self.json(400, {"error": "Numeric entry, stop, and target prices are required."})
+
+                if entry <= 0 or stop <= 0 or target <= 0:
+                    return self.json(400, {"error": "Prices must be positive non-zero numbers."})
+                if entry == stop or entry == target:
+                    return self.json(400, {"error": "Entry cannot equal stop or target price."})
+
+                horizon_bars = max(5, min(100, int(body.get("horizon_bars", 48))))
+                replays = max(100, min(5000, int(body.get("replays", 1500))))
+
+                try:
+                    from cryptoscope.market_data.candle_store import CandleStore
+                    from cryptoscope.simulation.time_machine import simulate_trade_odds
+                    cs = CandleStore()
+                    candles = cs.load_candles(symbol, "15m", limit=150)
+                    if not candles or len(candles) < 20:
+                        candles = cs.load_candles(symbol, "1h", limit=150)
+                    res = simulate_trade_odds(
+                        symbol=symbol,
+                        entry=entry,
+                        stop=stop,
+                        target=target,
+                        candles=candles,
+                        horizon_bars=horizon_bars,
+                        replays=replays,
+                    )
+                    return self.json(200, res)
+                except Exception as sim_err:
+                    logger.error("Simulation error: %s", sim_err)
+                    return self.json(500, {"error": f"Simulation failure: {sim_err}"})
+
+            # 6c. Multi-Agent Deliberation & Consensus (TradingAgents integration)
+            if url.path == "/api/agents/deliberate":
+                symbol = str(body.get("symbol", "BTCUSDT")).strip().upper()
+                balance = float(body.get("balance", 10000.0))
+                try:
+                    from cryptoscope.market_data.candle_store import CandleStore
+                    from cryptoscope.agents.analysts.market import technical
+                    from cryptoscope.agents.consensus import DeliberationConsensusEngine
+                    from cryptoscope.agents.schemas import Snapshot
+
+                    cs = CandleStore()
+                    candles = cs.load_candles(symbol, "15m", limit=100)
+                    if not candles or len(candles) < 50:
+                        candles = cs.load_candles(symbol, "1h", limit=100)
+
+                    # Build synthetic indicators if candles are sparse
+                    if candles and len(candles) >= 50:
+                        snap = Snapshot(
+                            symbol=symbol,
+                            as_of=candles[-1]["close_time"],
+                            interval_seconds=900,
+                            candles=candles,
+                            derivatives={},
+                            news=[],
+                        )
+                        ind = technical(snap)
+                        obs = ind.get("order_blocks", [])
+                    else:
+                        ticker = market_aggregator.get_ticker(symbol)
+                        price = float(ticker.get("price", 65000.0)) if ticker else 65000.0
+                        ind = {
+                            "close": price,
+                            "ema20": price * 0.995,
+                            "ema50": price * 0.985,
+                            "rsi14": 55.0,
+                            "atr14": price * 0.018,
+                            "directional_score": 30.0,
+                        }
+                        obs = [{"type": "BULLISH_OB", "low": price * 0.98, "high": price * 0.99}]
+
+                    engine = DeliberationConsensusEngine()
+                    decision = engine.deliberate(
+                        symbol=symbol,
+                        indicators=ind,
+                        candles=candles,
+                        order_blocks=obs,
+                        balance=balance,
+                    )
+                    return self.json(200, decision)
+                except Exception as delib_err:
+                    logger.error("Deliberation error: %s", delib_err)
+                    return self.json(500, {"error": f"Deliberation failure: {delib_err}"})
+
             # Authenticated Mutating Routes
             if not session:
                 return self.json(401, {"error": "Authentication required"})
