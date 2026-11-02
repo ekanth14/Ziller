@@ -385,5 +385,28 @@ class ServerEndpointTests(unittest.TestCase):
             self.assertIn("risk_debate", data)
 
 
+    def test_token_audit_endpoint(self):
+        payload = {
+            "symbol": "SOL",
+            "float_tokens": 1000000.0,
+            "reserve_tokens": 500000.0,
+            "liquidity_usd": 250000.0,
+        }
+        req = Request(
+            f"{self.base_url}/api/risk/token_audit",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Host": f"localhost:{self.port}"},
+            method="POST",
+        )
+        with urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            self.assertEqual(data["symbol"], "SOL")
+            self.assertIn("score", data)
+            self.assertIn(data["band"], ["CLEAN", "OK", "RISKY", "DANGER"])
+            self.assertIn("operators", data)
+            self.assertIn("guard", data)
+
+
 if __name__ == "__main__":
     unittest.main()

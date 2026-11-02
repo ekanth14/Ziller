@@ -308,6 +308,7 @@ class RiskGovernor:
         day_pnl: float,
         day_start_equity: float,
         now: Optional[float] = None,
+        token_audit: Optional[Dict[str, Any]] = None,
     ) -> Tuple[bool, List[str]]:
         now = time.time() if now is None else now
         reasons = []
@@ -370,6 +371,13 @@ class RiskGovernor:
         # 10. Max open orders check
         if current_open_orders_count >= self.max_open_orders:
             reasons.append(f"MAX_ORDERS_EXCEEDED: Open orders count {current_open_orders_count} reaches limit {self.max_open_orders}")
+
+        # 11. On-Chain Token Safety & Rugpull Guard (QuantOrb integration)
+        if token_audit:
+            band = token_audit.get("band", "OK")
+            score = token_audit.get("score", 70)
+            if band == "DANGER" or score < 40:
+                reasons.append(f"ONCHAIN_SAFETY_FAIL: Token {symbol} flagged DANGER (Safety score {score}/100). Extreme operator concentration or insider dump risk.")
 
         return len(reasons) == 0, reasons
 

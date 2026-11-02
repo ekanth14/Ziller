@@ -328,5 +328,25 @@ class GovernorTests(unittest.TestCase):
         self.assertTrue(risk.emergency_halted)
 
 
+    def test_token_safety_audit_rejects_danger_tokens(self):
+        risk = RiskGovernor(max_position_fraction=0.10)
+        now = 1700000000.0
+
+        # Safe token passes
+        allowed, reasons = risk.check_pre_trade(
+            "BTCUSDT", "BUY", 100, 10000, 0, 1.0, 0.1, 0, 10000, now=now,
+            token_audit={"band": "CLEAN", "score": 92}
+        )
+        self.assertTrue(allowed)
+
+        # Danger token rejected
+        allowed, reasons = risk.check_pre_trade(
+            "SCAMCOIN", "BUY", 100, 10000, 0, 1.0, 0.1, 0, 10000, now=now,
+            token_audit={"band": "DANGER", "score": 25}
+        )
+        self.assertFalse(allowed)
+        self.assertTrue(any("ONCHAIN_SAFETY_FAIL" in r for r in reasons))
+
+
 if __name__ == "__main__":
     unittest.main()
