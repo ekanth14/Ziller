@@ -32,6 +32,14 @@ from cryptoscope.market_data.coingecko import CoinGeckoService
 from cryptoscope.execution.governor import LiveMultiGateGovernor, RiskGovernor, EmergencyKillSwitch, LiveGateError
 from cryptoscope.autotrader.decision import LayaTier2Evaluator
 from cryptoscope.research.settings import ROOT, load_config
+from cryptoscope.quant import (
+    analyze_crypto_pair,
+    volatility_regime_analysis,
+    analyze_order_flow,
+    optimal_trade_sizing,
+    kelly_criterion,
+    volatility_parity_allocation,
+)
 
 logger = logging.getLogger("cryptoscope.server")
 STATIC = Path(__file__).parent / "static"
@@ -310,6 +318,82 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     "halted_by": kill_switch.halted_by,
                     "target_exchange": "Binance Spot",
                 })
+
+            # Quantitative Analysis & Statistical Arbitrage APIs
+            if url.path == "/api/quant/pairs":
+                from cryptoscope.market_data.candle_store import CandleStore
+                from cryptoscope.providers.binance import BinanceProvider
+                cs = CandleStore()
+                provider = BinanceProvider()
+                
+                pairs_param = query.get("pairs", ["ETHUSDT:BTCUSDT,SOLUSDT:ETHUSDT,AVAXUSDT:SOLUSDT"])[0]
+                results = []
+                for pair_str in pairs_param.split(","):
+                    parts = pair_str.strip().split(":")
+                    if len(parts) != 2:
+                        continue
+                    sym_a, sym_b = parts[0].upper(), parts[1].upper()
+                    candles_a = cs.load_candles(sym_a, "15m", limit=100) or []
+                    candles_b = cs.load_candles(sym_b, "15m", limit=100) or []
+                    if len(candles_a) < 30:
+                        try:
+                            s = provider.snapshot(sym_a, "15m")
+                            if s and s.candles:
+                                cs.save_candles(sym_a, "15m", s.candles, source="binance")
+                                candles_a = s.candles[-100:]
+                        except Exception:
+                            pass
+                    if len(candles_b) < 30:
+                        try:
+                            s = provider.snapshot(sym_b, "15m")
+                            if s and s.candles:
+                                cs.save_candles(sym_b, "15m", s.candles, source="binance")
+                                candles_b = s.candles[-100:]
+                        except Exception:
+                            pass
+                    pair_diag = analyze_crypto_pair(candles_a, candles_b, symbol_a=sym_a, symbol_b=sym_b)
+                    results.append(pair_diag)
+
+                return self.json(200, {"pairs": results, "as_of": time.time()})
+
+            if url.path == "/api/quant/volatility":
+                symbol = query.get("symbol", ["BTCUSDT"])[0].upper()
+                interval = query.get("interval", ["15m"])[0]
+                from cryptoscope.market_data.candle_store import CandleStore
+                from cryptoscope.providers.binance import BinanceProvider
+                cs = CandleStore()
+                candles = cs.load_candles(symbol, interval, limit=100) or []
+                if len(candles) < 30:
+                    try:
+                        s = BinanceProvider().snapshot(symbol, interval)
+                        if s and s.candles:
+                            cs.save_candles(symbol, interval, s.candles, source="binance")
+                            candles = s.candles[-100:]
+                    except Exception:
+                        pass
+                vol_report = volatility_regime_analysis(candles, window=20, baseline_window=60, interval=interval)
+                vol_report["symbol"] = symbol
+                vol_report["interval"] = interval
+                return self.json(200, vol_report)
+
+            if url.path == "/api/quant/orderflow":
+                symbol = query.get("symbol", ["BTCUSDT"])[0].upper()
+                lookback = min(100, max(10, int(query.get("lookback", [40])[0])))
+                from cryptoscope.market_data.candle_store import CandleStore
+                from cryptoscope.providers.binance import BinanceProvider
+                cs = CandleStore()
+                candles = cs.load_candles(symbol, "15m", limit=lookback) or []
+                if len(candles) < 20:
+                    try:
+                        s = BinanceProvider().snapshot(symbol, "15m")
+                        if s and s.candles:
+                            cs.save_candles(symbol, "15m", s.candles, source="binance")
+                            candles = s.candles[-lookback:]
+                    except Exception:
+                        pass
+                of_report = analyze_order_flow(candles, lookback=lookback)
+                of_report["symbol"] = symbol
+                return self.json(200, of_report)
 
             # Laya Tier 2 Engine Status
             if url.path == "/api/laya/status":
@@ -749,6 +833,29 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 except Exception as audit_err:
                     logger.error("Token audit error: %s", audit_err)
                     return self.json(500, {"error": f"Token audit failure: {audit_err}"})
+
+            # 6e. Quantitative Position Sizing & Kelly Allocator
+            if url.path == "/api/quant/sizing":
+                account_balance = float(body.get("account_balance", 10000.0))
+                entry_price = float(body.get("entry_price", 0.0))
+                stop_loss = float(body.get("stop_loss", 0.0))
+                win_rate = float(body.get("win_rate", 0.55))
+                win_loss_ratio = float(body.get("win_loss_ratio", 1.8))
+                kelly_fraction = float(body.get("kelly_fraction", 0.5))
+                max_account_risk_pct = float(body.get("max_account_risk_pct", 2.0))
+                vol_modifier = float(body.get("volatility_compression_score", 1.0))
+
+                res = optimal_trade_sizing(
+                    account_balance=account_balance,
+                    entry_price=entry_price,
+                    stop_loss=stop_loss,
+                    win_rate=win_rate,
+                    win_loss_ratio=win_loss_ratio,
+                    kelly_fraction=kelly_fraction,
+                    max_account_risk_pct=max_account_risk_pct,
+                    volatility_compression_score=vol_modifier,
+                )
+                return self.json(200, res)
 
             # Authenticated Mutating Routes
             if not session:

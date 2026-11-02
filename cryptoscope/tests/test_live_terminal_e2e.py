@@ -205,9 +205,11 @@ class TestLiveTerminalE2E(unittest.TestCase):
         self.assertIn('btn-run-delib', index_html)
         self.assertIn('btn-run-token-audit', index_html)
         self.assertIn('btn-open-mc', index_html)
+        self.assertIn('quant-desk', index_html)
         self.assertIn('initDeliberationDesk', app_js)
         self.assertIn('initTokenAuditTool', app_js)
         self.assertIn('initMonteCarloModal', app_js)
+        self.assertIn('initQuantDesk', app_js)
 
     def test_09_listings_filter_unlisted_tokens(self):
         """Verify CoinGecko listings filter strictly excludes unlisted tokens and includes real prices."""
@@ -229,6 +231,68 @@ class TestLiveTerminalE2E(unittest.TestCase):
             self.assertIn("price_usd", it)
             self.assertGreater(it["current_price"], 0.0)
             self.assertIn("change_24h_pct", it)
+
+
+
+    def test_10_stat_arb_and_volatility_quant_engine(self):
+        """Verify Stat-Arb cointegration and volatility regime diagnostics on real candles."""
+        from cryptoscope.quant import analyze_crypto_pair, volatility_regime_analysis, analyze_order_flow
+        candles_btc = self.cs.load_candles("BTCUSDT", "15m", limit=50) or self.cs.load_candles("BTCUSDT", "5m", limit=50)
+        candles_eth = self.cs.load_candles("ETHUSDT", "15m", limit=50) or self.cs.load_candles("ETHUSDT", "5m", limit=50)
+
+        self.assertGreaterEqual(len(candles_btc), 10)
+        self.assertGreaterEqual(len(candles_eth), 10)
+
+        # 1. Stat-Arb pair analysis
+        pair_res = analyze_crypto_pair(candles_eth, candles_btc, "ETHUSDT", "BTCUSDT")
+        self.assertIn("hedge_ratio_beta", pair_res)
+        self.assertIn("zscore", pair_res)
+        self.assertIn("cointegration", pair_res)
+        self.assertIn("ornstein_uhlenbeck", pair_res)
+
+        # 2. Volatility regime analysis
+        vol_res = volatility_regime_analysis(candles_btc, window=15, baseline_window=40)
+        self.assertEqual(vol_res["status"], "ACTIVE")
+        self.assertIn("regime", vol_res)
+        self.assertIn("compression_ratio", vol_res)
+        self.assertIn("estimators", vol_res)
+        self.assertGreater(vol_res["estimators"]["parkinson_annualized"], 0.0)
+        self.assertGreater(vol_res["estimators"]["garman_klass_annualized"], 0.0)
+
+        # 3. Microstructure & Order flow CVD
+        of_res = analyze_order_flow(candles_btc, lookback=30)
+        self.assertEqual(of_res["status"], "OK")
+        self.assertIn("buy_volume_ratio", of_res)
+        self.assertIn("divergence", of_res)
+
+    def test_11_fractional_kelly_and_risk_parity(self):
+        """Verify institutional Kelly sizing and Volatility Parity weights."""
+        from cryptoscope.quant import kelly_criterion, volatility_parity_allocation, optimal_trade_sizing
+        
+        # Kelly criterion math
+        k = kelly_criterion(win_rate=0.58, win_loss_ratio=2.1, fraction=0.5)
+        self.assertEqual(k["status"], "POSITIVE_EDGE")
+        self.assertGreater(k["allocated_fraction"], 0.0)
+        self.assertLessEqual(k["allocated_fraction"], 0.20)
+
+        # Volatility Parity weighting across crypto basket
+        vols = {"BTCUSDT": 0.45, "ETHUSDT": 0.65, "SOLUSDT": 0.95}
+        vp = volatility_parity_allocation(vols, total_capital=50000.0)
+        self.assertAlmostEqual(sum(vp["weights"].values()), 1.0, places=2)
+        self.assertGreater(vp["weights"]["BTCUSDT"], vp["weights"]["SOLUSDT"])
+
+        # Optimal trade sizing
+        sizing = optimal_trade_sizing(
+            account_balance=10000.0,
+            entry_price=65000.0,
+            stop_loss=63500.0,
+            win_rate=0.55,
+            win_loss_ratio=1.9,
+            kelly_fraction=0.5,
+        )
+        self.assertEqual(sizing["status"], "APPROVED")
+        self.assertGreater(sizing["position_size_usd"], 0)
+        self.assertLessEqual(sizing["risk_usd"], 500.0)
 
 
 if __name__ == "__main__":

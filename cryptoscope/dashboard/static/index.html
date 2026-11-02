@@ -100,6 +100,10 @@
           <span>Alpha Fleet & Bot</span>
           <span class="sidebar-badge green" id="sidebar-bot-badge">ACTIVE</span>
         </a>
+        <a class="sidebar-link" href="#quant-desk">
+          <span>Quant Alpha &amp; Stat-Arb</span>
+          <span class="sidebar-badge purple">ALPHA</span>
+        </a>
         <a class="sidebar-link" href="#listings">
           <span>Crypto Listings</span>
           <span class="sidebar-badge cyan">100+</span>
@@ -663,6 +667,188 @@
         </div>
         <div id="auto-empty" class="fine" style="text-align: center; padding: 14px;" hidden>No autonomous decisions recorded yet.</div>
         <div id="auto-fills" style="margin-top: 10px;"></div>
+      </div>
+    </section>
+
+    <!-- Institutional Quant Alpha & Stat-Arb Desk -->
+    <section class="panel" id="quant-desk" style="margin-bottom: 16px;">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="icon">📐</span>
+          <span>Institutional Quant Alpha &amp; Stat-Arb Desk</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="sidebar-badge purple">ENGLE-GRANGER &amp; OU</span>
+          <span class="sidebar-badge cyan">PARKINSON / GK VOL</span>
+          <span class="sidebar-badge green">ORDER FLOW CVD</span>
+        </div>
+      </div>
+      <div class="panel-body">
+        
+        <!-- Top Quant Overview Strip -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 16px;">
+          
+          <div style="background: var(--surface-low); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px;">
+            <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-sub); text-transform: uppercase;">VOLATILITY REGIME (15m)</div>
+            <div id="quant-vol-regime" style="font-size: 14px; font-weight: 700; color: var(--warning-amber); margin: 4px 0;">Evaluating...</div>
+            <div id="quant-vol-detail" style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);">Garman-Klass / Parkinson Ratio: —</div>
+          </div>
+
+          <div style="background: var(--surface-low); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px;">
+            <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-sub); text-transform: uppercase;">BREAKOUT READINESS METER</div>
+            <div id="quant-breakout-meter" style="font-size: 14px; font-weight: 700; color: var(--primary-cyan); margin: 4px 0;">— %</div>
+            <div style="height: 4px; background: var(--surface-mid); border-radius: 2px; overflow: hidden; margin-top: 4px;">
+              <div id="quant-breakout-bar" style="width: 0%; height: 100%; background: var(--primary-cyan); transition: width 0.3s ease;"></div>
+            </div>
+          </div>
+
+          <div style="background: var(--surface-low); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px;">
+            <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-sub); text-transform: uppercase;">ORDER FLOW CVD DELTA (40 BARS)</div>
+            <div id="quant-orderflow-status" style="font-size: 14px; font-weight: 700; color: var(--secondary-emerald); margin: 4px 0;">Calculating...</div>
+            <div id="quant-orderflow-sub" style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);">Taker Dominance: —</div>
+          </div>
+
+          <div style="background: var(--surface-low); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px;">
+            <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-sub); text-transform: uppercase;">STAT-ARB PAIR SPREAD ALPHA</div>
+            <div id="quant-statarb-status" style="font-size: 14px; font-weight: 700; color: #fff; margin: 4px 0;">Syncing Pairs...</div>
+            <div id="quant-statarb-sub" style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);">ETH/BTC, SOL/ETH, AVAX/SOL</div>
+          </div>
+
+        </div>
+
+        <!-- 2-Column Grid: Stat-Arb Pairs Matrix + Kelly Sizing Calculator -->
+        <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; margin-bottom: 14px;">
+          
+          <!-- Column 1: Cointegrated Pairs Monitor -->
+          <div style="background: var(--surface-low); border: 1px solid var(--border); border-radius: 6px; padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.05em;">
+                Statistical Arbitrage &amp; Ornstein-Uhlenbeck Pairs Monitor
+              </span>
+              <span class="fine" style="font-family: var(--font-mono); font-size: 9px; color: var(--text-sub);">Window: 30 Bars (15m)</span>
+            </div>
+            
+            <div class="table-scroll">
+              <table style="width: 100%;">
+                <thead>
+                  <tr>
+                    <th>Crypto Pair</th>
+                    <th>Hedge Ratio (β)</th>
+                    <th>OU Half-Life</th>
+                    <th>Spread Z-Score</th>
+                    <th>Stationarity</th>
+                    <th>Alpha Action</th>
+                  </tr>
+                </thead>
+                <tbody id="quant-pairs-tbody">
+                  <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-sub); padding: 12px;">Computing statistical cointegration...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Precision Volatility Estimators Comparison Strip -->
+            <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border);">
+              <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; margin-bottom: 6px;">
+                Intra-Bar Volatility Estimator Comparison (Active Symbol: <span id="quant-active-sym" style="color: var(--primary-cyan);">BTCUSDT</span>)
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; font-family: var(--font-mono); font-size: 10px;">
+                <div style="background: var(--surface-mid); padding: 6px 4px; border-radius: 4px;">
+                  <div style="color: var(--text-sub); font-size: 8px;">PARKINSON (H-L)</div>
+                  <div id="quant-vol-parkinson" style="font-weight: 700; color: var(--text); margin-top: 2px;">—</div>
+                </div>
+                <div style="background: var(--surface-mid); padding: 6px 4px; border-radius: 4px;">
+                  <div style="color: var(--text-sub); font-size: 8px;">GARMAN-KLASS (OHLC)</div>
+                  <div id="quant-vol-gk" style="font-weight: 700; color: var(--primary-cyan); margin-top: 2px;">—</div>
+                </div>
+                <div style="background: var(--surface-mid); padding: 6px 4px; border-radius: 4px;">
+                  <div style="color: var(--text-sub); font-size: 8px;">YANG-ZHANG (DRIFT-IND.)</div>
+                  <div id="quant-vol-yz" style="font-weight: 700; color: var(--text); margin-top: 2px;">—</div>
+                </div>
+                <div style="background: var(--surface-mid); padding: 6px 4px; border-radius: 4px;">
+                  <div style="color: var(--text-sub); font-size: 8px;">REALIZED (CLOSE-TO-CLOSE)</div>
+                  <div id="quant-vol-cc" style="font-weight: 700; color: var(--text-sub); margin-top: 2px;">—</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Column 2: Fractional Kelly & Risk Parity Position Sizer -->
+          <div style="background: var(--surface-low); border: 1px solid var(--border); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.05em;">
+                  Fractional Kelly Sizing Calculator
+                </span>
+                <span class="sidebar-badge green">RISK PARITY</span>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; font-family: var(--font-mono); font-size: 10px;">
+                <div>
+                  <label style="color: var(--text-sub); font-size: 9px; display: block; margin-bottom: 2px;">ACCOUNT NAV ($):</label>
+                  <input type="number" id="kelly-input-nav" value="10000" style="width: 100%; padding: 4px 6px; background: var(--surface-mid); border: 1px solid var(--border); color: #fff; border-radius: 4px;">
+                </div>
+                <div>
+                  <label style="color: var(--text-sub); font-size: 9px; display: block; margin-bottom: 2px;">KELLY FRACTION:</label>
+                  <select id="kelly-input-fraction" style="width: 100%; padding: 4px 6px; background: var(--surface-mid); border: 1px solid var(--border); color: #fff; border-radius: 4px;">
+                    <option value="0.25">Quarter Kelly (0.25λ - Institutional)</option>
+                    <option value="0.5" selected>Half Kelly (0.50λ - Balanced)</option>
+                    <option value="1.0">Full Kelly (1.00λ - Aggressive)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="color: var(--text-sub); font-size: 9px; display: block; margin-bottom: 2px;">WIN RATE (%):</label>
+                  <input type="number" id="kelly-input-winrate" value="55" min="1" max="99" style="width: 100%; padding: 4px 6px; background: var(--surface-mid); border: 1px solid var(--border); color: #fff; border-radius: 4px;">
+                </div>
+                <div>
+                  <label style="color: var(--text-sub); font-size: 9px; display: block; margin-bottom: 2px;">PAYOUT RATIO (B):</label>
+                  <input type="number" id="kelly-input-payout" value="1.8" step="0.1" style="width: 100%; padding: 4px 6px; background: var(--surface-mid); border: 1px solid var(--border); color: #fff; border-radius: 4px;">
+                </div>
+                <div>
+                  <label style="color: var(--text-sub); font-size: 9px; display: block; margin-bottom: 2px;">ENTRY PRICE ($):</label>
+                  <input type="number" id="kelly-input-entry" value="65000" style="width: 100%; padding: 4px 6px; background: var(--surface-mid); border: 1px solid var(--border); color: #fff; border-radius: 4px;">
+                </div>
+                <div>
+                  <label style="color: var(--text-sub); font-size: 9px; display: block; margin-bottom: 2px;">STOP LOSS ($):</label>
+                  <input type="number" id="kelly-input-stop" value="63700" style="width: 100%; padding: 4px 6px; background: var(--surface-mid); border: 1px solid var(--border); color: #fff; border-radius: 4px;">
+                </div>
+              </div>
+
+              <!-- Output Results Box -->
+              <div style="background: var(--surface-mid); border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-top: 8px; font-family: var(--font-mono); font-size: 10px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                  <span style="color: var(--text-muted);">Mathematical Edge (b·p - q):</span>
+                  <strong id="kelly-out-edge" style="color: var(--secondary-emerald);">+0.54</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                  <span style="color: var(--text-muted);">Allocated Kelly Fraction:</span>
+                  <strong id="kelly-out-fraction" style="color: var(--primary-cyan);">15.0%</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                  <span style="color: var(--text-muted);">Position Allocation ($):</span>
+                  <strong id="kelly-out-size-usd" style="color: #fff; font-size: 12px;">$1,500.00</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                  <span style="color: var(--text-muted);">Position Quantity:</span>
+                  <strong id="kelly-out-qty" style="color: #fff;">0.023077</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">Capital at Risk:</span>
+                  <strong id="kelly-out-risk-usd" style="color: var(--warning-amber);">$30.00 (0.30%)</strong>
+                </div>
+              </div>
+
+            </div>
+
+            <button id="kelly-recalc-btn" class="button primary" style="width: 100%; margin-top: 8px;">
+              ⚡ Recompute Quant Sizing
+            </button>
+          </div>
+
+        </div>
+
       </div>
     </section>
 

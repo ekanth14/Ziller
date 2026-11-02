@@ -421,6 +421,7 @@ async function loadCandlesForSymbol(symbol, force = false) {
   } finally {
     renderChart();
     renderOrderBook();
+    if (window.updateQuantDesk) window.updateQuantDesk(symbol);
   }
 }
 
@@ -2161,6 +2162,192 @@ function initTokenAuditTool() {
 }
 
 
+
+function initQuantDesk() {
+  const tbody = $('quant-pairs-tbody');
+  const calcBtn = $('kelly-recalc-btn');
+
+  async function updateQuantDesk(symbol) {
+    symbol = symbol || state.activeSymbol || 'BTCUSDT';
+    const activeSymEl = $('quant-active-sym');
+    if (activeSymEl) activeSymEl.textContent = symbol;
+
+    // 1. Fetch Stat-Arb Pairs
+    try {
+      const res = await request('/api/quant/pairs?pairs=ETHUSDT:BTCUSDT,SOLUSDT:ETHUSDT,AVAXUSDT:SOLUSDT');
+      if (res && Array.isArray(res.pairs) && tbody) {
+        if (res.pairs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-sub); padding: 12px;">No pair data returned.</td></tr>';
+        } else {
+          tbody.innerHTML = res.pairs.map(p => {
+            const z = p.zscore !== undefined ? Number(p.zscore) : 0;
+            const zColor = z <= -2.0 ? 'var(--secondary-emerald)' : z >= 2.0 ? 'var(--danger-rose)' : Math.abs(z) <= 0.25 ? 'var(--primary-cyan)' : 'var(--text-sub)';
+            const zBg = z <= -2.0 ? 'rgba(16, 185, 129, 0.15)' : z >= 2.0 ? 'rgba(244, 63, 94, 0.15)' : 'rgba(56, 189, 248, 0.1)';
+            const hl = p.ornstein_uhlenbeck && p.ornstein_uhlenbeck.half_life_bars ? p.ornstein_uhlenbeck.half_life_bars + ' bars' : '—';
+            const beta = p.hedge_ratio_beta !== undefined ? p.hedge_ratio_beta.toFixed(4) : '—';
+            const isCoint = p.cointegration && p.cointegration.is_cointegrated;
+            const cointBadge = isCoint ? '<span class="sidebar-badge green">STATIONARY 95%</span>' : '<span class="sidebar-badge" style="color: var(--text-sub);">WEAK COINT</span>';
+            const action = p.recommended_action || 'HOLD';
+            const actColor = action === 'BUY_A_SELL_B' ? 'var(--secondary-emerald)' : action === 'SELL_A_BUY_B' ? 'var(--danger-rose)' : action === 'CLOSE_TARGET' ? 'var(--primary-cyan)' : 'var(--text-sub)';
+
+            return `
+              <tr>
+                <td><strong style="color: #fff;">${escapeHtml(p.pair || '')}</strong></td>
+                <td style="font-family: var(--font-mono);">${beta}</td>
+                <td style="font-family: var(--font-mono);">${hl}</td>
+                <td>
+                  <span style="font-family: var(--font-mono); font-weight: 700; color: ${zColor}; background: ${zBg}; padding: 2px 6px; border-radius: 4px;">
+                    ${z > 0 ? '+' : ''}${z.toFixed(2)}σ
+                  </span>
+                </td>
+                <td>${cointBadge}</td>
+                <td><strong style="color: ${actColor}; font-size: 10px; font-family: var(--font-mono);">${escapeHtml(action)}</strong></td>
+              </tr>
+            `;
+          }).join('');
+        }
+
+        const topStat = $('quant-statarb-status');
+        if (topStat) {
+          const sigCount = res.pairs.filter(p => p.recommended_action && p.recommended_action !== 'HOLD').length;
+          topStat.textContent = sigCount > 0 ? `${sigCount} Active Pair Signals` : 'Equilibrium (Channel)';
+          topStat.style.color = sigCount > 0 ? 'var(--secondary-emerald)' : 'var(--primary-cyan)';
+        }
+      }
+    } catch (err) {
+      console.warn('Stat-arb pairs error:', err);
+    }
+
+    // 2. Fetch Volatility Radar
+    try {
+      const vol = await request(`/api/quant/volatility?symbol=${encodeURIComponent(symbol)}&interval=15m`);
+      if (vol && vol.status === 'ACTIVE') {
+        const regimeEl = $('quant-vol-regime');
+        const detailEl = $('quant-vol-detail');
+        const meterEl = $('quant-breakout-meter');
+        const barEl = $('quant-breakout-bar');
+
+        const ratio = vol.compression_ratio !== undefined ? Number(vol.compression_ratio).toFixed(2) : '1.00';
+        if (regimeEl) {
+          regimeEl.textContent = vol.state_label || vol.regime;
+          regimeEl.style.color = vol.regime === 'COMPRESSION_SQUEEZE' ? 'var(--warning-amber)' : vol.regime === 'EXPANSION_VOLATILE' ? 'var(--danger-rose)' : 'var(--secondary-emerald)';
+        }
+        if (detailEl) {
+          detailEl.textContent = `GK / Base Ratio: ${ratio} · Regime: ${vol.regime}`;
+        }
+        const bPct = vol.breakout_readiness_pct || 50;
+        if (meterEl) meterEl.textContent = `${bPct.toFixed(1)}%`;
+        if (barEl) barEl.style.width = `${Math.min(100, Math.max(0, bPct))}%`;
+
+        // Update 4 volatility estimators
+        const est = vol.estimators || {};
+        const pEl = $('quant-vol-parkinson');
+        const gkEl = $('quant-vol-gk');
+        const yzEl = $('quant-vol-yz');
+        const ccEl = $('quant-vol-cc');
+        if (pEl) pEl.textContent = est.parkinson_annualized ? (est.parkinson_annualized * 100).toFixed(1) + '%' : '—';
+        if (gkEl) gkEl.textContent = est.garman_klass_annualized ? (est.garman_klass_annualized * 100).toFixed(1) + '%' : '—';
+        if (yzEl) yzEl.textContent = est.yang_zhang_annualized ? (est.yang_zhang_annualized * 100).toFixed(1) + '%' : '—';
+        if (ccEl) ccEl.textContent = est.realized_annualized ? (est.realized_annualized * 100).toFixed(1) + '%' : '—';
+      }
+    } catch (err) {
+      console.warn('Quant volatility error:', err);
+    }
+
+    // 3. Fetch Order Flow CVD
+    try {
+      const of = await request(`/api/quant/orderflow?symbol=${encodeURIComponent(symbol)}&lookback=40`);
+      if (of && of.status === 'OK') {
+        const ofStatus = $('quant-orderflow-status');
+        const ofSub = $('quant-orderflow-sub');
+        const bRatio = of.buy_volume_ratio !== undefined ? (Number(of.buy_volume_ratio) * 100).toFixed(1) : '50.0';
+        const div = of.divergence || {};
+
+        if (ofStatus) {
+          ofStatus.textContent = div.state || of.taker_dominance;
+          ofStatus.style.color = of.taker_dominance === 'BUYERS' ? 'var(--secondary-emerald)' : of.taker_dominance === 'SELLERS' ? 'var(--danger-rose)' : 'var(--text)';
+        }
+        if (ofSub) {
+          ofSub.textContent = `Taker Buy Ratio: ${bRatio}% · Delta Slope: ${div.cvd_slope || 0}`;
+        }
+      }
+    } catch (err) {
+      console.warn('Quant orderflow error:', err);
+    }
+  }
+
+  // Kelly Recalculate
+  async function computeKelly() {
+    const nav = parseFloat($('kelly-input-nav')?.value || 10000);
+    const winrate = parseFloat($('kelly-input-winrate')?.value || 55) / 100.0;
+    const payout = parseFloat($('kelly-input-payout')?.value || 1.8);
+    const entry = parseFloat($('kelly-input-entry')?.value || 65000);
+    const stop = parseFloat($('kelly-input-stop')?.value || 63700);
+    const fraction = parseFloat($('kelly-input-fraction')?.value || 0.5);
+
+    try {
+      const res = await postJson('/api/quant/sizing', {
+        account_balance: nav,
+        entry_price: entry,
+        stop_loss: stop,
+        win_rate: winrate,
+        win_loss_ratio: payout,
+        kelly_fraction: fraction,
+        max_account_risk_pct: 2.0,
+      });
+
+      if (res && res.status === 'APPROVED') {
+        if ($('kelly-out-edge')) $('kelly-out-edge').textContent = `${res.kelly_metrics?.edge > 0 ? '+' : ''}${res.kelly_metrics?.edge?.toFixed(3) || '0'}`;
+        if ($('kelly-out-fraction')) $('kelly-out-fraction').textContent = `${(res.kelly_metrics?.allocated_fraction * 100).toFixed(1)}%`;
+        if ($('kelly-out-size-usd')) $('kelly-out-size-usd').textContent = `$${res.position_size_usd.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        if ($('kelly-out-qty')) $('kelly-out-qty').textContent = `${res.position_qty.toFixed(6)}`;
+        if ($('kelly-out-risk-usd')) $('kelly-out-risk-usd').textContent = `$${res.risk_usd.toFixed(2)} (${res.risk_pct.toFixed(2)}%)`;
+      } else if (res && res.status === 'NO_EDGE') {
+        if ($('kelly-out-edge')) $('kelly-out-edge').textContent = `${res.reason || 'Negative Edge'}`;
+        if ($('kelly-out-fraction')) $('kelly-out-fraction').textContent = '0.0%';
+        if ($('kelly-out-size-usd')) $('kelly-out-size-usd').textContent = '$0.00';
+        if ($('kelly-out-qty')) $('kelly-out-qty').textContent = '0.000000';
+        if ($('kelly-out-risk-usd')) $('kelly-out-risk-usd').textContent = '$0.00 (0.00%)';
+      }
+    } catch (err) {
+      const edge = (payout * winrate) - (1.0 - winrate);
+      if (edge <= 0) {
+        if ($('kelly-out-edge')) $('kelly-out-edge').textContent = `${edge.toFixed(3)} (No Edge)`;
+        if ($('kelly-out-size-usd')) $('kelly-out-size-usd').textContent = '$0.00';
+      } else {
+        const fullKelly = edge / payout;
+        const allocFrac = Math.min(0.20, fullKelly * fraction);
+        const stopDistPct = Math.abs(entry - stop) / entry;
+        const riskUsd = nav * 0.02 * (allocFrac / 0.10);
+        const notional = Math.min(nav * 0.5, riskUsd / Math.max(stopDistPct, 0.005));
+        if ($('kelly-out-edge')) $('kelly-out-edge').textContent = `+${edge.toFixed(3)}`;
+        if ($('kelly-out-fraction')) $('kelly-out-fraction').textContent = `${(allocFrac * 100).toFixed(1)}%`;
+        if ($('kelly-out-size-usd')) $('kelly-out-size-usd').textContent = `$${notional.toFixed(2)}`;
+        if ($('kelly-out-qty')) $('kelly-out-qty').textContent = `${(notional / entry).toFixed(6)}`;
+        if ($('kelly-out-risk-usd')) $('kelly-out-risk-usd').textContent = `$${(notional * stopDistPct).toFixed(2)}`;
+      }
+    }
+  }
+
+  if (calcBtn) {
+    calcBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      computeKelly();
+    });
+  }
+
+  ['kelly-input-nav', 'kelly-input-winrate', 'kelly-input-payout', 'kelly-input-entry', 'kelly-input-stop', 'kelly-input-fraction'].forEach(id => {
+    const el = $(id);
+    if (el) el.addEventListener('input', () => computeKelly());
+  });
+
+  window.updateQuantDesk = updateQuantDesk;
+  updateQuantDesk(state.activeSymbol || 'BTCUSDT');
+  computeKelly();
+}
+
 initMonteCarloModal();
 initDeliberationDesk();
 initTokenAuditTool();
+initQuantDesk();
+

@@ -407,6 +407,60 @@ class ServerEndpointTests(unittest.TestCase):
             self.assertIn("operators", data)
             self.assertIn("guard", data)
 
+    def test_quant_pairs_endpoint(self):
+        with urlopen(f"{self.base_url}/api/quant/pairs?pairs=ETHUSDT:BTCUSDT") as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.load(resp)
+            self.assertIn("pairs", data)
+            self.assertIsInstance(data["pairs"], list)
+            if data["pairs"]:
+                pair0 = data["pairs"][0]
+                self.assertIn("pair", pair0)
+                self.assertIn("cointegration", pair0)
+                self.assertIn("ornstein_uhlenbeck", pair0)
+                self.assertIn("zscore", pair0)
+
+    def test_quant_volatility_endpoint(self):
+        with urlopen(f"{self.base_url}/api/quant/volatility?symbol=BTCUSDT&interval=15m") as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.load(resp)
+            self.assertEqual(data["symbol"], "BTCUSDT")
+            self.assertIn("regime", data)
+            self.assertIn("estimators", data)
+            self.assertIn("compression_ratio", data)
+
+    def test_quant_orderflow_endpoint(self):
+        with urlopen(f"{self.base_url}/api/quant/orderflow?symbol=BTCUSDT&lookback=25") as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.load(resp)
+            self.assertEqual(data["symbol"], "BTCUSDT")
+            self.assertIn("buy_volume_ratio", data)
+            self.assertIn("divergence", data)
+            self.assertIn("taker_dominance", data)
+
+    def test_quant_sizing_endpoint(self):
+        payload = {
+            "account_balance": 25000.0,
+            "entry_price": 65000.0,
+            "stop_loss": 63500.0,
+            "win_rate": 0.56,
+            "win_loss_ratio": 1.9,
+            "kelly_fraction": 0.5,
+        }
+        req = Request(
+            f"{self.base_url}/api/quant/sizing",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Host": f"localhost:{self.port}"},
+            method="POST",
+        )
+        with urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            self.assertEqual(data["status"], "APPROVED")
+            self.assertGreater(data["position_size_usd"], 0)
+            self.assertGreater(data["risk_usd"], 0)
+            self.assertIn("kelly_metrics", data)
+
 
 if __name__ == "__main__":
     unittest.main()
