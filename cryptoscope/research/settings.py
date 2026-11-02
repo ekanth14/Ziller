@@ -1,10 +1,34 @@
 """Project-relative settings with environment overrides in the model adapter."""
 import json
+import os
 from pathlib import Path
 from cryptoscope.agents.schemas import number
 from cryptoscope.providers.binance import INTERVALS
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def load_env_file(path: Path) -> None:
+    """Read local env file and inject values into os.environ if not already set."""
+    if not path.is_file():
+        return
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, val = line.split("=", 1)
+            key = key.strip()
+            val = val.strip().strip("'\"")
+            if key and key not in os.environ:
+                os.environ[key] = val
+    except Exception:
+        pass
+
+
+# Automatically load local credentials and environment configuration
+load_env_file(ROOT / ".env")
+load_env_file(ROOT / "credentials.env")
 
 
 def load_config(path=None):
