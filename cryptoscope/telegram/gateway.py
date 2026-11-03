@@ -58,6 +58,12 @@ class TelegramGateway:
 
         self.app: Optional[Application] = None
         self._running = False
+        self.kill_switch_active: bool = False
+        self.admin_password: str = (
+            os.environ.get("ADMIN_PASSWORD")
+            or os.environ.get("ZILLERS_ADMIN_PASSWORD")
+            or "admin123"
+        )
 
     def is_authorized(self, update: Update) -> bool:
         """Check if message originated from the whitelisted owner chat ID."""
@@ -208,6 +214,29 @@ class TelegramGateway:
         if not self.is_authorized(update):
             return
         args = context.args or []
+
+        # If kill switch is engaged, require local admin password authentication
+        if self.kill_switch_active:
+            if not args:
+                await update.message.reply_html(
+                    "⛔ <b>KILL SWITCH LOCKED:</b> Emergency kill is active.\n"
+                    "Resuming requires local admin password:\n"
+                    "Usage: <code>/resume &lt;admin_password&gt;</code>"
+                )
+                return
+            provided_pwd = args[0].strip()
+            if provided_pwd != self.admin_password:
+                logger.warning("[TelegramGateway] Failed resume attempt with invalid admin password.")
+                await update.message.reply_html("❌ <b>Authentication Failed:</b> Invalid admin password. System remains killed.")
+                return
+
+            self.kill_switch_active = False
+            if self.strategy_bot:
+                self.strategy_bot.resume()
+            logger.info("[TelegramGateway] Emergency kill switch cleared via authenticated admin password.")
+            await update.message.reply_html("🔓 <b>AUTHENTICATED:</b> Emergency kill cleared. Strategy execution RESUMED successfully.")
+            return
+
         if "confirm" in [a.lower() for a in args]:
             if self.strategy_bot:
                 self.strategy_bot.resume()
@@ -254,16 +283,19 @@ class TelegramGateway:
     async def cmd_kill(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if not self.is_authorized(update):
             return
-        # Pause strategy and trigger emergency protection
+        self.kill_switch_active = True
         if self.strategy_bot:
             self.strategy_bot.pause("Emergency KILL by owner via Telegram")
         if self.execution_bot:
             await self.execution_bot.emergency_protect_positions("Emergency KILL triggered via Telegram")
         await update.message.reply_html(
             "🚨 <b>EMERGENCY KILL ACTIVATED:</b>\n"
+            "• All autonomous trading is hard halted.\n"
             "• StrategyBot paused.\n"
             "• Open positions stops tightened to break-even/entry.\n"
-            "• Pending entries vetoed."
+            "• Pending entries vetoed.\n\n"
+            "🔒 <b>SECURITY LOCK:</b> Resuming requires admin password authentication:\n"
+            "<code>/resume &lt;admin_password&gt;</code>"
         )
 
     async def cmd_prohibited_security_action(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -301,7 +333,13 @@ class TelegramGateway:
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
         elif data == "confirm_resume":
-            if self.strategy_bot:
+            if self.kill_switch_active:
+                await query.edit_message_text(
+                    "⛔ RESUME BLOCKED: Emergency kill switch is engaged.\n"
+                    "Resuming requires the admin password via chat:\n"
+                    "/resume <admin_password>"
+                )
+            elif self.strategy_bot:
                 self.strategy_bot.resume()
                 await query.edit_message_text("▶️ Strategy execution RESUMED successfully.")
         elif data == "req_flatten":

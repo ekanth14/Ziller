@@ -26,6 +26,8 @@ class PaperBroker:
     @contextmanager
     def connect(self):
         db = sqlite3.connect(self.path, timeout=15)
+        db.execute('PRAGMA journal_mode = WAL')
+        db.execute('PRAGMA busy_timeout = 5000')
         try:
             with db:
                 yield db

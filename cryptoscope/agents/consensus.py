@@ -17,6 +17,125 @@ class DeliberationConsensusEngine:
         self.bull_agent = BullResearcher()
         self.bear_agent = BearResearcher()
 
+    def deliberate_combined(
+        self,
+        symbol: str,
+        direction: str,
+        entry: float,
+        stop: float,
+        target: float,
+        indicators: Optional[Dict[str, Any]] = None,
+        model: Optional[str] = None,
+        timeout_sec: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """Execute ONE combined multi-agent adversarial debate (Bull, Bear, Risk Moderator in one call).
+
+        Strict fail-closed: If LLM call times out, encounters an error, or returns invalid JSON,
+        verdict defaults to REJECT and action defaults to STAND_ASIDE.
+        """
+        import os, json, urllib.request, time, logging
+        log = logging.getLogger("cryptoscope.agents.consensus")
+        t0 = time.perf_counter()
+
+        model_name = model or os.environ.get("OLLAMA_DEBATE_MODEL", "gemma4:12b")
+        deadline = timeout_sec or float(os.environ.get("DEBATE_TIMEOUT_SEC", "35.0"))
+        host = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+
+        ind = indicators or {}
+        context_str = ", ".join(f"{k}={v}" for k, v in ind.items() if not isinstance(v, (list, dict)))
+
+        system_prompt = (
+            "You are an institutional quantitative crypto debate committee. "
+            "Deliberate the proposed trade from Bull, Bear, and Risk Moderator perspectives simultaneously. "
+            "Respond STRICTLY in JSON format with exactly these keys: "
+            "bull_thesis (string, max 15 words), "
+            "bear_thesis (string, max 15 words), "
+            "risk_verdict (string: APPROVE or VETO), "
+            "conviction (integer 1 to 10), "
+            "consensus_action (string: BUY, SELL, or STAND_ASIDE), "
+            "reason (string, max 15 words)."
+        )
+
+        user_prompt = (
+            f"PROPOSED TRADE:\n"
+            f"Symbol: {symbol} | Direction: {direction} | Entry: {entry} | Stop: {stop} | Target: {target}\n"
+            f"Context: {context_str}\n\n"
+            f"JSON OUTPUT:"
+        )
+
+        payload = {
+            "model": model_name,
+            "prompt": f"{system_prompt}\n\n{user_prompt}",
+            "think": False,
+            "format": "json",
+            "stream": False,
+            "keep_alive": "15m",
+            "options": {
+                "temperature": 0.0,
+                "num_predict": 140,
+            }
+        }
+
+        try:
+            req = urllib.request.Request(
+                f"{host}/api/generate",
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req, timeout=deadline) as resp:
+                raw_json = json.loads(resp.read().decode("utf-8"))
+
+            elapsed_ms = (time.perf_counter() - t0) * 1000.0
+            response_text = raw_json.get("response", "")
+            parsed = json.loads(response_text)
+
+            required_keys = ["bull_thesis", "bear_thesis", "risk_verdict", "conviction", "consensus_action", "reason"]
+            if not all(k in parsed for k in required_keys):
+                raise ValueError(f"Incomplete JSON keys from model: {list(parsed.keys())}")
+
+            conv = float(parsed["conviction"])
+            action = str(parsed["consensus_action"]).upper()
+            risk_v = str(parsed["risk_verdict"]).upper()
+
+            # Fail-closed validation
+            if action not in {"BUY", "SELL", "STAND_ASIDE"}:
+                action = "STAND_ASIDE"
+            if risk_v not in {"APPROVE", "VETO"}:
+                risk_v = "VETO"
+
+            is_approved = (risk_v == "APPROVE" and action in {"BUY", "SELL"} and conv >= 6.0)
+
+            return {
+                "symbol": symbol,
+                "action": action if is_approved else "STAND_ASIDE",
+                "verdict": "APPROVE" if is_approved else "REJECT",
+                "risk_verdict": risk_v,
+                "conviction_score": conv,
+                "bull_thesis": parsed.get("bull_thesis", ""),
+                "bear_thesis": parsed.get("bear_thesis", ""),
+                "reason": parsed.get("reason", ""),
+                "latency_ms": round(elapsed_ms, 2),
+                "fallback_used": False,
+                "model": model_name,
+            }
+
+        except Exception as exc:
+            elapsed_ms = (time.perf_counter() - t0) * 1000.0
+            log.warning("Debate LLM failed/timed out (%s). Failing closed to STAND_ASIDE.", exc)
+            return {
+                "symbol": symbol,
+                "action": "STAND_ASIDE",
+                "verdict": "REJECT",
+                "risk_verdict": "VETO",
+                "conviction_score": 0.0,
+                "bull_thesis": "Inference unavailable/timed out",
+                "bear_thesis": str(exc),
+                "reason": f"Fail-closed fallback: {exc}",
+                "latency_ms": round(elapsed_ms, 2),
+                "fallback_used": True,
+                "model": model_name,
+            }
+
     def deliberate(
         self,
         symbol: str,

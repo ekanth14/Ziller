@@ -1,3 +1,5 @@
+import signal
+import sqlite3
 """Serve the institutional ZILLERS crypto terminal: python -m cryptoscope.dashboard --port 8900."""
 import argparse
 from datetime import datetime, timezone
@@ -73,6 +75,39 @@ def is_collab_authorized(headers) -> bool:
             pass
     return False
 
+
+
+def get_server_metrics():
+    threads = threading.active_count()
+    rss_mb = 0.0
+    try:
+        import ctypes
+        from ctypes import wintypes
+        class PROCESS_MEMORY_COUNTERS_EX(ctypes.Structure):
+            _fields_ = [
+                ('cb', wintypes.DWORD),
+                ('PageFaultCount', wintypes.DWORD),
+                ('PeakWorkingSetSize', ctypes.c_size_t),
+                ('WorkingSetSize', ctypes.c_size_t),
+                ('QuotaPeakPagedPoolUsage', ctypes.c_size_t),
+                ('QuotaPagedPoolUsage', ctypes.c_size_t),
+                ('QuotaPeakNonPagedPoolUsage', ctypes.c_size_t),
+                ('QuotaNonPagedPoolUsage', ctypes.c_size_t),
+                ('PagefileUsage', ctypes.c_size_t),
+                ('PeakPagefileUsage', ctypes.c_size_t),
+                ('PrivateUsage', ctypes.c_size_t),
+            ]
+        GetProcessMemoryInfo = ctypes.windll.psapi.GetProcessMemoryInfo
+        GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, ctypes.POINTER(PROCESS_MEMORY_COUNTERS_EX), wintypes.DWORD]
+        GetProcessMemoryInfo.restype = wintypes.BOOL
+        handle = ctypes.windll.kernel32.GetCurrentProcess()
+        pmc = PROCESS_MEMORY_COUNTERS_EX()
+        pmc.cb = ctypes.sizeof(PROCESS_MEMORY_COUNTERS_EX)
+        if GetProcessMemoryInfo(handle, ctypes.byref(pmc), pmc.cb):
+            rss_mb = round(pmc.WorkingSetSize / (1024 * 1024), 2)
+    except Exception:
+        pass
+    return {"threads": threads, "rss_mb": rss_mb}
 
 def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_service=None, market_aggregator=None, coingecko_service=None, risk_governor=None, live_governor=None, kill_switch=None, laya_evaluator=None):
     auth_store = auth_store or AuthStore()
@@ -220,6 +255,14 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
             if url.path == "/api/fx/rate":
                 target = query.get("target", ["INR"])[0]
                 return self.json(200, fx_service.get_rate(target))
+
+            if url.path in {"/api/market/status", "/api/market/connections"}:
+                return self.json(200, {
+                    "status": "online",
+                    "exchanges": market_aggregator.get_connection_status(),
+                    "server": get_server_metrics(),
+                    "timestamp": time.time(),
+                })
 
             if url.path == "/api/market/tickers":
                 return self.json(200, {"tickers": market_aggregator.get_all_tickers()})
@@ -979,6 +1022,34 @@ def main():
             kill_switch,
         )
     )
+    def checkpoint_wal():
+        for db_path in [
+            Path("work/runtime/crypto_candles.db"),
+            Path("work/runtime/users.db"),
+            Path("work/runtime/paper_execution.db"),
+            Path("work/runtime/trading_journal.db"),
+            Path("work/runtime/auth.db"),
+            Path("work/crypto_candles.db"),
+        ]:
+            if db_path.exists():
+                try:
+                    c = sqlite3.connect(str(db_path))
+                    c.execute("PRAGMA wal_checkpoint(TRUNCATE);")
+                    c.close()
+                except Exception:
+                    pass
+
+    def handle_shutdown(signum, frame):
+        print(f"\n[ZILLERS] Shutdown signal ({signum}) received. Draining connections...", flush=True)
+        threading.Thread(target=server.shutdown, daemon=True).start()
+
+    try:
+        signal.signal(signal.SIGINT, handle_shutdown)
+        if hasattr(signal, "SIGTERM"):
+            signal.signal(signal.SIGTERM, handle_shutdown)
+    except Exception:
+        pass
+
     print(f"ZILLERS terminal: http://localhost:{server.server_address[1]}", flush=True)
     try:
         server.serve_forever()
@@ -988,7 +1059,9 @@ def main():
         binance_feed.stop()
         coinbase_feed.stop()
         kraken_feed.stop()
+        checkpoint_wal()
         server.server_close()
+        print("[ZILLERS] Graceful shutdown completed. Exiting code 0.", flush=True)
 
 
 if __name__ == "__main__":

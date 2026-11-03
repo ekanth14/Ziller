@@ -41,7 +41,7 @@ def _make_dummy_candles(n: int = 30, base_price: float = 70000.0, trend: float =
 def test_data_to_analyst_to_strategy_pipeline():
     async def _test():
         bus = EventBus()
-        data_bot = DataBot(bus)
+        data_bot = DataBot(bus, symbols=[])
         analyst_bot = AnalystBot(bus)
         strategy_bot = StrategyBot(bus, min_confidence=0.60)
 

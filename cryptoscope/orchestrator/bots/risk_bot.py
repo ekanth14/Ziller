@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import time
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from cryptoscope.orchestrator.base_bot import BaseBot
 from cryptoscope.orchestrator.event_bus import EventBus
@@ -13,6 +13,7 @@ from cryptoscope.orchestrator.events import (
     Fill,
     PositionClosed,
     RiskDecision,
+    RiskPreApproved,
     SystemAlert,
     TradeIntent,
 )
@@ -48,7 +49,9 @@ class RiskBot(BaseBot):
         max_order_pct: float = 0.05,           # Max 5% single order size
         correlation_cap: float = 0.85,         # Veto if corr > 0.85 with open pos
         min_liquidity_usd: float = 100000.0,   # Min $100k 24h volume
-        kelly_fraction: float = 0.5            # Half-Kelly sizing
+        kelly_fraction: float = 0.5,           # Half-Kelly sizing
+        fixed_risk_fraction: float = 0.005,    # 0.5% default fixed fractional risk
+        enable_kelly_sizing: bool = False,     # Gated: requires >= 300 closed trades
     ):
         super().__init__(name, bus)
         self.initial_nav = initial_nav
@@ -63,10 +66,13 @@ class RiskBot(BaseBot):
         self.correlation_cap = correlation_cap
         self.min_liquidity_usd = min_liquidity_usd
         self.kelly_fraction = kelly_fraction
+        self.fixed_risk_fraction = fixed_risk_fraction
+        self.enable_kelly_sizing = enable_kelly_sizing
 
         # State tracking
         self.daily_realized_pnl: float = 0.0
         self.daily_loss_circuit_breaker: bool = False
+        self.closed_trades_count: int = 0
         self.open_positions: Dict[str, Dict[str, Any]] = {}
         self.cached_intents: Dict[str, TradeIntent] = {}
 
@@ -92,6 +98,32 @@ class RiskBot(BaseBot):
         elif isinstance(event, PositionClosed):
             self._handle_position_closed(event)
 
+    def check_pre_trade_risk(self, intent: TradeIntent) -> Tuple[bool, List[str]]:
+        """Deterministic pre-trade risk gating before expensive LLM deliberation."""
+        veto_reasons = []
+
+        if self.daily_loss_circuit_breaker:
+            veto_reasons.append("DAILY_LOSS_LIMIT: Circuit breaker active.")
+
+        current_drawdown_pct = (self.peak_nav - self.current_nav) / self.peak_nav if self.peak_nav > 0 else 0.0
+        if current_drawdown_pct >= self.max_drawdown_pct:
+            veto_reasons.append(f"MAX_DRAWDOWN: Drawdown ({current_drawdown_pct*100:.1f}%) exceeds limit.")
+
+        if len(self.open_positions) >= self.max_open_positions and intent.symbol not in self.open_positions:
+            veto_reasons.append(f"MAX_OPEN_POSITIONS: Already holding {len(self.open_positions)} positions.")
+
+        for open_sym in self.open_positions:
+            corr = self.correlation_matrix.get(intent.symbol, {}).get(open_sym, 0.0)
+            if corr >= self.correlation_cap:
+                veto_reasons.append(f"CORRELATION_CAP: Correlation {corr:.2f} with {open_sym} exceeds {self.correlation_cap}.")
+                break
+
+        stop_dist = abs(intent.entry_price - intent.stop_loss) / (intent.entry_price or 1.0)
+        if stop_dist < 0.005:
+            veto_reasons.append(f"STOP_TOO_TIGHT: Stop distance ({stop_dist*100:.2f}%) below minimum 0.50%.")
+
+        return len(veto_reasons) == 0, veto_reasons
+
     def _handle_fill(self, fill: Fill) -> None:
         """Track open position exposure."""
         sym = fill.symbol
@@ -113,6 +145,7 @@ class RiskBot(BaseBot):
         self.daily_realized_pnl += closed.pnl_usd
         self.current_nav += closed.pnl_usd
         self.peak_nav = max(self.peak_nav, self.current_nav)
+        self.closed_trades_count += 1
         self.open_positions.pop(closed.symbol, None)
 
         max_daily_loss_usd = self.initial_nav * self.max_daily_loss_pct
@@ -179,7 +212,7 @@ class RiskBot(BaseBot):
         if stop_distance_pct < 0.005:
             veto_reasons.append(f"STOP_TOO_TIGHT: Stop distance ({stop_distance_pct*100:.2f}%) below minimum 0.50%")
 
-        # Sizing via Fractional Kelly
+        # Sizing via Default Fixed Fractional Risk (Kelly gated behind flag & 300+ closed trades)
         sizing_res = optimal_trade_sizing(
             account_balance=self.current_nav,
             entry_price=entry,
@@ -187,7 +220,11 @@ class RiskBot(BaseBot):
             win_rate=0.55,
             win_loss_ratio=2.0,
             kelly_fraction=self.kelly_fraction,
-            max_account_risk_pct=self.max_order_pct
+            max_account_risk_pct=self.max_order_pct * 100.0,
+            sizing_mode="KELLY" if self.enable_kelly_sizing else "FIXED_FRACTIONAL",
+            fixed_risk_fraction=self.fixed_risk_fraction,
+            enable_kelly_sizing=self.enable_kelly_sizing,
+            closed_trades_count=self.closed_trades_count,
         )
         approved_usd = sizing_res.get("position_size_usd", 0.0)
         approved_qty = sizing_res.get("position_qty", 0.0)

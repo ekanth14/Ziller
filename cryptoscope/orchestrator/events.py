@@ -83,6 +83,20 @@ class DebateResult(BaseEvent):
 
 
 @dataclass
+class RiskPreApproved(BaseEvent):
+    """Deterministic pre-trade risk check clearance emitted before triggering expensive LLM debate."""
+    pre_approval_id: str = field(default_factory=lambda: _gen_id("pre"))
+    intent_id: str = ""
+    symbol: str = "BTCUSDT"
+    direction: str = "BUY"
+    entry_price: float = 0.0
+    stop_loss: float = 0.0
+    take_profit: float = 0.0
+    strategy_id: str = ""
+    intent: Optional[TradeIntent] = None
+
+
+@dataclass
 class RiskDecision(BaseEvent):
     """Deterministic capital allocation, position sizing, and hard safety veto."""
     decision_id: str = field(default_factory=lambda: _gen_id("risk"))

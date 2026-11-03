@@ -28,7 +28,7 @@ class DataBot(BaseBot):
         name: str = "data_bot"
     ):
         super().__init__(name, bus)
-        self.symbols = symbols or ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+        self.symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT"] if symbols is None else list(symbols)
         self.poll_interval = poll_interval
         self.candle_store = candle_store or CandleStore()
         # symbol -> last emitted MarketUpdate

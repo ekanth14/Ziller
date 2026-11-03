@@ -129,3 +129,78 @@ def test_telegram_offline_resilience():
         assert "not active or unconfigured" in str(exc_info.value)
 
     asyncio.run(_test())
+
+
+def test_kill_emergency_stop_requires_admin_password_to_resume():
+    async def _test():
+        mock_strat = MagicMock()
+        mock_strat.paused = False
+        def _pause(reason=""):
+            mock_strat.paused = True
+        def _resume():
+            mock_strat.paused = False
+        mock_strat.pause = _pause
+        mock_strat.resume = _resume
+
+        mock_exec = MagicMock()
+        mock_exec.emergency_protect_positions = AsyncMock()
+
+        gateway = TelegramGateway(
+            token="dummy_token",
+            owner_chat_id=999888,
+            strategy_bot=mock_strat,
+            execution_bot=mock_exec,
+        )
+        gateway.admin_password = "secret_admin_pass"
+
+        # 1. Trigger /kill
+        update_kill = make_mock_update(chat_id=999888, text="/kill")
+        await gateway.cmd_kill(update_kill, MagicMock())
+
+        assert gateway.kill_switch_active is True
+        assert mock_strat.paused is True
+        mock_exec.emergency_protect_positions.assert_called_once()
+        assert "EMERGENCY KILL ACTIVATED" in update_kill.message.reply_html.call_args[0][0]
+
+        # 2a. Try /resume without args -> prompts that kill switch is locked and requires password
+        update_res_no_args = make_mock_update(chat_id=999888, text="/resume")
+        ctx_no_args = MagicMock()
+        ctx_no_args.args = []
+        await gateway.cmd_resume(update_res_no_args, ctx_no_args)
+
+        assert gateway.kill_switch_active is True
+        assert mock_strat.paused is True
+        assert "KILL SWITCH LOCKED" in update_res_no_args.message.reply_html.call_args[0][0]
+
+        # 2b. Try /resume confirm -> rejected as invalid password
+        update_res_confirm = make_mock_update(chat_id=999888, text="/resume confirm")
+        ctx_confirm = MagicMock()
+        ctx_confirm.args = ["confirm"]
+        await gateway.cmd_resume(update_res_confirm, ctx_confirm)
+
+        assert gateway.kill_switch_active is True
+        assert mock_strat.paused is True
+        assert "Authentication Failed" in update_res_confirm.message.reply_html.call_args[0][0]
+
+        # 3. Try /resume with wrong password -> BLOCKED
+        update_res_wrong = make_mock_update(chat_id=999888, text="/resume wrong_pass")
+        ctx_wrong = MagicMock()
+        ctx_wrong.args = ["wrong_pass"]
+        await gateway.cmd_resume(update_res_wrong, ctx_wrong)
+
+        assert gateway.kill_switch_active is True
+        assert mock_strat.paused is True
+        assert "Authentication Failed" in update_res_wrong.message.reply_html.call_args[0][0]
+
+        # 4. Try /resume with correct password -> UNLOCKED and RESUMED
+        update_res_correct = make_mock_update(chat_id=999888, text="/resume secret_admin_pass")
+        ctx_correct = MagicMock()
+        ctx_correct.args = ["secret_admin_pass"]
+        await gateway.cmd_resume(update_res_correct, ctx_correct)
+
+        assert gateway.kill_switch_active is False
+        assert mock_strat.paused is False
+        assert "AUTHENTICATED" in update_res_correct.message.reply_html.call_args[0][0]
+
+    asyncio.run(_test())
+
