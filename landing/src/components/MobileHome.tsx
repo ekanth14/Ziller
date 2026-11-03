@@ -17,6 +17,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import zillersEmblem from '../assets/emblem.png';
+import { KarnatakaFlagEmoji, IndiaFlagEmoji } from './FlagEmoji';
 
 interface MobileHomeProps {
   onSwitchToDesktop?: () => void;
@@ -250,8 +251,15 @@ python -m cryptoscope.dashboard --port 8900`;
 
       {/* 3. ABOUT ZILLERS & PROVENANCE (STRICTLY NO UNDERLINES) */}
       <section className="px-5 py-7 border-b border-[#1E1E22]">
-        <div className="text-[10px] font-mono text-[#A2A2A8] uppercase tracking-wider mb-2">
-          Venture Provenance · About
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-[10px] font-mono text-[#A2A2A8] uppercase tracking-wider">
+            Venture Provenance · About
+          </div>
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#18181B] border border-[#38383C] text-[10px] font-mono text-[#D8D8DC]">
+            <KarnatakaFlagEmoji className="w-3.5 h-2.5" />
+            <IndiaFlagEmoji className="w-3.5 h-2.5" />
+            <span className="text-[#A2A2A8] font-medium">Karnataka · India</span>
+          </div>
         </div>
         <h2 className="text-lg font-bold text-white mb-3 tracking-tight">
           Beyond Conventional Trading.
@@ -272,19 +280,27 @@ python -m cryptoscope.dashboard --port 8900`;
 
         {/* Lead Engineer Card */}
         <div className="p-3.5 rounded-xl bg-[#121214] border border-[#38383C]">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-[#A2A2A8] mb-1">
-            Lead Quantitative Systems Engineer
+          <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-[#A2A2A8] mb-1.5">
+            <span>Lead Quantitative Systems Engineer</span>
+            <div className="inline-flex items-center gap-1">
+              <KarnatakaFlagEmoji className="w-3.5 h-2.5" />
+              <IndiaFlagEmoji className="w-3.5 h-2.5" />
+            </div>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-[#D8D8DC]">
-              Conceived, engineered, and built by{' '}
+            <span className="text-xs text-[#D8D8DC] flex flex-wrap items-center gap-1.5">
+              <span>Conceived, engineered, and built by</span>{' '}
               <a
                 href="https://github.com/ekanth14"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-bold text-white hover:text-[#D8D8DC] transition-colors inline-block"
+                className="font-bold text-white hover:text-[#D8D8DC] transition-colors inline-flex items-center gap-1"
               >
-                Ekanth B S
+                <span>Ekanth B S</span>
+                <span className="inline-flex items-center gap-0.5">
+                  <KarnatakaFlagEmoji className="w-3.5 h-2.5" />
+                  <IndiaFlagEmoji className="w-3.5 h-2.5" />
+                </span>
               </a>
             </span>
             <a

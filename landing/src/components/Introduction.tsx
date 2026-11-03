@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Terminal, Shield, Zap, ArrowUpRight, Github, Code2 } from 'lucide-react';
 import zillersShowcaseLogo from '../assets/zillers-showcase-logo.png';
 import zillersEmblem from '../assets/emblem.png';
+import { KarnatakaFlagEmoji, IndiaFlagEmoji } from './FlagEmoji';
 
 export const Introduction: React.FC = () => {
   return (
@@ -16,9 +17,18 @@ export const Introduction: React.FC = () => {
           transition={{ duration: 0.8 }}
           className="lg:col-span-7 flex flex-col justify-center"
         >
-          <span className="font-mono text-[10px] md:text-xs tracking-[0.25em] text-[#A2A2A8] uppercase mb-4">
-            The ZILLERS Mandate · About the Venture
-          </span>
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <span className="font-mono text-[10px] md:text-xs tracking-[0.25em] text-[#A2A2A8] uppercase">
+              The ZILLERS Mandate · About the Venture
+            </span>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#121214] border border-[#38383C] text-[10px] font-mono text-[#D8D8DC] shadow-sm">
+              <span className="inline-flex items-center gap-1">
+                <KarnatakaFlagEmoji className="w-3.5 h-2.5" />
+                <IndiaFlagEmoji className="w-3.5 h-2.5" />
+              </span>
+              <span className="text-[#A2A2A8] tracking-wider uppercase font-medium">Karnataka · India</span>
+            </div>
+          </div>
           <h2 className="text-3xl sm:text-5xl md:text-6xl font-semibold tracking-[-0.03em] text-metallic leading-[1.12]">
             Beyond conventional trading.
           </h2>
@@ -46,9 +56,15 @@ export const Introduction: React.FC = () => {
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
               <div className="space-y-1.5">
-                <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-[#A2A2A8]">
+                <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-[#A2A2A8]">
                   <Code2 className="w-3.5 h-3.5 text-[#D8D8DC]" />
                   <span>Lead Quantitative Systems Engineer</span>
+                  <span className="text-[#4D4D51]">·</span>
+                  <span className="inline-flex items-center gap-1 text-[#D8D8DC] normal-case tracking-normal">
+                    <KarnatakaFlagEmoji className="w-3.5 h-2.5" />
+                    <IndiaFlagEmoji className="w-3.5 h-2.5" />
+                    <span className="text-[10px] font-mono text-[#A2A2A8]">Karnataka, India</span>
+                  </span>
                 </div>
                 <div className="text-sm sm:text-base text-[#D8D8DC] font-light flex flex-wrap items-center gap-2">
                   <span>Conceived, engineered, and built by</span>
@@ -57,10 +73,14 @@ export const Introduction: React.FC = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#151515] border border-[#4D4D51] text-[#F4F4F5] font-bold tracking-wide hover:bg-white hover:text-[#050505] hover:border-white transition-all shadow-md group/author"
-                    title="View Ekanth B S on GitHub"
+                    title="View Ekanth B S on GitHub (Karnataka, India)"
                   >
                     <span className="text-white group-hover/author:text-[#050505] font-bold">
                       Ekanth B S
+                    </span>
+                    <span className="inline-flex items-center gap-1 ml-0.5">
+                      <KarnatakaFlagEmoji className="w-3.5 h-2.5" />
+                      <IndiaFlagEmoji className="w-3.5 h-2.5" />
                     </span>
                     <Github className="w-3.5 h-3.5 opacity-80 group-hover/author:opacity-100 transition-opacity" />
                     <ArrowUpRight className="w-3.5 h-3.5 opacity-60 group-hover/author:opacity-100 group-hover/author:translate-x-0.5 group-hover/author:-translate-y-0.5 transition-transform" />
@@ -177,7 +197,11 @@ export const Introduction: React.FC = () => {
                 <span>ZIEN ORG RESEARCH LAB</span>
                 <span className="text-[9px]">↗</span>
               </a>
-              <span className="text-[#D8D8DC]">PRODUCTION VERIFIED</span>
+              <div className="inline-flex items-center gap-1.5 text-[#D8D8DC]">
+                <KarnatakaFlagEmoji className="w-3.5 h-2.5" />
+                <IndiaFlagEmoji className="w-3.5 h-2.5" />
+                <span className="text-[#A2A2A8]">KA · IN</span>
+              </div>
             </div>
           </div>
         </motion.div>
