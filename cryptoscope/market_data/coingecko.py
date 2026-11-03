@@ -28,6 +28,11 @@ CORE_BINANCE_PAIRS: Set[str] = {
     "KAVAUSDT", "ROSEUSDT", "QNTUSDT", "SNXUSDT", "COMPUSDT", "1INCHUSDT", "ENJUSDT",
 }
 
+DELISTED_OR_UNLISTED_BASES: Set[str] = {
+    "XMR", "USDS", "WBT", "LEO", "FTT", "LUNA", "UST", "USTC", "HUSD", "BUSD",
+    "DAI", "USDC", "USDT", "USD", "EUR", "GBP"
+}
+
 
 class CoinGeckoService:
     BASE_URL = "https://api.coingecko.com/api/v3"
@@ -118,8 +123,8 @@ class CoinGeckoService:
                 parsed = []
                 for row in data:
                     base_sym = (row.get("symbol") or "").upper()
-                    # Skip stablecoins traded against themselves and invalid bases
-                    if base_sym in {"USDT", "USD", "EUR", "GBP", "DAI", "USDS"}:
+                    # Skip unlisted, delisted, stablecoin bases, and non-trading assets
+                    if base_sym in DELISTED_OR_UNLISTED_BASES:
                         continue
                     sym = base_sym + "USDT"
                     # Strictly require that coin is actively listed on Binance
@@ -175,7 +180,7 @@ class CoinGeckoService:
                 sym = t.get("symbol", "")
                 if sym.endswith("USDT") and (sym in CORE_BINANCE_PAIRS or len(parsed_bin) < 80):
                     base = sym.removesuffix("USDT")
-                    if base in {"USDT", "USD", "EUR"}:
+                    if base in DELISTED_OR_UNLISTED_BASES:
                         continue
                     price = float(t.get("lastPrice") or 0.0)
                     chg = float(t.get("priceChangePercent") or 0.0)

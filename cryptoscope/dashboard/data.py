@@ -118,15 +118,7 @@ class DashboardData:
             for sym in symbols_to_load:
                 if sym not in snapshots or not snapshots[sym].get("candles"):
                     interval = self.config.get("interval", "5m")
-                    candles = cs.load_candles(sym, interval, limit=100)
-                    if not candles or len(candles) < 20:
-                        try:
-                            snap = BinanceProvider().snapshot(sym, interval)
-                            if snap and snap.candles:
-                                cs.save_candles(sym, interval, snap.candles, source="binance")
-                                candles = cs.load_candles(sym, interval, limit=100)
-                        except Exception:
-                            pass
+                    candles = cs.get_fresh_candles(sym, interval, limit=100)
                     if candles:
                         snapshots[sym] = {
                             "symbol": sym,

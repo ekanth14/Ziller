@@ -287,15 +287,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     from cryptoscope.market_data.candle_store import CandleStore
                     from cryptoscope.providers.binance import BinanceProvider
                     cs = CandleStore()
-                    candles = cs.load_candles(symbol, interval, limit=limit)
-                    if not candles or len(candles) < 20:
-                        provider = BinanceProvider()
-                        snap = provider.snapshot(symbol, interval)
-                        if snap and snap.candles:
-                            cs.save_candles(symbol, interval, snap.candles, source="binance")
-                            candles = cs.load_candles(symbol, interval, limit=limit)
-                            if not candles:
-                                candles = snap.candles[-limit:]
+                    candles = cs.get_fresh_candles(symbol, interval, limit=limit)
                     return self.json(200, {
                         "symbol": symbol,
                         "interval": interval,
@@ -348,24 +340,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     if len(parts) != 2:
                         continue
                     sym_a, sym_b = parts[0].upper(), parts[1].upper()
-                    candles_a = cs.load_candles(sym_a, "15m", limit=100) or []
-                    candles_b = cs.load_candles(sym_b, "15m", limit=100) or []
-                    if len(candles_a) < 30:
-                        try:
-                            s = provider.snapshot(sym_a, "15m")
-                            if s and s.candles:
-                                cs.save_candles(sym_a, "15m", s.candles, source="binance")
-                                candles_a = s.candles[-100:]
-                        except Exception:
-                            pass
-                    if len(candles_b) < 30:
-                        try:
-                            s = provider.snapshot(sym_b, "15m")
-                            if s and s.candles:
-                                cs.save_candles(sym_b, "15m", s.candles, source="binance")
-                                candles_b = s.candles[-100:]
-                        except Exception:
-                            pass
+                    candles_a = cs.get_fresh_candles(sym_a, "15m", limit=100)
+                    candles_b = cs.get_fresh_candles(sym_b, "15m", limit=100)
                     pair_diag = analyze_crypto_pair(candles_a, candles_b, symbol_a=sym_a, symbol_b=sym_b)
                     results.append(pair_diag)
 
@@ -377,15 +353,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 from cryptoscope.market_data.candle_store import CandleStore
                 from cryptoscope.providers.binance import BinanceProvider
                 cs = CandleStore()
-                candles = cs.load_candles(symbol, interval, limit=100) or []
-                if len(candles) < 30:
-                    try:
-                        s = BinanceProvider().snapshot(symbol, interval)
-                        if s and s.candles:
-                            cs.save_candles(symbol, interval, s.candles, source="binance")
-                            candles = s.candles[-100:]
-                    except Exception:
-                        pass
+                candles = cs.get_fresh_candles(symbol, interval, limit=100)
                 vol_report = volatility_regime_analysis(candles, window=20, baseline_window=60, interval=interval)
                 vol_report["symbol"] = symbol
                 vol_report["interval"] = interval
@@ -397,15 +365,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 from cryptoscope.market_data.candle_store import CandleStore
                 from cryptoscope.providers.binance import BinanceProvider
                 cs = CandleStore()
-                candles = cs.load_candles(symbol, "15m", limit=lookback) or []
-                if len(candles) < 20:
-                    try:
-                        s = BinanceProvider().snapshot(symbol, "15m")
-                        if s and s.candles:
-                            cs.save_candles(symbol, "15m", s.candles, source="binance")
-                            candles = s.candles[-lookback:]
-                    except Exception:
-                        pass
+                candles = cs.get_fresh_candles(symbol, "15m", limit=lookback)
                 of_report = analyze_order_flow(candles, lookback=lookback)
                 of_report["symbol"] = symbol
                 return self.json(200, of_report)
@@ -724,20 +684,9 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     from cryptoscope.market_data.candle_store import CandleStore
                     from cryptoscope.simulation.time_machine import simulate_trade_odds
                     cs = CandleStore()
-                    candles = cs.load_candles(symbol, "15m", limit=150)
+                    candles = cs.get_fresh_candles(symbol, "15m", limit=150)
                     if not candles or len(candles) < 20:
-                        candles = cs.load_candles(symbol, "5m", limit=150)
-                    if not candles or len(candles) < 20:
-                        candles = cs.load_candles(symbol, "1h", limit=150)
-                    if not candles or len(candles) < 20:
-                        try:
-                            from cryptoscope.providers.binance import BinanceProvider
-                            snap = BinanceProvider().snapshot(symbol, "15m")
-                            if snap and snap.candles:
-                                cs.save_candles(symbol, "15m", snap.candles, source="binance")
-                                candles = snap.candles[-150:]
-                        except Exception as p_err:
-                            logger.warning("Could not fetch live candles for %s: %s", symbol, p_err)
+                        candles = cs.get_fresh_candles(symbol, "5m", limit=150)
                     res = simulate_trade_odds(
                         symbol=symbol,
                         entry=entry,
@@ -766,20 +715,9 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     from cryptoscope.agents.schemas import Snapshot
 
                     cs = CandleStore()
-                    candles = cs.load_candles(symbol, "15m", limit=100)
+                    candles = cs.get_fresh_candles(symbol, "15m", limit=100)
                     if not candles or len(candles) < 50:
-                        candles = cs.load_candles(symbol, "5m", limit=100)
-                    if not candles or len(candles) < 50:
-                        candles = cs.load_candles(symbol, "1h", limit=100)
-                    if not candles or len(candles) < 50:
-                        try:
-                            from cryptoscope.providers.binance import BinanceProvider
-                            snap = BinanceProvider().snapshot(symbol, "15m")
-                            if snap and snap.candles:
-                                cs.save_candles(symbol, "15m", snap.candles, source="binance")
-                                candles = snap.candles[-100:]
-                        except Exception as p_err:
-                            logger.warning("Could not fetch live candles for %s: %s", symbol, p_err)
+                        candles = cs.get_fresh_candles(symbol, "5m", limit=100)
 
                     # Build synthetic indicators if candles are sparse
                     if candles and len(candles) >= 50:

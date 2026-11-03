@@ -8,6 +8,10 @@ const DEFAULT_SYMBOLS = [
   'NEARUSDT', 'PEPEUSDT', 'SHIBUSDT', 'DOTUSDT', 'LTCUSDT', 
   'UNIUSDT', 'APTUSDT', 'POLUSDT', 'FETUSDT', 'RENDERUSDT'
 ];
+const UNLISTED_SYMBOLS = new Set([
+  'XMRUSDT', 'USDSUSDT', 'WBTUSDT', 'LEOUSDT', 'FTTUSDT', 'LUNAUSDT', 'LUNCUSDT', 'USTCUSDT', 'BUSDUSDT',
+  'USDTUSDT', 'USDCUSDT', 'DAIUSDT', 'USDUSDT', 'XMR', 'USDS', 'WBT', 'LEO', 'FTT', 'LUNA', 'LUNC'
+]);
 
 const state = {
   workspace: 'research',
@@ -230,6 +234,27 @@ function updateSymbolTriggerLabel(symbol) {
   if ($('symbol-pill-icon')) $('symbol-pill-icon').textContent = coin(symbol);
 }
 
+function updateDropdownTickers(tickerMap) {
+  const listEl = $('symbol-picker-list');
+  if (!listEl) return;
+  listEl.querySelectorAll('.symbol-picker-item').forEach(item => {
+    const sym = item.dataset.symbol;
+    const t = tickerMap[sym] || tickerMap[sym?.replace('USDT', '')];
+    if (t && Number.isFinite(t.price)) {
+      const pEl = item.querySelector('.symbol-item-price');
+      if (pEl) pEl.textContent = money(t.price);
+      const cEl = item.querySelector('.symbol-item-change');
+      if (t.change_24h_pct !== null && t.change_24h_pct !== undefined) {
+        const chg = t.change_24h_pct;
+        if (cEl) {
+          cEl.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%`;
+          cEl.className = `symbol-item-change ${chg >= 0 ? 'up' : 'down'}`;
+        }
+      }
+    }
+  });
+}
+
 function renderCustomSymbolDropdown(allSymbols, currentVal) {
   updateSymbolTriggerLabel(currentVal);
   const listEl = $('symbol-picker-list');
@@ -238,7 +263,17 @@ function renderCustomSymbolDropdown(allSymbols, currentVal) {
   const currentSearch = ($('symbol-picker-search')?.value || '').trim().toLowerCase();
   const currentCat = listEl.dataset.cat || 'all';
 
-  listEl.innerHTML = allSymbols.map(sym => {
+  // Strictly filter out any unlisted tokens or tokens missing real price
+  const validSymbols = allSymbols.filter(sym => {
+    if (UNLISTED_SYMBOLS.has(sym)) return false;
+    let baseName = sym.replace('USDT', '');
+    const found = (state.listings || []).find(l => (l.symbol || '').toUpperCase() === sym || (l.symbol || '').toUpperCase() + 'USDT' === sym);
+    const foundPrice = found?.current_price ?? found?.price_usd ?? found?.price;
+    const ticker = state.tickers?.[sym] || state.tickers?.[baseName] || (found && Number.isFinite(foundPrice) ? { price: foundPrice } : null);
+    return ticker && Number.isFinite(ticker.price) && ticker.price > 0;
+  });
+
+  listEl.innerHTML = validSymbols.map(sym => {
     let baseName = sym.replace('USDT', '');
     const found = (state.listings || []).find(l => (l.symbol || '').toUpperCase() === sym || (l.symbol || '').toUpperCase() + 'USDT' === sym);
     const fullName = found?.name || baseName;
@@ -367,16 +402,19 @@ function initCustomSymbolPicker() {
 
 function updateSymbolDropdown(customSymbols = []) {
   const currentVal = $('symbol')?.value || state.activeSymbol || 'ETHUSDT';
-  const set = new Set(DEFAULT_SYMBOLS);
-  customSymbols.forEach(s => set.add(s));
+  const set = new Set(DEFAULT_SYMBOLS.filter(s => !UNLISTED_SYMBOLS.has(s)));
+  customSymbols.forEach(s => {
+    const u = (s || '').toUpperCase();
+    if (!UNLISTED_SYMBOLS.has(u)) set.add(u);
+  });
   (state.listings || []).forEach(item => {
     if (item.symbol && item.is_listed !== false) {
       const sym = item.symbol.toUpperCase();
-      if (sym === 'USDTUSDT' || sym === 'USDCUSDT' || sym === 'DAIUSDT' || sym === 'USDUSDT') return;
+      const fullSym = sym.endsWith('USDT') ? sym : sym + 'USDT';
+      if (UNLISTED_SYMBOLS.has(fullSym) || UNLISTED_SYMBOLS.has(sym)) return;
       const p = item.current_price ?? item.price_usd ?? item.price;
       // Only include actively traded coins with a valid positive price or live ticker
-      if ((p === null || p === undefined || !Number.isFinite(p) || p <= 0) && !state.tickers[sym]) return;
-      const fullSym = sym.endsWith('USDT') ? sym : sym + 'USDT';
+      if ((p === null || p === undefined || !Number.isFinite(p) || p <= 0) && !state.tickers[fullSym] && !state.tickers[sym]) return;
       set.add(fullSym);
     }
   });
@@ -1813,8 +1851,9 @@ function initSseStream() {
             renderOrderBook();
           }
 
-          // Real-time update of listings table rows
+          // Real-time update of listings table rows and symbol dropdown
           renderListings();
+          updateDropdownTickers(map);
         }
 
         if (payload.connections && $('sidebar-feed-status')) {
