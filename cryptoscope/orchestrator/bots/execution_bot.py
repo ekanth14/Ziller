@@ -23,6 +23,13 @@ from cryptoscope.orchestrator.events import (
 )
 from cryptoscope.execution.paper_broker import PaperBroker
 from cryptoscope.execution.governor import LiveMultiGateGovernor, RiskGovernor
+from cryptoscope.execution.binance_testnet import (
+    BinanceTestnetClient,
+    BinanceClientError,
+    BinanceAuthError,
+    BinanceOrderFilterError,
+    BinanceInsufficientBalanceError,
+)
 
 logger = logging.getLogger("cryptoscope.orchestrator.execution_bot")
 
@@ -68,6 +75,12 @@ class ExecutionBot(BaseBot):
             config={"initial_cash": 10000.0, "fee_fraction": 0.001, "slippage_fraction": 0.0005}
         )
         self.live_governor = LiveMultiGateGovernor(mode=self.mode)
+
+        # Binance Spot Testnet client for TESTNET mode
+        self.binance_client = BinanceTestnetClient(
+            api_key=self.exchange_api_key,
+            api_secret=self.exchange_api_secret,
+        )
 
         # In-memory working positions & orders
         self.active_positions: Dict[str, Dict[str, Any]] = {}
@@ -234,6 +247,9 @@ class ExecutionBot(BaseBot):
         await self.emit(order)
 
         try:
+            executed_price = price
+            stop_order_id = f"stop_ord_{int(time.time()*1000)}"
+
             # Check mock order executor hook if set for failure injection testing
             if hasattr(self, "_test_order_executor") and self._test_order_executor:
                 res = self._test_order_executor(order)
@@ -241,14 +257,53 @@ class ExecutionBot(BaseBot):
                     raise RuntimeError(res.get("error", "Exchange rejected order: Insufficient balance or invalid lot"))
                 qty = res.get("filled_qty", qty)
                 price = res.get("executed_price", price)
+                executed_price = price
+            elif self.mode == "TESTNET":
+                # Real Binance Spot Testnet execution
+                entry_res = self.binance_client.create_order(
+                    symbol=symbol,
+                    side=side,
+                    order_type="MARKET",
+                    quantity=qty,
+                    client_order_id=f"entry_{intent.intent_id}"[:32]
+                )
+                executed_qty = float(entry_res.get("executedQty", qty))
+                cummulative_quote_qty = float(entry_res.get("cummulativeQuoteQty", 0.0))
+                if executed_qty > 0 and cummulative_quote_qty > 0:
+                    executed_price = cummulative_quote_qty / executed_qty
+                else:
+                    executed_price = price
+                qty = executed_qty if executed_qty > 0 else qty
 
-            # Execute Entry Order
-            executed_price = price
-            fee = qty * price * 0.001
+                # Place exchange-level protective stop-loss order
+                stop_side = "SELL" if side == "BUY" else "BUY"
+                try:
+                    stop_res = self.binance_client.create_order(
+                        symbol=symbol,
+                        side=stop_side,
+                        order_type="STOP_LOSS_LIMIT",
+                        quantity=qty,
+                        stop_price=intent.stop_loss,
+                        price=intent.stop_loss,
+                        client_order_id=f"stop_{intent.intent_id}"[:32]
+                    )
+                    stop_order_id = str(stop_res.get("orderId", stop_order_id))
+                    logger.info("[%s] Binance Testnet Stop-Loss order registered: %s", self.name, stop_order_id)
+                except Exception as stop_err:
+                    logger.warning("[%s] Testnet stop order placement issue: %s", self.name, stop_err)
+                    await self.emit(SystemAlert(
+                        severity="HIGH",
+                        source=self.name,
+                        title="Exchange Stop-Loss Notice",
+                        message=f"Exchange stop order returned: {stop_err}. Software stop-loss armed.",
+                        details={"symbol": symbol, "stop_price": intent.stop_loss}
+                    ))
+
+            # Execute Entry Order accounting
+            fee = qty * executed_price * 0.001
             fill_id = f"fill_{int(time.time()*1000)}"
 
             # Place exchange-level protective stop-loss order
-            stop_order_id = f"stop_ord_{int(time.time()*1000)}"
             logger.info(
                 "[%s] Placed EXCHANGE-LEVEL Stop-Loss [%s] for %s @ %.4f (Distance: %.2f%%)",
                 self.name, stop_order_id, symbol, intent.stop_loss, risk.stop_distance_pct
@@ -375,6 +430,28 @@ class ExecutionBot(BaseBot):
         """Immediately market close all open positions."""
         closed_count = 0
         for sym, pos in list(self.active_positions.items()):
+            if self.mode == "TESTNET":
+                # Attempt to cancel working stop order on exchange
+                stop_id = pos.get("stop_order_id")
+                if stop_id and str(stop_id).isdigit():
+                    try:
+                        self.binance_client.cancel_order(symbol=sym, order_id=int(stop_id))
+                        logger.info("[%s] Canceled exchange stop order %s for %s", self.name, stop_id, sym)
+                    except Exception as err:
+                        logger.warning("[%s] Failed to cancel testnet stop order %s: %s", self.name, stop_id, err)
+                # Place market closing order
+                try:
+                    exit_side = "SELL" if pos["side"] == "BUY" else "BUY"
+                    self.binance_client.create_order(
+                        symbol=sym,
+                        side=exit_side,
+                        order_type="MARKET",
+                        quantity=pos["quantity"],
+                    )
+                    logger.info("[%s] Testnet market close order executed for %s", self.name, sym)
+                except Exception as err:
+                    logger.error("[%s] Failed to market close testnet position %s: %s", self.name, sym, err)
+
             pnl_usd = 0.0
             closed = PositionClosed(
                 symbol=sym,

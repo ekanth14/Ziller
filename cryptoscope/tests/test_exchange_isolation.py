@@ -8,6 +8,7 @@ import pytest
 FORBIDDEN_MODULE_SUBSTRINGS = [
     "paper_broker",
     "governor",
+    "binance_testnet",
     "ccxt",
     "binance.client",
     "providers.binance",
@@ -57,3 +58,4 @@ def test_execution_bot_does_import_broker_client():
     # Confirms ExecutionBot actually wires the execution layer
     assert "PaperBroker" in content
     assert "LiveMultiGateGovernor" in content
+    assert "BinanceTestnetClient" in content
