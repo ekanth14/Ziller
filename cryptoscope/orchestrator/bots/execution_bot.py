@@ -52,14 +52,18 @@ class ExecutionBot(BaseBot):
         mode: str = "PAPER",  # 'OBSERVE', 'PAPER', 'TESTNET', 'LIVE'
         db_path: Optional[str] = None,
         supervisor_timeout_sec: float = 15.0,
-        watchdog_grace_sec: float = 5.0,
+        watchdog_grace_sec: Optional[float] = None,
         exchange_api_key: str = "",
         exchange_api_secret: str = ""
     ):
         super().__init__(name, bus)
         self.mode = mode.upper()
         self.supervisor_timeout_sec = supervisor_timeout_sec
-        self.watchdog_grace_sec = watchdog_grace_sec
+        self.watchdog_grace_sec = (
+            watchdog_grace_sec
+            if watchdog_grace_sec is not None
+            else min(5.0, max(0.01, supervisor_timeout_sec * 0.5))
+        )
         self.exchange_api_key = exchange_api_key
         self.exchange_api_secret = exchange_api_secret
 
