@@ -191,8 +191,11 @@ class AuthStore:
                 conn.close()
 
     def create_user(self, email: str, password: str, role: str = "user", invite_code: Optional[str] = None) -> int:
-        signup_mode = os.environ.get("SIGNUP_MODE", "open").lower()
-        if signup_mode == "invite":
+        from cryptoscope.security.config import signup_mode as validated_signup_mode
+        signup_mode = validated_signup_mode()
+        if signup_mode == 'closed':
+            raise ValueError('Registration is disabled')
+        if signup_mode in {'invite', 'invite_only'}:
             expected_code = os.environ.get("INVITE_CODE", "").strip()
             if not expected_code or invite_code != expected_code:
                 raise ValueError("Registration is invite-only. A valid invite code is required.")

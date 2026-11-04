@@ -19,6 +19,7 @@ from cryptoscope.orchestrator.bots import (
     NotifierBot,
 )
 from cryptoscope.telegram.gateway import TelegramGateway
+from cryptoscope.security.config import validate_startup
 
 logger = logging.getLogger("cryptoscope.orchestrator.engine")
 
@@ -103,6 +104,7 @@ class OrchestratorEngine:
         """Launch the entire autonomous fleet."""
         if self._running:
             return
+        validate_startup(self.mode)
         logger.info("[OrchestratorEngine] Starting autonomous fleet in %s mode...", self.mode)
         self._running = True
 

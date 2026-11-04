@@ -13,6 +13,8 @@ import sys
 from typing import Optional
 
 from cryptoscope.orchestrator.engine import OrchestratorEngine
+from cryptoscope.research.settings import ROOT, load_env_file
+from cryptoscope.security.config import validate_startup
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,7 +26,7 @@ logger = logging.getLogger("cryptoscope.orchestrator")
 
 def load_credentials_env():
     """Load credentials from credentials.env if available."""
-    env_path = "credentials.env"
+    env_path = str(ROOT / '.env')
     if os.path.exists(env_path):
         with open(env_path, "r", encoding="utf-8") as f:
             for line in f:
@@ -43,7 +45,7 @@ async def run_orchestrator(mode: str, symbols: list[str]):
 
     telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
     telegram_owner_chat_id = os.getenv("TELEGRAM_OWNER_CHAT_ID")
-    env_mode = os.getenv("TRADING_MODE", mode).upper()
+    env_mode = validate_startup(mode)
 
     print(f"============================================================", flush=True)
     print(f"  ZILLERS AUTONOMOUS MULTI-BOT TRADING FLEET", flush=True)
@@ -87,7 +89,7 @@ async def run_orchestrator(mode: str, symbols: list[str]):
 
 def main():
     parser = argparse.ArgumentParser(description="ZILLERS Multi-Bot Autonomous Orchestrator")
-    parser.add_argument("--mode", type=str, default="PAPER", choices=["OBSERVE", "PAPER", "TESTNET", "LIVE"], help="Trading mode")
+    parser.add_argument("--mode", type=str, default=None, choices=["OBSERVE", "PAPER", "TESTNET"], help="Trading mode; must agree with environment")
     parser.add_argument("--symbols", nargs="+", default=["BTCUSDT", "ETHUSDT", "SOLUSDT"], help="Trading symbols")
     args = parser.parse_args()
 

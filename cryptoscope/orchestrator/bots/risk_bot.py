@@ -164,6 +164,8 @@ class RiskBot(BaseBot):
         )
 
     async def _evaluate_risk(self, debate: DebateResult) -> None:
+        if self.halt_state.snapshot()['halted']:
+            return
         intent = self.cached_intents.get(debate.intent_id)
         if not intent:
             logger.warning("[%s] Missing cached TradeIntent for debate %s", self.name, debate.debate_id)

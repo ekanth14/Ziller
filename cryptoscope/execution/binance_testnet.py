@@ -56,15 +56,15 @@ class BinanceTestnetClient:
         self.api_key = (api_key or os.getenv("BINANCE_TESTNET_API_KEY", "")).strip().strip("<>\"' \t\r\n")
         self.api_secret = (api_secret or os.getenv("BINANCE_TESTNET_API_SECRET", "")).strip().strip("<>\"' \t\r\n")
         self.base_url = (base_url or os.getenv("BINANCE_TESTNET_BASE_URL", self.DEFAULT_BASE_URL)).rstrip("/")
+        from cryptoscope.security.config import validate_testnet_url
+        self.base_url = validate_testnet_url(self.base_url)
         self.timeout = timeout
 
     @property
     def masked_api_key(self) -> str:
         if not self.api_key:
             return "<UNSET>"
-        if len(self.api_key) <= 8:
-            return "***"
-        return f"{self.api_key[:4]}...{self.api_key[-4:]}"
+        return '<CONFIGURED>'
 
     def __repr__(self) -> str:
         return f"BinanceTestnetClient(base_url={self.base_url!r}, api_key={self.masked_api_key})"
@@ -126,30 +126,29 @@ class BinanceTestnetClient:
         except urllib.error.HTTPError as exc:
             err_body = exc.read().decode("utf-8", errors="replace")
             err_code = None
-            err_msg = err_body
             try:
                 parsed = json.loads(err_body)
-                err_code = parsed.get("code")
-                err_msg = parsed.get("msg", err_body)
+                candidate = parsed.get('code')
+                err_code = candidate if type(candidate) is int else None
             except Exception:
                 pass
 
             logger.error(
-                "Binance Testnet HTTP %d %s %s -> Code: %s, Msg: %s",
-                exc.code, method, path, err_code, err_msg
+                "Binance Testnet request rejected: HTTP %d, code %s",
+                exc.code, err_code
             )
 
             if exc.code == 401 or err_code in (-2014, -2015):
-                raise BinanceAuthError(f"Authentication failed: {err_msg} (code={err_code})", code=err_code, http_status=exc.code)
+                raise BinanceAuthError('Authentication failed', code=err_code, http_status=exc.code) from None
             elif err_code == -1013:
-                raise BinanceOrderFilterError(f"Order filter rejected: {err_msg} (code={err_code})", code=err_code, http_status=exc.code)
+                raise BinanceOrderFilterError('Order filter rejected', code=err_code, http_status=exc.code) from None
             elif err_code == -2010:
-                raise BinanceInsufficientBalanceError(f"Insufficient funds: {err_msg} (code={err_code})", code=err_code, http_status=exc.code)
+                raise BinanceInsufficientBalanceError('Insufficient funds', code=err_code, http_status=exc.code) from None
             else:
-                raise BinanceClientError(f"Binance API error: {err_msg} (code={err_code})", code=err_code, http_status=exc.code)
+                raise BinanceClientError('Binance request failed', code=err_code, http_status=exc.code) from None
         except urllib.error.URLError as exc:
-            logger.error("Binance Testnet network failure: %s", exc)
-            raise BinanceClientError(f"Network error connecting to Binance: {exc}")
+            logger.error('Binance Testnet network request failed')
+            raise BinanceClientError('Network error connecting to Binance') from None
 
     def ping(self) -> bool:
         """Test connectivity to Binance Spot Testnet."""

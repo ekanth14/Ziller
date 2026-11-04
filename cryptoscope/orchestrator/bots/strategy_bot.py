@@ -39,10 +39,13 @@ class StrategyBot(BaseBot):
 
     @property
     def paused(self) -> bool:
-        return self.is_paused
+        return self.is_paused or self.halt_state.snapshot()['halted']
 
     def pause(self, reason: str = "Operator paused") -> None:
-        self.is_paused = True
+        # Emergency state has one authority. Do not leave a second emergency
+        # latch in memory that the local administrator cannot clear.
+        if not self.halt_state.snapshot()['halted']:
+            self.is_paused = True
         self.pause_reason = reason
         logger.warning("[%s] Paused: %s", self.name, reason)
 
@@ -58,7 +61,7 @@ class StrategyBot(BaseBot):
             await self._evaluate_signal(event)
 
     async def _evaluate_signal(self, sig: Signal) -> None:
-        if self.is_paused:
+        if self.is_paused or self.halt_state.snapshot()['halted']:
             logger.debug("[%s] Signal discarded: strategy bot paused (%s)", self.name, self.pause_reason)
             return
 

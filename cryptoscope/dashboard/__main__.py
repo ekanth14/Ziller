@@ -34,6 +34,9 @@ from cryptoscope.market_data.coingecko import CoinGeckoService
 from cryptoscope.execution.governor import LiveMultiGateGovernor, RiskGovernor, EmergencyKillSwitch, LiveGateError
 from cryptoscope.autotrader.decision import LayaTier2Evaluator
 from cryptoscope.research.settings import ROOT, load_config
+from cryptoscope.security.halt_state import PersistentKillSwitch
+from cryptoscope.security.config import validate_startup
+from cryptoscope.security.public_forms import FormGuard, validate_proposal, operator_cookie, valid_operator_cookie, valid_operator_passcode
 from cryptoscope.quant import (
     analyze_crypto_pair,
     volatility_regime_analysis,
@@ -61,7 +64,7 @@ def is_collab_authorized(headers) -> bool:
     if not passcode:
         return False
     code = headers.get("X-Desk-Passcode", "")
-    if code and code.strip() == passcode:
+    if valid_operator_passcode(code, passcode):
         return True
     cookie_str = headers.get("Cookie", "")
     if cookie_str:
@@ -69,7 +72,7 @@ def is_collab_authorized(headers) -> bool:
         try:
             c = SimpleCookie()
             c.load(cookie_str)
-            if "zillers_collab_auth" in c and c["zillers_collab_auth"].value == passcode:
+            if "zillers_collab_auth" in c and valid_operator_cookie(c["zillers_collab_auth"].value, passcode):
                 return True
         except Exception:
             pass
@@ -110,6 +113,7 @@ def get_server_metrics():
     return {"threads": threads, "rss_mb": rss_mb}
 
 def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_service=None, market_aggregator=None, coingecko_service=None, risk_governor=None, live_governor=None, kill_switch=None, laya_evaluator=None):
+    form_guard = FormGuard()
     auth_store = auth_store or AuthStore()
     rate_limiter = rate_limiter or RateLimiter()
     lockout_mgr = lockout_mgr or AccountLockoutManager()
@@ -119,6 +123,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
     risk_governor = risk_governor or RiskGovernor()
     live_governor = live_governor or LiveMultiGateGovernor()
     kill_switch = kill_switch or EmergencyKillSwitch(risk_governor, live_governor)
+    if not isinstance(kill_switch, PersistentKillSwitch):
+        kill_switch = PersistentKillSwitch(kill_switch)
     laya_evaluator = laya_evaluator or LayaTier2Evaluator()
 
     class Handler(BaseHTTPRequestHandler):
@@ -608,8 +614,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 res = auth_store.create_password_reset(email)
                 if res:
                     token, user_email = res
-                    logger.info("Password reset token generated for %s: %s", user_email, token)
-                    print(f"\n[ZILLERS AUTH] Password reset token for {user_email}: {token}\n", flush=True)
+                    logger.info("Password reset requested; delivery integration is not configured")
                 return self.json(200, {"status": "ok", "message": "If an account exists, a reset instruction has been dispatched."})
 
             # 5. Confirm Password Reset
@@ -626,6 +631,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
 
             # 5b. Collaborate Desk Passcode Authentication
             if url.path in {"/api/collaborate/auth", "/api/auth"}:
+                if not rate_limiter.is_allowed(client_ip, '/api/collaborate/auth', limit=5):
+                    return self.json(429, {'error': 'Operator authentication quota exceeded'})
                 action = body.get("action", "")
                 if action == "logout":
                     return self.json(
@@ -635,16 +642,25 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     )
                 expected_passcode = get_collab_passcode()
                 passcode = body.get("passcode", "")
-                if expected_passcode and passcode and str(passcode).strip() == expected_passcode:
+                if valid_operator_passcode(passcode, expected_passcode):
                     return self.json(
                         200,
                         {"success": True, "message": "Passcode verified"},
-                        cookies=[f"zillers_collab_auth={expected_passcode}; Path=/; Max-Age=604800; HttpOnly; SameSite=Lax"]
+                        cookies=[f"zillers_collab_auth={operator_cookie(expected_passcode)}; Path=/; Max-Age=604800; HttpOnly; SameSite=Strict"]
                     )
                 return self.json(401, {"error": "Invalid operator passcode"})
 
             # 6. Public Collaborate Proposal Submission
             if url.path == "/api/collaborate":
+                origin = self.headers.get('Origin')
+                if origin and urlsplit(origin).netloc != self.headers.get('Host'):
+                    return self.json(403, {'error': 'Cross-origin form submission refused'})
+                try:
+                    body = validate_proposal(body)
+                except ValueError as error:
+                    return self.json(400, {'error': str(error)})
+                if not form_guard.accept(body, client_ip):
+                    return self.json(429, {'error': 'Submission quota or duplicate limit reached'})
                 if not rate_limiter.is_allowed(client_ip, "/api/collaborate", limit=10):
                     retry = rate_limiter.retry_after(client_ip, "/api/collaborate")
                     return self.json(429, {"error": f"Rate limit exceeded. Retry in {retry} seconds."})
@@ -687,15 +703,17 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                                 loaded = json.loads(COLLAB_FILE.read_text(encoding="utf-8"))
                                 if isinstance(loaded, list):
                                     records = loaded
+                                else:
+                                    raise ValueError('Invalid proposal store')
                             except Exception:
-                                records = []
+                                return self.json(503, {'error': 'Proposal store unavailable; existing data preserved'})
                         records.append(record)
                         COLLAB_FILE.write_text(json.dumps(records, indent=2), encoding="utf-8")
                     except Exception as exc:
                         logger.error("Failed to save collaboration proposal: %s", exc)
                         return self.json(500, {"error": "Internal storage failure"})
 
-                logger.info("New collaboration proposal logged: %s (%s)", collab_id, email)
+                logger.info("New collaboration proposal logged: %s", collab_id)
                 return self.json(200, {
                     "status": "ok",
                     "collab_id": collab_id,
@@ -925,6 +943,9 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
 
             # Resume from Emergency Kill Switch (Requires Admin Password)
             if url.path == "/api/governor/resume":
+                if self.client_address[0] not in {'127.0.0.1', '::1'} or any(
+                    self.headers.get(h) for h in ('Forwarded', 'X-Forwarded-For', 'X-Real-IP')):
+                    return self.json(403, {"error": "Emergency recovery requires the local dashboard"})
                 if session.get("role") != "admin":
                     return self.json(403, {"error": "Admin role required to resume bot from emergency halt"})
                 password = str(body.get("password", ""))
@@ -978,6 +999,8 @@ def main():
     parser.add_argument("--port", type=int, default=8900)
     parser.add_argument("--config", type=Path)
     args = parser.parse_args()
+
+    validate_startup()
 
     auth_store = AuthStore()
     # Bootstrap admin if no admin exists (fails cleanly if ADMIN_INITIAL_PASSWORD is unset)

@@ -28,7 +28,6 @@ def load_env_file(path: Path) -> None:
 
 # Automatically load local credentials and environment configuration
 load_env_file(ROOT / ".env")
-load_env_file(ROOT / "credentials.env")
 
 
 def load_config(path=None):

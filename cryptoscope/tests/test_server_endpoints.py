@@ -24,9 +24,10 @@ class ServerEndpointTests(unittest.TestCase):
         cls.temp_dir = tempfile.TemporaryDirectory()
         cls.db_path = Path(cls.temp_dir.name) / "test_auth.db"
         cls.auth_store = AuthStore(cls.db_path)
+        os.environ["ALLOW_OPEN_SIGNUP"] = "true"
         os.environ["ADMIN_EMAIL"] = "admin@zillers.local"
         os.environ["ADMIN_INITIAL_PASSWORD"] = "AdminSuperSecurePass2026!#"
-        os.environ["COLLAB_DESK_PASSCODE"] = "Ekanthbs@4514"
+        os.environ["COLLAB_DESK_PASSCODE"] = "LocalFixtureDeskPassword!"
         cls.admin_id = cls.auth_store.bootstrap_admin("admin@zillers.local")
 
         cls.rate_limiter = RateLimiter(limit=50, window_sec=60)
@@ -53,6 +54,65 @@ class ServerEndpointTests(unittest.TestCase):
         cls.server.shutdown()
         cls.server.server_close()
         cls.temp_dir.cleanup()
+
+    def test_00_local_admin_is_the_only_emergency_recovery_path(self):
+        from cryptoscope.security.halt_state import GovernorState
+        req = Request(self.base_url + '/api/auth/login',
+                      data=json.dumps({'email': 'admin@zillers.local', 'password': os.environ['ADMIN_INITIAL_PASSWORD']}).encode(),
+                      headers={'Content-Type': 'application/json'})
+        with urlopen(req) as response:
+            cookie = response.headers['Set-Cookie'].split(';', 1)[0]
+            csrf = json.load(response)['csrf_token']
+        state = GovernorState()
+        state.halt('isolated HTTP recovery test')
+        def recover(password, extra=None):
+            return urlopen(Request(self.base_url + '/api/governor/resume',
+                           data=json.dumps({'password': password, 'csrf_token': csrf}).encode(),
+                           headers={'Content-Type': 'application/json', 'Cookie': cookie, **(extra or {})}))
+        with self.assertRaises(HTTPError) as wrong:
+            recover('not-the-fixture-password')
+        self.assertEqual(wrong.exception.code, 401)
+        self.assertTrue(state.snapshot()['halted'])
+        with self.assertRaises(HTTPError) as proxy:
+            recover(os.environ['ADMIN_INITIAL_PASSWORD'], {'X-Forwarded-For': '127.0.0.1'})
+        self.assertEqual(proxy.exception.code, 403)
+        self.assertTrue(state.snapshot()['halted'])
+        with recover(os.environ['ADMIN_INITIAL_PASSWORD']) as response:
+            self.assertEqual(response.status, 200)
+        self.assertFalse(state.snapshot()['halted'])
+
+    def test_01_public_form_is_unauthenticated_but_rejects_duplicates_and_bad_origin(self):
+        payload = {'name': 'Abuse Fixture', 'email': 'abuse@example.invalid', 'github': 'fixture',
+                   'linkedin': 'fixture', 'message': 'Local abuse-control regression fixture.'}
+        def post(data, extra=None):
+            return urlopen(Request(self.base_url + '/api/collaborate', data=json.dumps(data).encode(),
+                           headers={'Content-Type': 'application/json', **(extra or {})}))
+        with post(payload) as response:
+            self.assertEqual(response.status, 200)
+        with self.assertRaises(HTTPError) as duplicate:
+            post(payload)
+        self.assertEqual(duplicate.exception.code, 429)
+        with self.assertRaises(HTTPError) as origin:
+            post({**payload, 'name': 'Other'}, {'Origin': 'https://wrong.invalid'})
+        self.assertEqual(origin.exception.code, 403)
+        with self.assertRaises(HTTPError) as oversized:
+            post({**payload, 'message': 'x' * 4001})
+        self.assertEqual(oversized.exception.code, 400)
+
+    def test_02_invalid_proposal_store_is_not_overwritten(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'collaborations.json'
+            path.write_text('{invalid storage')
+            original = path.read_bytes()
+            payload = {'name': 'Storage Fixture', 'email': 'storage@example.invalid', 'github': 'fixture',
+                       'linkedin': 'fixture', 'message': 'Local storage preservation regression fixture.'}
+            with patch('cryptoscope.dashboard.__main__.COLLAB_FILE', path):
+                with self.assertRaises(HTTPError) as failure:
+                    urlopen(Request(self.base_url + '/api/collaborate', data=json.dumps(payload).encode(),
+                                    headers={'Content-Type': 'application/json'}))
+            self.assertEqual(failure.exception.code, 503)
+            self.assertEqual(path.read_bytes(), original)
 
     def test_health_and_ready_endpoints(self):
         with urlopen(f"{self.base_url}/health") as resp:
@@ -230,10 +290,10 @@ class ServerEndpointTests(unittest.TestCase):
             urlopen(req_no_auth)
         self.assertEqual(ctx.exception.code, 401)
 
-        # 2. Authenticate with Ekanthbs@4514 via /api/collaborate/auth
+        # 2. Authenticate with LocalFixtureDeskPassword! via /api/collaborate/auth
         auth_req = Request(
             f"{self.base_url}/api/collaborate/auth",
-            data=json.dumps({"passcode": "Ekanthbs@4514"}).encode("utf-8"),
+            data=json.dumps({"passcode": "LocalFixtureDeskPassword!"}).encode("utf-8"),
             headers={"Content-Type": "application/json"}
         )
         with urlopen(auth_req) as resp:
@@ -244,7 +304,7 @@ class ServerEndpointTests(unittest.TestCase):
         # 3. With passcode header: returns 200 and proposal data
         req_auth = Request(
             f"{self.base_url}/api/collaborate/list",
-            headers={"Accept": "application/json", "X-Desk-Passcode": "Ekanthbs@4514"}
+            headers={"Accept": "application/json", "X-Desk-Passcode": "LocalFixtureDeskPassword!"}
         )
         with urlopen(req_auth) as resp:
             self.assertEqual(resp.status, 200)
@@ -260,7 +320,7 @@ class ServerEndpointTests(unittest.TestCase):
             self.assertIn("Restricted Access", body)
 
         # 5. Browser HTML view for /collaborations with auth cookie -> Unlocked desk
-        req_html_auth = Request(f"{self.base_url}/collaborations", headers={"Accept": "text/html", "Cookie": "zillers_collab_auth=Ekanthbs@4514"})
+        req_html_auth = Request(f"{self.base_url}/collaborations", headers={"Accept": "text/html", "Cookie": cookie.split(";", 1)[0]})
         with urlopen(req_html_auth) as resp:
             self.assertEqual(resp.status, 200)
             body = resp.read().decode("utf-8")

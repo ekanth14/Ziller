@@ -1,72 +1,52 @@
-"""Automated security test ensuring zero secret fragments appear in reports or log files.
-
-Fails if any full secret, password, key, or 8+ char prefix/suffix appears in:
-- work/reports/*.md, *.json, *.csv, *.txt
-- Any .log files
-Complies with Absolute Rule 2 and Master Prompt Item A8.
-"""
-
-import os
+"""Report security tests. Findings never include sensitive text or offsets."""
 from pathlib import Path
 import pytest
-
-
-def get_configured_secrets() -> dict[str, str]:
-    secrets = {}
-    for fn in [".env", "credentials.env"]:
-        if os.path.exists(fn):
-            for line in open(fn, encoding="utf-8", errors="ignore"):
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    k, v = line.split("=", 1)
-                    v = v.strip().strip('"').strip("'")
-                    if len(v) >= 8 and any(w in k.lower() for w in ["key", "secret", "token", "password"]):
-                        secrets[k] = v
-    return secrets
+from cryptoscope.security.report_secrets import scan, violations, redact
+from cryptoscope.security.report_secrets import redact_document
+import json
 
 
 def test_reports_and_logs_contain_zero_secret_fragments():
-    """Verify that no report or log file contains secrets or secret fragments."""
-    secrets = get_configured_secrets()
-    if not secrets:
-        pytest.skip("No secrets configured in environment files to test against.")
+    result = scan(Path.cwd())
+    assert not result['findings'], 'Confidential report scan failed; run the safe scanner for file identifiers.'
 
-    reports_dir = Path("work/reports")
-    files_to_check = []
 
-    if reports_dir.exists():
-        for p in reports_dir.rglob("*"):
-            if p.is_file() and p.suffix.lower() in [".md", ".json", ".csv", ".txt", ".html"]:
-                files_to_check.append(p)
+@pytest.mark.parametrize('text', [
+    'fictional-boundary-fixture', 'fict', 'ture',
+    'API key starts with an example', 'The secret is 64 characters long',
+    'Credential prefix is documented', 'ABCD...WXYZ',
+    'The keys are 64 characters long', 'Credentials have length 42',
+    'The tokens end with an example', 'Password first 4 are described',
+])
+def test_sensitive_report_examples_are_refused(text):
+    assert bool(violations(text, {'fictional-boundary-fixture'}))
 
-    # Also check any .log files in work/
-    work_dir = Path("work")
-    if work_dir.exists():
-        for p in work_dir.rglob("*.log"):
-            if p.is_file():
-                files_to_check.append(p)
 
-    violations = []
-    for filepath in files_to_check:
-        try:
-            content = filepath.read_text(encoding="utf-8", errors="ignore")
-        except Exception:
-            continue
+def test_redaction_is_idempotent_and_does_not_return_sensitive_matches(tmp_path):
+    (tmp_path / '.env').write_text('API_KEY=fictional-boundary-fixture\n')
+    directory = tmp_path / 'reports'
+    directory.mkdir()
+    report = directory / 'PHASE_1_REPORT.md'
+    report.write_text('fict and ture and fictional-boundary-fixture\nAPI key starts with an example\n')
+    result = scan(tmp_path)
+    assert result['files_scanned'] == 1
+    assert len(result['findings']) == 1
+    assert set(result['findings'][0]) == {'path', 'rules'}
+    text = redact(report.read_text(), {'fictional-boundary-fixture'})
+    assert not violations(text, {'fictional-boundary-fixture'})
+    assert redact(text, {'fictional-boundary-fixture'}) == text
 
-        for var_name, secret_val in secrets.items():
-            # Check full secret
-            if secret_val in content:
-                violations.append(f"{filepath}: leaked full value of {var_name}")
-            # Check 8-character prefix/suffix fragments
-            elif len(secret_val) >= 16:
-                prefix = secret_val[:8]
-                suffix = secret_val[-8:]
-                if prefix in content:
-                    violations.append(f"{filepath}: leaked prefix fragment of {var_name}")
-                if suffix in content:
-                    violations.append(f"{filepath}: leaked suffix fragment of {var_name}")
 
-    assert not violations, (
-        f"A8 Security violation: Found {len(violations)} secret leak(s) in reports/logs:\n"
-        + "\n".join(violations)
-    )
+def test_structured_redaction_preserves_json_and_repairs_only_withheld_tokens():
+    fictional = {'1234-fictional-5678'}
+    safe = redact_document('{"price":1234.25,"retained":42,"text":"1234"}', fictional, '.json')
+    value = json.loads(safe)
+    assert value['price'] is None
+    assert value['retained'] == 42
+    assert value['text'] == '[REDACTED]'
+    assert value['security_redactions']['withheld_values'] == 2
+    repaired = json.loads(redact_document('{"price":123[REDACTED].25,"retained":42}', fictional, '.json'))
+    assert repaired['price'] is None
+    assert repaired['retained'] == 42
+    with pytest.raises(ValueError):
+        redact_document('{unrelated invalid document', fictional, '.json')

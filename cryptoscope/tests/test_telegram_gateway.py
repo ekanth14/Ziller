@@ -20,7 +20,7 @@ from cryptoscope.telegram.gateway import TelegramGateway
 @pytest.fixture(autouse=True)
 def clean_telegram_env(monkeypatch):
     """Ensure tests in this module run hermetically without leaking ambient environment variables."""
-    monkeypatch.delenv("TELEGRAM_OWNER_USER_ID", raising=False)
+    monkeypatch.setenv("TELEGRAM_OWNER_USER_ID", '12345')
     monkeypatch.delenv("TELEGRAM_OWNER_CHAT_ID", raising=False)
     monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
 
@@ -106,6 +106,11 @@ def test_no_owner_chat_id_configured_denies_all():
     gateway = TelegramGateway(token="dummy_token", owner_chat_id=None)
     update = make_mock_update(chat_id=999888, user_id=7777777)
     assert gateway.is_authorized(update) is False
+
+
+def test_missing_owner_user_denies_even_matching_chat():
+    gateway = TelegramGateway(token='fixture-token', owner_chat_id=999888, owner_user_id=None)
+    assert gateway.is_authorized(make_mock_update(chat_id=999888)) is False
 
 
 # ---------------------------------------------------------------------------
@@ -338,7 +343,7 @@ def test_kill_message_does_not_hint_at_telegram_resume():
 def test_callback_confirm_resume_blocked_when_kill_active():
     """Inline 'Confirm Resume' button must be blocked when kill switch is active."""
     async def _test():
-        gateway = TelegramGateway(token="dummy_token", owner_chat_id=999888)
+        gateway = TelegramGateway(token="dummy_token", owner_chat_id=999888, owner_user_id=999888)
         gateway.kill_switch_active = True
 
         query = AsyncMock()

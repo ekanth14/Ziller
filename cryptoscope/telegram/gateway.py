@@ -72,12 +72,9 @@ class TelegramGateway:
 
         self.app: Optional[Application] = None
         self._running = False
-        self.kill_switch_active: bool = False
-        self.admin_password: str = (
-            os.environ.get("ADMIN_PASSWORD")
-            or os.environ.get("ZILLERS_ADMIN_PASSWORD")
-            or "admin123"
-        )
+        from cryptoscope.security.halt_state import GovernorState
+        self.halt_state = GovernorState()
+
 
     def is_authorized(self, update: Update) -> bool:
         """Check if message originated from the whitelisted owner, verifying BOTH chat ID and user ID.
@@ -86,7 +83,7 @@ class TelegramGateway:
         when both are configured. This prevents a group-chat member who shares the same
         chat_id from impersonating the owner.
         """
-        if not self.owner_chat_id:
+        if not self.owner_chat_id or self.owner_user_id is None:
             logger.warning("[TelegramGateway] OWNER_CHAT_ID not configured. Denying all requests.")
             return False
         if not update.effective_chat or update.effective_chat.id != self.owner_chat_id:
@@ -106,11 +103,24 @@ class TelegramGateway:
                 return False
         return True
 
+    @property
+    def kill_switch_active(self):
+        return self.halt_state.snapshot()['halted']
+
+    @kill_switch_active.setter
+    def kill_switch_active(self, value):
+        if value is not True:
+            raise PermissionError('Telegram cannot clear an emergency halt')
+        self.halt_state.halt('Owner Telegram emergency halt', 'telegram-owner')
+
     def build_application(self) -> Optional[Application]:
         """Construct python-telegram-bot Application instance with command handlers."""
         if not self.token:
             logger.warning("[TelegramGateway] TELEGRAM_BOT_TOKEN missing. Gateway running in disabled mode.")
             return None
+
+        if not self.owner_chat_id or self.owner_user_id is None:
+            raise ValueError('Both Telegram owner settings are required')
 
         app = Application.builder().token(self.token).build()
 
@@ -397,5 +407,5 @@ class TelegramGateway:
             )
             return True
         except Exception as exc:
-            logger.warning("[TelegramGateway] Network dispatch error: %s", exc)
-            raise ConnectionError(f"Telegram network delivery failed: {exc}") from exc
+            logger.warning('[TelegramGateway] Network delivery failed')
+            raise ConnectionError('Telegram network delivery failed') from None

@@ -70,7 +70,7 @@ def test_binance_testnet_auth_failure_semantics():
         api_key="SYNTHETIC_TESTNET_KEY_NOT_REAL_00000000000000000000000000000000_END",
         api_secret="synthetic_dummy_secret_for_test",
     )
-    assert client.masked_api_key == "SYNT..._END"
+    assert client.masked_api_key == '<CONFIGURED>'
     assert "synthetic_dummy_secret" not in repr(client)
 
     with pytest.raises(BinanceAuthError) as exc_info:

@@ -205,6 +205,8 @@ class ExecutionBot(BaseBot):
             await self._check_position_exits(event)
 
     async def _execute_approved_trade(self, risk: RiskDecision) -> None:
+        if self.halt_state.snapshot()['halted']:
+            return
         intent = self.cached_intents.get(risk.intent_id)
         if not intent:
             logger.warning("[%s] Cannot execute: missing TradeIntent for %s", self.name, risk.intent_id)
@@ -244,6 +246,10 @@ class ExecutionBot(BaseBot):
             mode=self.mode
         )
         await self.emit(order)
+
+        # A halt may have arrived while subscribers processed OrderRequest.
+        if self.halt_state.snapshot()['halted']:
+            return
 
         try:
             executed_price = price
@@ -408,6 +414,7 @@ class ExecutionBot(BaseBot):
 
     async def emergency_protect_positions(self, reason: str) -> None:
         """Trigger emergency position protection when supervisor heartbeat is lost."""
+        self.halt_state.halt(reason, self.name)
         self.emergency_protection_active = True
         logger.critical("[%s] EMERGENCY PROTECTION TRIGGERED: %s", self.name, reason)
 

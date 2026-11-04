@@ -64,6 +64,10 @@ class PaperBroker:
         pass
 
     def execute(self, run_id, proposal, snapshot, quote, now=None):
+        from cryptoscope.security.halt_state import GovernorState
+        if proposal.action in {'LONG', 'SHORT'} and GovernorState().snapshot()['halted']:
+            return {'status': 'rejected', 'approved': False, 'quantity': 0,
+                    'reasons': ['PERSISTENT_EMERGENCY_HALT']}
         now = time.time() if now is None else now
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")

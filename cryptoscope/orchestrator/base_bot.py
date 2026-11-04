@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Type
 
 from cryptoscope.orchestrator.events import BaseEvent, SystemAlert
 from cryptoscope.orchestrator.event_bus import EventBus
+from cryptoscope.security.halt_state import GovernorState
 
 logger = logging.getLogger("cryptoscope.orchestrator.base_bot")
 
@@ -55,6 +56,7 @@ class BaseBot(ABC):
         self._task: Optional[asyncio.Task] = None
         self._running = False
         self._subscribed_events: List[Type[BaseEvent]] = []
+        self.halt_state = GovernorState()
 
     def subscribe(self, event_cls: Type[BaseEvent]) -> None:
         """Register subscription for a specific typed event."""
@@ -64,6 +66,8 @@ class BaseBot(ABC):
     async def _safe_on_event(self, event: BaseEvent) -> None:
         """Execute on_event with fault tracking."""
         if not self._running:
+            return
+        if event.event_type in {'Signal', 'TradeIntent', 'RiskPreApproved', 'DebateResult', 'RiskDecision'} and self.halt_state.snapshot()['halted']:
             return
         self.events_processed += 1
         self._last_heartbeat = time.time()
@@ -92,6 +96,8 @@ class BaseBot(ABC):
         """Initialize and launch the bot's background loop."""
         if self._running:
             return
+        for event_cls in self._subscribed_events:
+            self.bus.subscribe(event_cls, self._safe_on_event)
         self._running = True
         self._start_time = time.time()
         self._last_heartbeat = time.time()
@@ -152,7 +158,7 @@ class BaseBot(ABC):
             last_heartbeat=self._last_heartbeat,
             error_count=self.error_count,
             events_processed=self.events_processed,
-            details=self.get_health_details()
+            details={**self.get_health_details(), 'emergency_halted': self.halt_state.snapshot()['halted']}
         )
 
     def get_health_details(self) -> Dict[str, Any]:
