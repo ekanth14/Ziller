@@ -17,6 +17,14 @@ from telegram import Chat, Message, Update, User
 from cryptoscope.telegram.gateway import TelegramGateway
 
 
+@pytest.fixture(autouse=True)
+def clean_telegram_env(monkeypatch):
+    """Ensure tests in this module run hermetically without leaking ambient environment variables."""
+    monkeypatch.delenv("TELEGRAM_OWNER_USER_ID", raising=False)
+    monkeypatch.delenv("TELEGRAM_OWNER_CHAT_ID", raising=False)
+    monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
+
+
 def make_mock_update(chat_id: int, text: str = "/status", user_id: int = 12345):
     update = MagicMock(spec=Update)
     chat = MagicMock(spec=Chat)

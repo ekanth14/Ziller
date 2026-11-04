@@ -31,10 +31,14 @@ class TelegramGateway:
     - Offline tolerance: If Telegram API is unreachable, trading proceeds unaffected and alerts buffer locally.
     """
 
+    # Sentinel so we can distinguish 'not passed' from explicitly passing None
+    _UNSET = object()
+
     def __init__(
         self,
         token: Optional[str] = None,
         owner_chat_id: Optional[int | str] = None,
+        owner_user_id=_UNSET,
         supervisor=None,
         strategy_bot=None,
         risk_bot=None,
@@ -49,11 +53,15 @@ class TelegramGateway:
         except ValueError:
             self.owner_chat_id = None
 
-        raw_owner_user = os.environ.get("TELEGRAM_OWNER_USER_ID", "").strip()
-        try:
-            self.owner_user_id: Optional[int] = int(raw_owner_user) if raw_owner_user else None
-        except ValueError:
-            self.owner_user_id = None
+        # owner_user_id: use explicit constructor arg when provided; fall back to env
+        if owner_user_id is not TelegramGateway._UNSET:
+            self.owner_user_id: Optional[int] = owner_user_id
+        else:
+            raw_owner_user = os.environ.get("TELEGRAM_OWNER_USER_ID", "").strip()
+            try:
+                self.owner_user_id = int(raw_owner_user) if raw_owner_user else None
+            except ValueError:
+                self.owner_user_id = None
 
         self.supervisor = supervisor
         self.strategy_bot = strategy_bot
