@@ -1,6 +1,6 @@
-# ZILLERS Production Hardening — Phase 0 Baseline & Security Audit
+# [REDACTED]ERS Production Hardening — Phase 0 Baseline & Security Audit
 
-**Document Date**: 2026-11-02  
+**Document Date**: [REDACTED]-11-02  
 **Target Package**: `cryptoscope/`  
 **Git Branch**: `prod-hardening` (branched from `main` @ `3429e2d`)  
 **Auditor**: Senior Quantitative-Systems Engineer & QA Lead  
@@ -159,11 +159,11 @@ All external network interactions in the application:
    - In `cryptoscope/dashboard/__main__.py:40`: `COLLAB_DESK_PASSCODE = os.environ.get("COLLAB_DESK_PASSCODE", "Ekanthbs@4514")`.
    - **Defect**: Violates zero-hardcoded-credentials rule.
 3. **Admin Password in Documentation & Tests**:
-   - `README.md` and `ZILLERS_QUANT_ARCHITECTURE.md` documented bootstrap admin credentials `admin@zillers.local` / `AdminTestingPassword123!`.
+   - `README.md` and `[REDACTED]ERS_QUANT_ARCHITECTURE.md` documented bootstrap admin credentials `admin@zillers.local` / `AdminTestingPassword123!`.
    - `test_server_endpoints.py` relies on `AdminTestingPassword123!`.
    - **Defect**: Violates production security rules; server must strictly require env var `ADMIN_INITIAL_PASSWORD`.
 4. **Local Windows `file:///` Absolute Links**:
-   - In `ZILLERS_QUANT_ARCHITECTURE.md`, markdown links point to `file:///c:/Users/Ekanth...`.
+   - In `[REDACTED]ERS_QUANT_ARCHITECTURE.md`, markdown links point to `file:///c:/Users/Ekanth...`.
    - **Defect**: Non-portable across Linux/macOS and other developer machines. Should be standard repository relative links.
 
 ---

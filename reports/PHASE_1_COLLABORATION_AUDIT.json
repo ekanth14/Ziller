@@ -1,0 +1,166 @@
+{
+  "current_record_count": 63,
+  "baseline_40_copy_available": false,
+  "interpretation": "Append positions are not proof of creation order without the missing baseline. No actor or process log is retained. No records were modified.",
+  "candidate_rows": [
+    {
+      "append_index": 41,
+      "id": "COL-CD02C074",
+      "timestamp": "[REDACTED]-11-02T12:38:50.566350+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": true
+    },
+    {
+      "append_index": 42,
+      "id": "COL-1C4550B5",
+      "timestamp": "[REDACTED]-11-02T12:39:36.359285+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": true
+    },
+    {
+      "append_index": 43,
+      "id": "COL-A1601312",
+      "timestamp": "[REDACTED]-11-02T13:09:26.193169+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": false
+    },
+    {
+      "append_index": 44,
+      "id": "COL-2656A0AE",
+      "timestamp": "[REDACTED]-11-02T13:12:47.467090+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": false
+    },
+    {
+      "append_index": 45,
+      "id": "COL-25CB7A89",
+      "timestamp": "[REDACTED]-11-02T13:14:05.253539+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": false
+    },
+    {
+      "append_index": 46,
+      "id": "COL-48FCEA7F",
+      "timestamp": "[REDACTED]-11-02T13:26:16.486443+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": true
+    },
+    {
+      "append_index": 47,
+      "id": "COL-C7BF3AEF",
+      "timestamp": "[REDACTED]-11-02T14:17:39.342837+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": true
+    },
+    {
+      "append_index": 48,
+      "id": "COL-AD80A400",
+      "timestamp": "[REDACTED]-11-03T12:58:45.815607+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": true
+    },
+    {
+      "append_index": 49,
+      "id": "COL-E178B77C",
+      "timestamp": "[REDACTED]-11-03T13:02:19.430357+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": true
+    },
+    {
+      "append_index": 50,
+      "id": "COL-DB75993F",
+      "timestamp": "[REDACTED]-11-03T14:21:23.299484+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": true
+    },
+    {
+      "append_index": 51,
+      "id": "COL-E7FFF47B",
+      "timestamp": "[REDACTED]-11-03T14:23:02.259562+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": true
+    },
+    {
+      "append_index": 52,
+      "id": "COL-03D98BF5",
+      "timestamp": "[REDACTED]-11-03T14:25:10.488016+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": true
+    },
+    {
+      "append_index": 53,
+      "id": "COL-0533D76A",
+      "timestamp": "[REDACTED]-11-03T14:36:20.662904+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": true
+    },
+    {
+      "append_index": 54,
+      "id": "COL-348BA10A",
+      "timestamp": "[REDACTED]-11-03T15:26:30.528084+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": true
+    },
+    {
+      "append_index": 55,
+      "id": "COL-44A256AF",
+      "timestamp": "[REDACTED]-11-03T15:54:15.935001+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": true
+    },
+    {
+      "append_index": 56,
+      "id": "COL-86773A60",
+      "timestamp": "[REDACTED]-11-03T16:00:32.257412+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": true
+    },
+    {
+      "append_index": 57,
+      "id": "COL-B7CE3205",
+      "timestamp": "[REDACTED]-11-04T02:02:40.922762+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": true
+    },
+    {
+      "append_index": 58,
+      "id": "COL-6F22E562",
+      "timestamp": "[REDACTED]-11-04T02:16:23.805276+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": true
+    },
+    {
+      "append_index": 59,
+      "id": "COL-9326FB8E",
+      "timestamp": "[REDACTED]-11-04T02:18:27.919860+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": true
+    },
+    {
+      "append_index": 60,
+      "id": "COL-8775B5BC",
+      "timestamp": "[REDACTED]-11-04T02:26:06.592509+00:00",
+      "client_ip": "127.0.0.1",
+      "matches_known_test_fixture": true
+    }
+  ],
+  "candidate_row_count": 20,
+  "fixture_match_count": 17,
+  "all_candidate_transport_addresses_loopback": true,
+  "hosted_get_checks": [
+    {
+      "url": "https://zillers.zienorganisation.online/collaborate",
+      "status": 200,
+      "observation": "Public SPA shell; client rendering and submission not tested"
+    },
+    {
+      "url": "https://zillers.zienorganisation.online/api/collaborate",
+      "status": 401,
+      "observation": "Proposal list requires authentication"
+    }
+  ],
+  "security_redactions": {
+    "withheld_values": 20,
+    "notice": "Sensitive material removed. Null may denote a withheld numeric value."
+  }
+}

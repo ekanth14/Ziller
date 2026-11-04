@@ -1,6 +1,6 @@
 # Phase 0 — Setup and baseline
 
-Date: 2026-11-04 (Asia/Calcutta). Branch: `verified-fleet`.
+Date: [REDACTED]-11-04 (Asia/Calcutta). Branch: `verified-fleet`.
 Baseline HEAD: `75d915e3f07ae209ce4b5691977c5fdd18dd8be9`.
 
 ## Scope and status

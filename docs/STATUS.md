@@ -1,67 +1,80 @@
-# ZILLERS development status
+# Development status
 
-Updated: 2026-11-04 (Asia/Calcutta).
+Updated: November 5 (Asia/Calcutta). STOPPED after Phase 1 as instructed.
 
-## Authoritative instructions and permitted scope
+## Instructions and repository
 
-- `docs/MASTER_PROMPT.md` contains the exact UTF-8 bytes of the master-prompt body from `C:\Users\Ekanth's laptop\Downloads\ZILLERS_CODEX_FIRST_RUN.txt`, preserving its line endings. The marker lines and cover note are excluded.
-- The source file's first-run cover note authorizes Phase 0 and Phase 1 only, in order. Stop after Phase 1. No Phase 2 or later work, downloads, training, soak runs, or trading runs are authorized.
-- Actual repository: `C:\Users\Ekanth's laptop\Desktop\my projects\zien-crypto`. Names such as `zien-quant` in the master prompt refer to this same existing repository.
-- The master prompt defines Part B as multi-coin work (Phases 4-7), and Part C as Laya classifier work (Phase 8). These definitions supersede earlier conversational labels.
-- The user approved fast-forwarding `verified-fleet` to `laya-decision`. This completed without conflict; both branches pointed to `75d915e` before Phase 0 work. No existing commit was rewritten.
-
-## Current Git evidence
-
-| Check | Fresh observation |
-| --- | --- |
-| Current branch | `verified-fleet` |
-| HEAD / last commit | `75d915e3f07ae209ce4b5691977c5fdd18dd8be9` |
-| Last commit subject | `chore(research): create requirements-research.txt for heavy ML dependencies per Absolute Rule 8` |
-| `verified-fleet` HEAD at baseline | `75d915e3f07ae209ce4b5691977c5fdd18dd8be9` |
-| Branch comparison immediately after approved fast-forward | `0 0` |
-| Newer dependency manifest | Preserved by fast-forward; no code was omitted |
-| Changes unique to `verified-fleet` | None |
-| Working tree before first-run documentation | Clean |
-
-Commands used: `git --no-optional-locks status --short`, `git --no-optional-locks branch --show-current`, `git --no-optional-locks rev-parse HEAD`, `git --no-optional-locks rev-parse verified-fleet`, `git --no-optional-locks rev-list --left-right --count verified-fleet...laya-decision`, `git --no-optional-locks log --oneline verified-fleet..laya-decision`, `git --no-optional-locks log --oneline laya-decision..verified-fleet`, and `git --no-optional-locks diff --stat verified-fleet..laya-decision`.
+- `docs/MASTER_PROMPT.md` remains byte-for-byte equal to the source body. The first-run cover note limits this execution to Phases 0 and 1; no later phase or long job is authorized.
+- Workspace: `C:\Users\Ekanth's laptop\Desktop\my projects\zien-crypto`. The alternate project names in earlier prompts refer to this same repository.
+- Active branch: `verified-fleet`. The user approved its fast-forward from `e23ee1a` to the existing `laya-decision` revision `75d915e`; newer work was retained and no history was rewritten.
+- Verified source HEAD: `eca6ebd9bc2892824b627a8ad6ca6184ee3a42d4`. The subsequent report/status commit changes evidence only. Resolve that commit with `git log -1 --oneline -- docs/STATUS.md`.
+- Part B means multi-coin work, Phases 4-7. Part C means Laya, Phase 8. No Laya integration or training was started.
 
 ## Phase ledger
 
-All phases were initialized as NOT RUN. Only Phase 0 and Phase 1 may be updated under the current authorization. Prior audit results are historical evidence, not execution of these phases.
+All phases were initially NOT RUN. Only Phase 0 and Phase 1 were subsequently updated.
 
-| Phase | Scope | Status | Branch / last commit | Blocker / required user input |
-| --- | --- | --- | --- | --- |
-| 0 | Setup and safe full-suite baseline | PASS for isolated baseline; unrestricted external checks NOT RUN | `verified-fleet` / baseline `75d915e` | Fresh run: 214 passed, 13 skipped; see `reports/PHASE_0_REPORT.md` |
-| 1 | Security and state gate, items 1.1-1.5 | NOT RUN | `verified-fleet` / baseline `75d915e` | Ready to begin after Phase 0 report/commit |
-| 2 | Backtest integrity gate | NOT RUN | Not started | Outside current authorization |
-| 3 | Operations and exchange | NOT RUN | Not started | Outside current authorization |
-| 4 | Historical data | NOT RUN | Not started | Outside current authorization; Phases 1 and 2 must pass |
-| 5 | Universe, costs and portfolio risk | NOT RUN | Not started | Outside current authorization |
-| 6 | Research and long-window backtest | NOT RUN | Not started | Outside current authorization |
-| 7 | Monitoring, ledger and runbook | NOT RUN | Not started | Outside current authorization |
-| 8 | Laya classifier | NOT RUN | Not started | Outside current authorization; no model integration or training started |
-| 9 | Repository evaluation | NOT RUN | Not started | Outside current authorization; no UI work started |
+| Phase | Status | Branch / verified source | Blockers or evidence |
+| --- | --- | --- | --- |
+| 0 | PASS for restricted baseline; external checks NOT RUN | verified-fleet / 75d915e; phase commit 0887fa7 | Fresh baseline 214 passed, 13 skipped; reports/PHASE_0_REPORT.md |
+| 1 | FAIL — gate unresolved; local implementation tested | verified-fleet / eca6ebd | 266 passed, 12 skipped; six Node tests passed; history findings and deployment blockers remain; reports/PHASE_1_REPORT.md |
+| 2 | NOT RUN | Not started | Outside authorization; do not proceed |
+| 3 | NOT RUN | Not started | Outside authorization |
+| 4 | NOT RUN | Not started | Outside authorization; Phase 1 and Phase 2 gates must pass |
+| 5 | NOT RUN | Not started | Outside authorization |
+| 6 | NOT RUN | Not started | Outside authorization |
+| 7 | NOT RUN | Not started | Outside authorization |
+| 8 | NOT RUN | Not started | Outside authorization |
+| 9 | NOT RUN | Not started | Outside authorization; no chart or UI work performed |
 
-## Phase 0 observed setup and blockers
+## Phase 0 results
 
-- Instruction ingestion and branch ancestry inspection are complete. The master-prompt body was compared byte-for-byte with its source extraction after writing.
-- Fresh Phase 0 command: `python -B scripts/run_isolated_tests.py`. All 227 tests collected; 214 passed and 13 skipped in 25.51 seconds, exit 0. Five external-service checks were skipped by the safety policy; seven require an optional environment; one requires credential files deliberately excluded from the disposable copy.
-- Baseline evidence: retained disposable directory `C:\Users\EKANTH~1\AppData\Local\Temp\zillers-phase-audit-y0dg41u9`, `test-output.txt` and `pytest.log`. No production account databases or credentials were copied. External/model requests were blocked.
-- Read-only local Ollama health: HTTP 200, version 0.40.14. Testnet configuration is present, but exchange authentication was NOT RUN. Both Telegram owner settings are present; no values were exposed.
-- `ACCOUNT_SIZE_USD` is not configured; default 1000 is used only in the disposable test environment and is not persisted to production configuration.
-- No additional user input is needed to continue independent Phase 1 implementation. External-service verification requires separate narrow approval; no order execution is authorized.
+`python -B scripts/run_isolated_tests.py` collected 227 tests: 214 passed, 13 skipped, exit 0. Five external-service checks were explicitly skipped, seven required the optional environment, and the previous report test skipped without real credential files. These are fresh baseline results, not reused audit numbers.
 
-## Phase 1 observed setup and blockers
+Local Ollama health returned HTTP 200, version 0.40.14. Exchange authentication was NOT RUN. Required configuration was present locally, without values being exposed. Account size remains an unpersisted default of 1000 for the disposable environment; no production account size was changed.
 
-- Items 1.1, 1.2, 1.3, 1.4 and 1.5 are all NOT RUN. No security code, production configuration, databases, reports, or Git history have been changed as Phase 1 implementation.
-- Preserve the earlier handover's critical findings: emergency halt is not consistently shared across execution paths; exchange closing/reconciliation can diverge from local records; protective-stop failures can leave exposure. Ordinary passing tests do not establish trading safety.
-- The previously observed paper process must not be stopped or reconfigured without permission. Its current state has not been rechecked in this first-run setup.
-- Before any test, inspect external requests, credential use, order paths and persistent writes. Use disposable isolated data and block outbound requests. Existing permission for local read-only health checks does not authorize orders, messaging, public-service requests, or model inference.
-- The existing `reports/.gitignore` ignores phase Markdown reports. Preserve it for now; phase-report versioning must be handled deliberately under the approved branch/commit plan.
-- Phase 0 report: `reports/PHASE_0_REPORT.md`. Phase 1 report is not yet issued. Reports must use PASS / FAIL / NOT RUN per applicable numbered item and label stub-based evidence accurately.
+Phase 0 commit: `0887fa7ecc6713b3f290dc852e149989f58be116`.
 
-## Required user input
+## Phase 1 results
 
-Branch plan approved and applied. No branch decision is pending. Only Phases 0 and 1 are authorized. No external-service request, order, production configuration change, production state migration, bot restart, or history rewrite is authorized.
+| Item | Result |
+| --- | --- |
+| 1.1 | PASS within declared artifact scope: report/log scan clean, including new phase evidence. JSON structure preserved; report repair disclosure below. |
+| 1.2 | FAIL clean-history gate: GitLeaks 8.30.1 returned three historical findings. Supplementary candidates remain unadjudicated; no allowlist or history rewrite was used. |
+| 1.3 | PASS local SQLite, restart and HTTP regressions. Shared durable latch, fail-closed readers and entry checks implemented; only local admin re-authentication clears it. Production activation NOT RUN. |
+| 1.4 | PASS local startup/configuration tests. Dedicated exchange settings, invite default, explicit open-signup override, both Telegram owner settings and blank example are implemented. Production migration NOT RUN. |
+| 1.5 | PASS local public-form/abuse checks and backend helper tests. Hosted page shell GET returned 200; list API GET returned 401. Cloud policy deployment and definitive record attribution NOT RUN. |
 
-Do not supply secrets in chat. Any later request for credentials or external access must be narrow and tied to an authorized phase item.
+Final full Python command: `python -B scripts/run_isolated_tests.py`; collected 278 items, 266 passed, 12 skipped in 51.92 seconds, exit 0. Evidence is retained at `C:\Users\EKANTH~1\AppData\Local\Temp\zillers-phase-audit-v9k_v5th`.
+
+The 12 skips are five unapproved external-service checks and seven optional-environment checks. All tests ran with disposable data, real credentials excluded, and external/model requests denied. Message and exchange transports are stub-based evidence, not exchange integration. The real local HTTP authorization subset also passed all 22 tests. Backend TypeScript checks passed, as did six Node security-helper tests.
+
+Implemented source commits:
+
+- `9d04251`: native emergency state and local boundaries.
+- `98fdc5c`: cloud backend form/authentication safeguards and proposed access SQL.
+- `dfb007f`: blank optional endpoint handling.
+- `eca6ebd`: structured confidentiality, process/HTTP regressions and backend script-data encoding.
+
+The five-gate governor source is unchanged. No generated frontend assets, layout or styling were changed; stored proposal serialization was secured in the backend renderer.
+
+## Evidence and preservation limits
+
+- Main report: `reports/PHASE_1_REPORT.md`.
+- History evidence: `reports/PHASE_1_HISTORY_SCAN.json`, including its exact scan HEAD and safe detector output.
+- Collaboration evidence: `reports/PHASE_1_COLLABORATION_AUDIT.json`.
+- An early literal redactor damaged JSON syntax in 20 archived report artifacts. They were repaired, annotated and tested; withheld numeric values are null. A structured cleanup reserialized 825 JSON report artifacts. Those 20 are not untouched historical inputs; use authoritative databases/raw snapshots to reconstruct research.
+- No authoritative database or raw snapshot was modified by that redaction. No database row, user, session, collaboration record, file or pre-existing Git commit was deleted.
+- The local collaboration file has 63 records. Candidate append positions 41-60 all show loopback transport addresses; 17 match the known fixture. No original 40-record baseline or process/actor log was found. Do not infer an actor from these observations.
+- No production governor database was created. Existing processes were not stopped, reconfigured or restarted. Source changes are not automatically loaded by those processes.
+- The actual startup configuration currently fails the new guard. It was not edited. No dependency installation, model generation, training, data download, soak job, exchange authentication or real paper/testnet/live order was performed.
+
+## Required owner decisions
+
+1. Review the historical detector findings and candidates. Any history remediation requires a separate explicit decision; do not rewrite history automatically.
+2. Approve and review production configuration migration. The current guard rejects open signup without explicit override, and legacy exchange settings require separation. The legacy credential file remains untouched and is no longer auto-loaded; its retirement requires approval.
+3. Approve production state initialization, deployment/restart and cloud SQL execution separately. Hosted GET permission authorized only the two completed unauthenticated checks, without redirects or submissions.
+4. Any paper/testnet execution requires separate explicit approval. Live trading remains prohibited. Exchange-close/reconciliation and protective-stop defects remain unresolved; ordinary tests do not establish trading safety.
+5. Supply trustworthy baseline/request/process evidence only if definitive collaboration attribution is required.
+
+No Phase 2 or later work is authorized. Stop here even with these blockers.

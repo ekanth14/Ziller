@@ -1,0 +1,34 @@
+{
+  "head_at_scan": "eca6ebd9bc2892824b627a8ad6ca6184ee3a42d4",
+  "tool": "8.30.1",
+  "command": "gitleaks git --redact=100 --no-banner --no-color --log-opts=--all --report-format=json --report-path=- .",
+  "detector_exit": 1,
+  "detector_findings": 3,
+  "detector_rules": {
+    "generic-api-key": 3
+  },
+  "detector_locations": [
+    [
+      "cryptoscope/tests/test_binance_testnet.py",
+      "85403d46ad652809a1f81022b6a771cfc959d0a0"
+    ]
+  ],
+  "text_blobs_scanned": 644,
+  "binary_blobs_skipped": 23,
+  "configured_value_candidate_count": 325,
+  "configured_value_candidates": [
+    {
+      "file": ".env.example",
+      "object": "a7b8d89c3a71d13112bbdedd7b9a2917f1537768"
+    },
+    {
+      "file": ".github/workflows/ci.yml",
+      "object": "0e04ecff7c646dbea5137be020457b412ff9a4c2"
+    },
+    {
+      "file": "AUDIT.md",
+      "object": "0bc9b121e09b729e1b434edd2f5f8c2db5f177ab"
+    }
+  ],
+  "candidate_list_truncated": true
+}

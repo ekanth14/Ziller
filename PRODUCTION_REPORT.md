@@ -1,14 +1,14 @@
-# ZILLERS Production Hardening & Verification Report
+# [REDACTED]ERS Production Hardening & Verification Report
 
 **Package:** `cryptoscope/` | **Branch:** `prod-hardening` | **Repository:** `zien-quant`  
-**Lead Quantitative-Systems Engineer & QA Lead** | **Date:** 2026-11-02  
+**Lead Quantitative-Systems Engineer & QA Lead** | **Date:** [REDACTED]-11-02  
 **Target Environment:** Production Ready — Fail-Closed Paper Mode (Port 8900)
 
 ---
 
 ## Executive Summary
 
-The ZILLERS quantitative terminal and execution system has been transitioned from initial build to **verified and production ready**. Every single feature, quantitative algorithm, safety gate, API endpoint, and UI interaction has been executed against the live system using real market feeds (Binance, Coinbase, Kraken, CoinGecko, and USD/INR FX).
+The [REDACTED]ERS quantitative terminal and execution system has been transitioned from initial build to **verified and production ready**. Every single feature, quantitative algorithm, safety gate, API endpoint, and UI interaction has been executed against the live system using real market feeds (Binance, Coinbase, Kraken, CoinGecko, and USD/INR FX).
 - **Regression Test Suite (`pytest`):** 163 Passed, 0 Failed, 7 Skipped (optional `quantjourney-bt`), 31 Subtests passed.
 - **Phase 3 Deep Feature Verification:** **72/72 Tests Passed (100% Green)** across 10 mission-critical suites (A through J).
 - **Zero Demo/Fabricated Data:** All synthetic spreads, dummy prices, and unlisted token rows removed; live ticker feeds cross-verified within 0.15% across Binance and Coinbase.
@@ -36,10 +36,10 @@ The ZILLERS quantitative terminal and execution system has been transitioned fro
 ## 2. Demo Data & Hardcoded Credentials Removal
 
 ### Code-Level Removals (100% Complete)
-- **`cryptoscope/auth/store.py`**: Removed fallback plaintext credentials. `bootstrap_admin()` now strictly reads `ADMIN_EMAIL` and `ADMIN_INITIAL_PASSWORD` from environment variables, enforces length $\ge 12$, and rejects weak defaults.
+[REDACTED SECURITY NOTE]
 - **`cryptoscope/dashboard/__main__.py`**: Removed fallback password constants. Server strictly refuses to start if no admin exists and environment credentials are unset.
-- **`ZILLERS_QUANT_ARCHITECTURE.md` & `README.md`**: Removed all plaintext passwords, replacing them with `.env` instructions.
-- **`cryptoscope/tests/test_server_endpoints.py` & `test_auth.py`**: Updated test harnesses to use cryptographically secure testing passwords (`AdminSuperSecurePass2026!#`).
+- **`[REDACTED]ERS_QUANT_ARCHITECTURE.md` & `README.md`**: Removed all plaintext passwords, replacing them with `.env` instructions.
+- **`cryptoscope/tests/test_server_endpoints.py` & `test_auth.py`**: Updated test harnesses to use cryptographically secure testing passwords (`AdminSuperSecurePass[REDACTED]!#`).
 
 ### Database & Data File Audit (Per Rule 4: Awaiting Confirmation Before Deletion)
 In accordance with Non-Negotiable Rule 4, the following data items have been audited and staged for deletion upon explicit user confirmation:
@@ -108,7 +108,7 @@ In accordance with Non-Negotiable Rule 4, the following data items have been aud
 | E. | Gate 1 Isolation Failure (LIVE_TRADING=false) | Gate 1 fails, verification returns False with explicit Gate 1 failure message | Gate 1 rejected: ['Gate 1 Failed: LIVE_TRADING=true environment variable is not set.'] | **PASS** |
 | E. | Gate 2 Isolation Failure (Missing API Keys) | Gate 2 fails, verification returns False with explicit Gate 2 failure message | Gate 2 rejected: ['Gate 2 Failed: EXCHANGE_API_KEY and EXCHANGE_API_SECRET must be configured in environment.'] | **PASS** |
 | E. | Gate 3 Isolation Failure (Track Record Unmet) | Gate 3 fails, verification returns False with explicit Gate 3 failure message | Gate 3 rejected: ['Gate 3 Failed: Requires at least 28 forward paper days (current: 10.0).', 'Gate 3 Failed: Requires at least 100 forward paper trades (current: 45).', 'Gate 3 Failed: Paper trading track record must have positive net PnL after full cost/tax model (current: -150.00).', 'Gate 3 Failed: Deflated Sharpe Ratio (0.50) must meet or exceed threshold (0.95).'] | **PASS** |
-| E. | Gate 4 Isolation Failure: 300s Re-Auth Expiry | Gate 4 fails: admin re-authentication expired beyond 300s window | Gate 4 rejected: ['Gate 4 Failed: Administrator must re-authenticate with password within the last 5 minutes.'] | **PASS** |
+[REDACTED SECURITY NOTE]
 | E. | Gate 5 Isolation Failure: Wrong Confirmation Phrase | Gate 5 fails: requires exact phrase 'ENABLE LIVE TRADING' | Gate 5 rejected: ["Gate 5 Failed: Must type exact confirmation 'ENABLE LIVE TRADING'."] | **PASS** |
 | E. | All 5 Gates Passing Simultaneously | verify_gates returns (True, []) approving live activation | All 5 gates approved: ok=True, failures=[] | **PASS** |
 | E. | Emergency Kill Switch: HALT State Blocks Orders | emergency_halted=True, check_pre_trade strictly blocks new orders | Orders blocked: approved=False, reason=['EMERGENCY_HALT_ACTIVE: Trading halted (Master Kill Switch (HALT) engaged by Operator emergency stop test)'] | **PASS** |
@@ -133,7 +133,7 @@ In accordance with Non-Negotiable Rule 4, the following data items have been aud
 | I. | 50 Concurrent SSE Clients | All 50 connect, receive ~1Hz ticks, cleanly close sockets and release threads on disconnect | 50/50 clients delivered ticks; post-SSE threads returned to 24 | **PASS** |
 | I. | High-Throughput Read Endpoints (Measured vs 100 req/s Target) | 0% error rate; target 100 req/s (stdlib ThreadingHTTPServer single-process) | Real measured: 368.1 req/s (0% errors). Single-thread GIL limit observed; production requires multi-worker reverse proxy (Caddy/Nginx) for 100+ req/s. | **PASS** |
 | I. | Resource Stability & Leak Prevention (Soak Monitoring) | Working set flat/stabilized (delta < 5MB post-warmup), 0 thread leaks, 0 socket leaks | Memory stabilized at 113.69MB (incremental growth +0.42MB across 200 requests). Zero thread or handle leaks. | **PASS** |
-| J. | Initial Terminal Load & Header Elements | Page loads cleanly with title 'ZILLERS', feed indicator, and auth chip | Screenshot saved: 01_landing_terminal.png | **PASS** |
+| J. | Initial Terminal Load & Header Elements | Page loads cleanly with title '[REDACTED]ERS', feed indicator, and auth chip | Screenshot saved: 01_landing_terminal.png | **PASS** |
 | J. | Authentication Flow End-to-End | Session cookie established; user chip updates to display authenticated identity | Screenshot saved: 03_logged_in_dashboard.png | **PASS** |
 | J. | Symbol Picker & Filtered Search | Dropdown displays active symbols with real prices, zero unlisted '—' duplicates | Screenshot saved: 04_symbol_picker.png | **PASS** |
 | J. | Tab Navigation Across Terminal Fleet | All views render responsively with no console exceptions or broken layouts | Captured screenshots for each view in scratch/screenshots/ | **PASS** |
@@ -165,7 +165,7 @@ In accordance with Non-Negotiable Rule 4, the following data items have been aud
 | Real data feeds only (Binance, Coinbase, Kraken, CG, FX) | Data Integrity | **PASS** | Suite A: Cross-exchange spread < 0.16%, 0 synthetic prices |
 | Fail-closed on feed / model / safety timeouts | Reliability | **PASS** | Suite C & D: Laya/Ollama timeouts resolve strictly to `STAND_ASIDE` |
 | Real-money safety (No live orders, Paper/Testnet only) | Governance | **PASS** | Suite E & J: 5 gates fail-closed, live toggle rejected |
-| Plaintext credentials removed from docs & code defaults | Security | **PASS** | Store and main enforce env credentials >= 12 chars |
+[REDACTED SECURITY NOTE]
 | Quantitative math verified against independent references | Quant Engine | **PASS** | Suite B: OLS beta, ADF, OU, Parkinson/GK/YZ vol match statsmodels |
 | 50 concurrent SSE streaming clients handled cleanly | Scalability | **PASS** | Suite I: 50/50 streams delivered ticks, threads cleanly reclaimed |
 | 100+ req/s read throughput verified | Performance | **PASS** | Suite I: 368.1 req/s measured with 0% error rate |
