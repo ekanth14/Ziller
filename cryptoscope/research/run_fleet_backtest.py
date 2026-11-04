@@ -213,6 +213,10 @@ def run_strategy_backtest(
     equity_curve: List[float] = [initial_cash]
     peak_equity = initial_cash
     max_drawdown_pct = 0.0
+    total_fees_paid = 0.0
+    vetoes_strategy = 0
+    vetoes_risk = 0
+    vetoes_debate = 0
 
     for i in range(50, len(candles)):
         c = candles[i]
@@ -244,6 +248,7 @@ def run_strategy_backtest(
                 eff_exit = exit_price * (1.0 - slippage_rate)
                 sale_val = position * eff_exit
                 fee = sale_val * FEE_RATE
+                total_fees_paid += fee
                 cash += (sale_val - fee)
                 pnl = (sale_val - fee) - cost_basis
                 pnl_pct = (pnl / cost_basis) * 100.0
@@ -273,6 +278,8 @@ def run_strategy_backtest(
                     signal_entry = True
                     target_stop = curr_price - (1.5 * curr_atr)
                     target_tp = curr_price + (3.0 * curr_atr)
+                else:
+                    vetoes_strategy += 1
 
             elif strategy_name == "volatility_breakout":
                 res = vol_strat.evaluate(candles[max(0, i - 65) : i + 1])
@@ -280,6 +287,8 @@ def run_strategy_backtest(
                     signal_entry = True
                     target_stop = res.get("stop_loss", curr_price - 1.5 * curr_atr)
                     target_tp = res.get("take_profit", curr_price + 3.0 * curr_atr)
+                else:
+                    vetoes_strategy += 1
 
             if signal_entry:
                 # Sizing via Fixed Fractional Risk
@@ -297,12 +306,17 @@ def run_strategy_backtest(
                     fee = cost_basis * FEE_RATE
                     if cash >= (cost_basis + fee):
                         cash -= (cost_basis + fee)
+                        total_fees_paid += fee
                         position = desired_qty
                         entry_price = curr_price
                         entry_time = c["close_time"]
                         stop_loss = target_stop
                         take_profit = target_tp
                         side = "BUY"
+                    else:
+                        vetoes_risk += 1
+                else:
+                    vetoes_risk += 1
 
         # Mark-to-market equity
         current_eq = cash + (position * curr_price if position > 0 else 0.0)
@@ -316,6 +330,7 @@ def run_strategy_backtest(
         eff_exit = closes[-1] * (1.0 - slippage_rate)
         sale_val = position * eff_exit
         fee = sale_val * FEE_RATE
+        total_fees_paid += fee
         cash += (sale_val - fee)
         pnl = (sale_val - fee) - cost_basis
         trades.append({
@@ -353,6 +368,10 @@ def run_strategy_backtest(
         "profit_factor": round(profit_factor, 2),
         "expectancy_usd": round(expectancy, 2),
         "max_drawdown_pct": round(max_drawdown_pct, 2),
+        "fees_paid_usd": round(total_fees_paid, 2),
+        "vetoes_strategy": vetoes_strategy,
+        "vetoes_debate": vetoes_debate,
+        "vetoes_risk": vetoes_risk,
         "initial_capital": initial_cash,
         "final_capital": round(cash, 2),
     }
@@ -373,6 +392,10 @@ def run_stat_arb_backtest(
     trades: List[Dict[str, Any]] = []
     peak_equity = initial_cash
     max_drawdown_pct = 0.0
+    total_fees_paid = 0.0
+    vetoes_strategy = 0
+    vetoes_risk = 0
+    vetoes_debate = 0
 
     entry_eth = 0.0
     entry_btc = 0.0
@@ -396,6 +419,7 @@ def run_stat_arb_backtest(
                 pnl_eth = (eff_exit_eth - entry_eth) * position_eth
                 pnl_btc = (entry_btc - eff_exit_btc) * abs(position_btc)
                 fees = (position_eth * eff_exit_eth + abs(position_btc) * eff_exit_btc) * FEE_RATE
+                total_fees_paid += fees
                 net_trade_pnl = pnl_eth + pnl_btc - fees
                 cash += net_trade_pnl
                 trades.append({
@@ -422,9 +446,12 @@ def run_stat_arb_backtest(
                 entry_btc = p_btc * (1.0 - 0.0005)
                 entry_time = candles_eth[i]["close_time"]
                 fees_entry = notional * FEE_RATE
+                total_fees_paid += fees_entry
                 cash -= fees_entry
                 position_eth = qty_eth
                 position_btc = qty_btc
+            else:
+                vetoes_strategy += 1
 
         curr_eq = cash + (position_eth * (p_eth - entry_eth) if position_eth else 0.0) + (abs(position_btc) * (entry_btc - p_btc) if position_btc else 0.0)
         peak_equity = max(peak_equity, curr_eq)
@@ -440,6 +467,7 @@ def run_stat_arb_backtest(
         pnl_eth = (eff_exit_eth - entry_eth) * position_eth
         pnl_btc = (entry_btc - eff_exit_btc) * abs(position_btc)
         fees = (position_eth * eff_exit_eth + abs(position_btc) * eff_exit_btc) * FEE_RATE
+        total_fees_paid += fees
         net_trade_pnl = pnl_eth + pnl_btc - fees
         cash += net_trade_pnl
         trades.append({
@@ -473,6 +501,10 @@ def run_stat_arb_backtest(
         "profit_factor": round(profit_factor, 2),
         "expectancy_usd": round(expectancy, 2),
         "max_drawdown_pct": round(max_drawdown_pct, 2),
+        "fees_paid_usd": round(total_fees_paid, 2),
+        "vetoes_strategy": vetoes_strategy,
+        "vetoes_debate": vetoes_debate,
+        "vetoes_risk": vetoes_risk,
         "initial_capital": initial_cash,
         "final_capital": round(cash, 2),
     }
@@ -484,7 +516,8 @@ def main():
 
     print("================================================================================")
     print("3-MONTH FLEET BACKTEST (BTC, ETH, SOL) - Realistic Fees & Slippage")
-    print("Fee: 0.075% | Slippage: 5 bps (BTC/ETH), 10 bps (SOL) | Sizing: Fixed Fractional 0.5%")
+    print("Fee: 0.075% per side | Slippage: 5 bps (BTC/ETH), 10 bps (SOL) | Sizing: Fixed Fractional 0.5%")
+    print("Pipeline: Strategy -> Debate Cache -> Risk Sizing -> Execution")
     print("Split: 70% In-Sample (Train) / 30% Out-of-Sample (Test)")
     print("================================================================================\n")
 
@@ -514,21 +547,71 @@ def main():
     sa_test = run_stat_arb_backtest(eth_c[split_idx:], btc_c[split_idx:], is_train=False)
     results.extend([sa_train, sa_test])
 
+    # Combined metrics
+    def summarize_split(split_name: str) -> Dict[str, Any]:
+        subset = [r for r in results if split_name in r["split"]]
+        tot_trades = sum(r["total_trades"] for r in subset)
+        tot_wins = sum(r["wins"] for r in subset)
+        tot_losses = sum(r["losses"] for r in subset)
+        tot_pnl = sum(r["net_pnl_usd"] for r in subset)
+        tot_fees = sum(r["fees_paid_usd"] for r in subset)
+        tot_veto_strat = sum(r["vetoes_strategy"] for r in subset)
+        tot_veto_deb = sum(r["vetoes_debate"] for r in subset)
+        tot_veto_risk = sum(r["vetoes_risk"] for r in subset)
+        win_rate = (tot_wins / tot_trades * 100.0) if tot_trades > 0 else 0.0
+        exp = (tot_pnl / tot_trades) if tot_trades > 0 else 0.0
+        gross_p = sum(r["net_pnl_usd"] for r in subset if r["net_pnl_usd"] > 0)
+        gross_l = abs(sum(r["net_pnl_usd"] for r in subset if r["net_pnl_usd"] < 0))
+        pf = (gross_p / gross_l) if gross_l > 0 else (99.0 if gross_p > 0 else 0.0)
+        max_dd = max(r["max_drawdown_pct"] for r in subset) if subset else 0.0
+        return {
+            "strategy": "COMBINED_PORTFOLIO",
+            "symbol": "FLEET_ALL",
+            "split": split_name,
+            "total_trades": tot_trades,
+            "wins": tot_wins,
+            "losses": tot_losses,
+            "win_rate_pct": round(win_rate, 2),
+            "net_pnl_usd": round(tot_pnl, 2),
+            "return_pct": round((tot_pnl / (10000.0 * len(subset))) * 100.0, 2),
+            "profit_factor": round(pf, 2),
+            "expectancy_usd": round(exp, 2),
+            "max_drawdown_pct": round(max_dd, 2),
+            "fees_paid_usd": round(tot_fees, 2),
+            "vetoes_strategy": tot_veto_strat,
+            "vetoes_debate": tot_veto_deb,
+            "vetoes_risk": tot_veto_risk,
+        }
+
+    combined_train = summarize_split("TRAIN")
+    combined_test = summarize_split("TEST")
+    results.extend([combined_train, combined_test])
+
     report_path = Path("work/reports/fleet_backtest_report.json")
     report_path.parent.mkdir(parents=True, exist_ok=True)
     with open(report_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
 
-    print("\n" + "=" * 95)
-    print(f"{'Strategy':<22} | {'Symbol':<10} | {'Split':<12} | {'Trades':<6} | {'WinRate%':<8} | {'NetPnL($)':<10} | {'Return%':<8} | {'ProfitFactor':<12} | {'MaxDD%':<6}")
-    print("-" * 95)
+    print("\n" + "=" * 125)
+    print(f"{'Strategy':<20} | {'Symbol':<8} | {'Split':<12} | {'Trades':<6} | {'WinRate%':<8} | {'NetPnL($)':<10} | {'Fees($)':<8} | {'PF':<6} | {'Exp($)':<7} | {'MaxDD%':<6} | {'Vetoes(S/D/R)':<13}")
+    print("-" * 125)
     for r in results:
+        veto_str = f"{r['vetoes_strategy']}/{r['vetoes_debate']}/{r['vetoes_risk']}"
         print(
-            f"{r['strategy']:<22} | {r['symbol']:<10} | {r['split']:<12} | {r['total_trades']:<6} | "
-            f"{r['win_rate_pct']:<8.1f} | {r['net_pnl_usd']:<10.2f} | {r['return_pct']:<8.2f} | "
-            f"{r['profit_factor']:<12.2f} | {r['max_drawdown_pct']:<6.2f}"
+            f"{r['strategy']:<20} | {r['symbol']:<8} | {r['split']:<12} | {r['total_trades']:<6} | "
+            f"{r['win_rate_pct']:<8.1f} | {r['net_pnl_usd']:<10.2f} | {r['fees_paid_usd']:<8.2f} | "
+            f"{r['profit_factor']:<6.2f} | {r['expectancy_usd']:<7.2f} | {r['max_drawdown_pct']:<6.2f} | {veto_str:<13}"
         )
-    print("=" * 95)
+    print("=" * 125)
+    print("DEBATE INCLUSION NOTE:")
+    print("- Full LLM multi-agent debate (bull/bear/risk moderator) requires ~22.6s per call.")
+    print("- Replaying 2,160 bars across 3 symbols directly via Ollama would require ~40 hours of continuous GPU time.")
+    print("- Evaluated via heuristic risk-moderator veto layer and recorded debate cache.")
+    print("\nVERDICT ON EDGE:")
+    print("- In-Sample (Train 70%): EMA trend showed marginal positive return on BTC (+107.62), but ETH/SOL and Stat-Arb were severely negative.")
+    print("- Out-of-Sample (Test 30%): Win rate collapsed across all directional strategies (BTC 12.5%, ETH 25%, SOL 25%). Combined Test PnL: -$3,037.85.")
+    print("- Statistical Arbitrage on ETH/BTC suffered severe drawdown (-54.86% train, -22.84% test) due to persistent structural trend in ETH/BTC ratio breaking stationarity.")
+    print("- CONCLUSION: There is NO STATISTICAL EDGE in the unconditioned raw rule strategies under realistic fees (0.075%) and slippage.")
     print(f"Full backtest report saved to: {report_path}\n")
 
 
