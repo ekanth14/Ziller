@@ -230,3 +230,15 @@ def test_telegram_delivery_error_does_not_echo_transport_error(caplog):
         assert 'fictional-transport-fixture' not in str(failure.value)
         assert 'fictional-transport-fixture' not in caplog.text
     asyncio.run(run())
+
+
+def test_stored_proposal_cannot_escape_the_backend_script_literal():
+    import re
+    from cryptoscope.dashboard.collaborate_view import render_collaborations_html
+    payload = '</script><script>fixture</script>&'
+    rows = [{'id': 'fixture', 'name': payload, 'message': payload}]
+    html = render_collaborations_html(rows)
+    assert payload not in html
+    match = re.search(r'const allRecords = (.*);', html)
+    assert match is not None
+    assert json.loads(match.group(1)) == rows

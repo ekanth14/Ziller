@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { issueOperatorCookie, verifyOperatorCookie, matchesOperatorPasscode,
-  allowSubmission, validateProposal, sameOrigin } from '../lib/server/form-security.ts';
+  allowSubmission, validateProposal, sameOrigin, jsonForScript } from '../lib/server/form-security.ts';
 
 const valid = () => ({ name: 'Fixture Researcher', email: 'fixture@example.invalid',
   github: 'fixture-user', linkedin: 'fixture-user', message: 'Security regression fixture text.' });
@@ -50,4 +50,12 @@ test('browser submissions require matching origin', () => {
   assert.equal(sameOrigin('https://wrong.invalid', 'terminal.invalid'), false);
   assert.equal(sameOrigin('malformed', 'terminal.invalid'), false);
   assert.equal(sameOrigin(undefined, 'terminal.invalid'), true);
+});
+
+test('stored proposal text cannot terminate an inline script', () => {
+  const value = [{ message: '</script><script>fixture</script>&\u2028' }];
+  const encoded = jsonForScript(value);
+  assert.equal(encoded.includes('<'), false);
+  assert.equal(encoded.includes('\u2028'), false);
+  assert.deepEqual(JSON.parse(encoded), value);
 });

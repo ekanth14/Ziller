@@ -5,10 +5,11 @@ import re
 
 SECRET_NAME = re.compile(r'KEY|SECRET|TOKEN|PASSWORD|PASSCODE|INVITE_CODE', re.I)
 DESCRIPTION = re.compile(
-    r'\b(?:keys?|secrets?|credentials?|tokens?|passwords?|passcodes?)\b.{0,100}'
-    r'(?:\b\d+[ -]?(?:char(?:acter)?s?|bytes?)\b|'
-    r'\b(?:starts? with|ends? with|begins? with|prefix|suffix|positions?|alphanumeric|'
-    r'length|at index|first \d+|last \d+)\b)', re.I)
+    r'(?<![A-Za-z0-9])(?:keys?|secrets?|credentials?|tokens?|passwords?|passcodes?)'
+    r'(?![A-Za-z0-9]).{0,100}(?<![A-Za-z0-9])'
+    r'(?:\d+[ -]?(?:char(?:acter)?s?|bytes?)|starts? with|ends? with|begins? with|'
+    r'prefix|suffix|positions?|alphanumeric|length|format|characters?|chars?|bytes?|'
+    r'at index|first[ _]\d+|last[ _]\d+)(?![A-Za-z0-9])', re.I)
 MASKED_LITERAL = re.compile(r'[A-Za-z0-9@_$-]{4,}\.{3}[A-Za-z0-9@_$-]{4,}')
 TEXT_SUFFIXES = {'.md', '.json', '.csv', '.txt', '.html', '.log', '.jsonl'}
 
@@ -86,7 +87,9 @@ def redact_document(text, secrets, suffix):
                 if safe_key != key:
                     safe_key = f'redacted_field_{index}'
                     count += 1
-                result[safe_key] = clean(item)
+                    result[safe_key] = '[REDACTED]'
+                else:
+                    result[safe_key] = clean(item)
             return result
         if isinstance(value, list):
             return [clean(item) for item in value]

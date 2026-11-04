@@ -1,4 +1,4 @@
-import { verifyOperatorCookie } from '../lib/server/form-security.js';
+import { verifyOperatorCookie, jsonForScript } from '../lib/server/form-security.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
@@ -243,7 +243,7 @@ function renderUnlockedDashboardHtml(records: Array<Record<string, any>>): strin
   const sorted = [...records].sort(
     (a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
   );
-  const jsonStr = JSON.stringify(sorted);
+  const jsonStr = jsonForScript(sorted);
   const totalCount = sorted.length;
 
   return `<!DOCTYPE html>

@@ -247,7 +247,10 @@ def render_collaborations_html(records: List[dict[str, Any]] | None = None, is_a
         reverse=True
     )
 
-    records_json = json.dumps(sorted_records)
+    # Proposal text is untrusted. Escape the script boundary at serialization,
+    # before the existing HTML template receives any stored data.
+    records_json = (json.dumps(sorted_records).replace('<', '\\u003c')
+                    .replace('>', '\\u003e').replace('&', '\\u0026'))
     total_count = len(sorted_records)
 
     # Calculate track counts

@@ -65,6 +65,14 @@ class ServerEndpointTests(unittest.TestCase):
             csrf = json.load(response)['csrf_token']
         state = GovernorState()
         state.halt('isolated HTTP recovery test')
+        with self.assertRaises(HTTPError) as unauthenticated:
+            urlopen(Request(self.base_url + '/api/governor/resume', data=b'{}',
+                            headers={'Content-Type': 'application/json'}))
+        self.assertEqual(unauthenticated.exception.code, 401)
+        with self.assertRaises(HTTPError) as missing_csrf:
+            urlopen(Request(self.base_url + '/api/governor/resume', data=b'{}',
+                            headers={'Content-Type': 'application/json', 'Cookie': cookie}))
+        self.assertEqual(missing_csrf.exception.code, 403)
         def recover(password, extra=None):
             return urlopen(Request(self.base_url + '/api/governor/resume',
                            data=json.dumps({'password': password, 'csrf_token': csrf}).encode(),
@@ -72,6 +80,14 @@ class ServerEndpointTests(unittest.TestCase):
         with self.assertRaises(HTTPError) as wrong:
             recover('not-the-fixture-password')
         self.assertEqual(wrong.exception.code, 401)
+        self.assertTrue(state.snapshot()['halted'])
+        from unittest.mock import patch
+        with patch.dict(os.environ, {'SIGNUP_MODE': 'open', 'ALLOW_OPEN_SIGNUP': 'true'}):
+            ordinary_id = self.auth_store.create_user('ordinary-boundary@example.invalid', 'fictional-boundary-password')
+        ordinary_token, ordinary_csrf = self.auth_store.create_session(ordinary_id)
+        with self.assertRaises(HTTPError) as ordinary:
+            recover('not-used', {'Cookie': 'session_token=' + ordinary_token, 'X-CSRF-Token': ordinary_csrf})
+        self.assertEqual(ordinary.exception.code, 403)
         self.assertTrue(state.snapshot()['halted'])
         with self.assertRaises(HTTPError) as proxy:
             recover(os.environ['ADMIN_INITIAL_PASSWORD'], {'X-Forwarded-For': '127.0.0.1'})

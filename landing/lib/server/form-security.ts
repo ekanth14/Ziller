@@ -1,5 +1,10 @@
 import { createHmac, randomBytes, timingSafeEqual, createHash } from 'node:crypto';
 
+export function jsonForScript(value: unknown): string {
+  return (JSON.stringify(value) ?? 'null').replace(/[<>&\u2028\u2029]/g,
+    character => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`);
+}
+
 export function issueOperatorCookie(passcode: string, now = Date.now()): string {
   if (!passcode) throw new Error('Operator authentication is not configured');
   const payload = `${Math.floor(now / 1000)}.${randomBytes(16).toString('hex')}`;

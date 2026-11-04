@@ -17,6 +17,7 @@ def test_reports_and_logs_contain_zero_secret_fragments():
     'Credential prefix is documented', 'ABCD...WXYZ',
     'The keys are 64 characters long', 'Credentials have length 42',
     'The tokens end with an example', 'Password first 4 are described',
+    'api_key_length: 64', 'credentials_valid_characters: true', 'secret_suffix_position: 3',
 ])
 def test_sensitive_report_examples_are_refused(text):
     assert bool(violations(text, {'fictional-boundary-fixture'}))
@@ -50,3 +51,12 @@ def test_structured_redaction_preserves_json_and_repairs_only_withheld_tokens():
     assert repaired['retained'] == 42
     with pytest.raises(ValueError):
         redact_document('{unrelated invalid document', fictional, '.json')
+
+
+def test_structured_credential_descriptions_are_removed_with_their_values():
+    safe = redact_document('{"api_key_length":64,"retained":42}', set(), '.json')
+    value = json.loads(safe)
+    assert 'api_key_length' not in value
+    assert value['redacted_field_0'] == '[REDACTED]'
+    assert value['retained'] == 42
+    assert not violations(safe, set())
