@@ -67,11 +67,11 @@ def test_binance_testnet_live_ticker_price():
 def test_binance_testnet_auth_failure_semantics():
     """Verify that invalid/unauthorized keys raise BinanceAuthError without secret leakage."""
     client = BinanceTestnetClient(
-        api_key="1cBpRwd0gFW3UWIveqYupflo7o19bQRJZim90ppezrqswH0GHCkHDU99L1xgHrPe",
-        api_secret="dummy_secret_for_test",
+        api_key="SYNTHETIC_TESTNET_KEY_NOT_REAL_00000000000000000000000000000000_END",
+        api_secret="synthetic_dummy_secret_for_test",
     )
-    assert client.masked_api_key == "1cBp...HrPe"
-    assert "dummy_secret" not in repr(client)
+    assert client.masked_api_key == "SYNT..._END"
+    assert "synthetic_dummy_secret" not in repr(client)
 
     with pytest.raises(BinanceAuthError) as exc_info:
         client.get_account()
@@ -79,7 +79,7 @@ def test_binance_testnet_auth_failure_semantics():
     err_str = str(exc_info.value)
     assert "Authentication failed" in err_str
     # Verify the secret is never present in the error string
-    assert "dummy_secret" not in err_str
+    assert "synthetic_dummy_secret" not in err_str
 
 
 def test_binance_testnet_client_request_construction():
