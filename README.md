@@ -243,14 +243,6 @@ The 108 test cases cover:
 
 ZILLERS is engineered in the open under [Zien Organisation](https://ziennexus.app/). Quantitative researchers, machine learning engineers, and algorithmic traders can propose models, academic paper implementations, and strategy integrations:
 
-- **Web Showcase Form:** Navigate to `http://localhost:8900/landing/#collaborate`
-- **Submissions Desk UI:** Browse and filter all received proposals at `http://localhost:8900/collaborations`
-- **REST API:** `GET /api/collaborate/list` (or `/api/collaborate`)
-- **CLI Submissions Viewer:**
-  ```bash
-  python scripts/view_collaborations.py
-  ```
-- **Local Storage:** All verified proposals are logged to `data/collaborations.json`.
 
 ## 📄 License
 
