@@ -1,0 +1,11 @@
+# ZILLERS Research & Machine Learning Model Dependencies
+# Note: Core runtime MUST start without these dependencies and fail-closed (STAND_ASIDE).
+# Absolute Rule 8: New heavy dependencies go here, isolated from core runtime.
+
+onnxruntime>=1.17.0
+scikit-learn>=1.4.0
+lightgbm>=4.3.0
+torch>=2.2.0
+pandas>=2.2.0
+numpy>=1.26.0
+requests>=2.31.0
