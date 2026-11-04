@@ -1,9 +1,10 @@
+import { verifyOperatorCookie } from '../lib/server/form-security.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
-const MASTER_PASSCODE = process.env.COLLAB_DESK_PASSCODE || 'Ekanthbs@4514';
+const MASTER_PASSCODE = process.env.COLLAB_DESK_PASSCODE || '';
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 function parseCookies(cookieHeader: string | undefined): Record<string, string> {
   const list: Record<string, string> = {};
@@ -789,7 +790,7 @@ function renderUnlockedDashboardHtml(records: Array<Record<string, any>>): strin
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const cookies = parseCookies(req.headers.cookie);
-  const isAuthenticated = cookies['zillers_collab_auth'] === MASTER_PASSCODE;
+  const isAuthenticated = verifyOperatorCookie(cookies['zillers_collab_auth'], MASTER_PASSCODE);
 
   if (!isAuthenticated) {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -797,6 +798,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   let records: Array<Record<string, any>> = [];
+  if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(503).json({ error: 'Proposal storage is not configured' });
   try {
     if (SUPABASE_URL && SUPABASE_KEY) {
       const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
@@ -809,10 +811,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (!error && Array.isArray(data)) {
         records = data;
+      } else {
+        return res.status(503).json({ error: 'Proposal storage unavailable' });
       }
     }
   } catch (err) {
-    console.error('Failed to load proposals for desk view:', err);
+    console.error('Proposal storage unavailable');
+    return res.status(503).json({ error: 'Proposal storage unavailable' });
   }
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');

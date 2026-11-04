@@ -1,12 +1,10 @@
+import { verifyOperatorCookie, allowSubmission, validateProposal, matchesOperatorPasscode, sameOrigin } from '../lib/server/form-security.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
-const MASTER_PASSCODE = process.env.COLLAB_DESK_PASSCODE || 'Ekanthbs@4514';
+const MASTER_PASSCODE = process.env.COLLAB_DESK_PASSCODE || '';
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
-
-// Fallback in-memory proposals store for environments without Supabase configured yet
-const memoryProposals: Array<Record<string, any>> = [];
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 function getSupabase() {
   if (SUPABASE_URL && SUPABASE_KEY) {
@@ -31,18 +29,18 @@ function parseCookies(cookieHeader: string | undefined): Record<string, string> 
 
 function isAuthorized(req: VercelRequest): boolean {
   const headerCode = req.headers['x-desk-passcode'];
-  if (typeof headerCode === 'string' && headerCode.trim() === MASTER_PASSCODE) {
+  if (matchesOperatorPasscode(headerCode, MASTER_PASSCODE)) {
     return true;
   }
   const cookies = parseCookies(req.headers.cookie);
-  if (cookies['zillers_collab_auth'] === MASTER_PASSCODE) {
+  if (verifyOperatorCookie(cookies['zillers_collab_auth'], MASTER_PASSCODE)) {
     return true;
   }
   return false;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Cross-origin credential sharing is deliberately not enabled.
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Desk-Passcode');
 
@@ -52,9 +50,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // 1. POST: Public proposal submission (open to all visitors)
   if (req.method === 'POST') {
+    if (!sameOrigin(req.headers.origin, req.headers.host)) return res.status(403).json({ error: 'Cross-origin request refused' });
+    if (Buffer.byteLength(JSON.stringify(req.body ?? '')) > 16384) return res.status(413).json({ error: 'Proposal too large' });
     try {
       const data = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
-      const { name, email, github, linkedin, website, track, message } = data;
+      const { name, email, github, linkedin, website, track, message } = validateProposal(data);
+      const client = req.socket.remoteAddress || 'unknown';
+      if (!allowSubmission(data, client)) return res.status(429).json({ error: 'Submission quota exceeded' });
 
       if (!name || !email || !github || !track || !message) {
         return res.status(400).json({ error: 'Missing required fields (name, email, github, track, message)' });
@@ -71,18 +73,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         website: website ? String(website).trim() : '',
         track: String(track).trim(),
         message: String(message).trim(),
-        client_ip: (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown',
+        client_ip: client,
       };
 
       const supabase = getSupabase();
       if (supabase) {
         const { error } = await supabase.from('collaborations').insert([record]);
         if (error) {
-          console.error('Supabase insertion error:', error);
-          memoryProposals.unshift(record);
+          console.error('Proposal storage failed');
+          return res.status(503).json({ error: 'Proposal storage unavailable; request was not stored' });
         }
       } else {
-        memoryProposals.unshift(record);
+        return res.status(503).json({ error: 'Proposal storage is not configured' });
       }
 
       return res.status(200).json({
@@ -91,12 +93,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         record,
       });
     } catch (err: any) {
-      console.error('Error handling proposal POST:', err);
-      return res.status(500).json({ error: 'Failed to process collaboration proposal', details: err?.message });
+      console.error('Proposal request failed');
+      return res.status(400).json({ error: 'Failed to process collaboration proposal', details: 'Request failed' });
     }
   }
 
-  // 2. GET: Retrieve proposals (PROTECTED by passcode 'Ekanthbs@4514')
+  // 2. GET: Retrieve proposals with operator authentication.
   if (req.method === 'GET') {
     if (!isAuthorized(req)) {
       return res.status(401).json({
@@ -118,22 +120,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!error && Array.isArray(data)) {
           records = data;
         } else {
-          console.warn('Supabase fetch returned error or empty, using memory records:', error);
-          records = memoryProposals;
+          console.warn('Proposal storage unavailable');
+          return res.status(503).json({ error: 'Proposal storage unavailable' });
         }
       } else {
-        records = memoryProposals;
+        return res.status(503).json({ error: 'Proposal storage is not configured' });
       }
 
       return res.status(200).json({
         status: 'ok',
         total: records.length,
         proposals: records,
-        storage: supabase ? 'supabase-cloud' : 'in-memory-fallback',
+        storage: 'supabase-cloud',
       });
     } catch (err: any) {
-      console.error('Error handling proposal GET:', err);
-      return res.status(500).json({ error: 'Failed to retrieve collaboration proposals', details: err?.message });
+      console.error('Proposal read failed');
+      return res.status(500).json({ error: 'Failed to retrieve collaboration proposals', details: 'Request failed' });
     }
   }
 
