@@ -49,6 +49,12 @@ class TelegramGateway:
         except ValueError:
             self.owner_chat_id = None
 
+        raw_owner_user = os.environ.get("TELEGRAM_OWNER_USER_ID", "").strip()
+        try:
+            self.owner_user_id: Optional[int] = int(raw_owner_user) if raw_owner_user else None
+        except ValueError:
+            self.owner_user_id = None
+
         self.supervisor = supervisor
         self.strategy_bot = strategy_bot
         self.risk_bot = risk_bot
@@ -66,7 +72,12 @@ class TelegramGateway:
         )
 
     def is_authorized(self, update: Update) -> bool:
-        """Check if message originated from the whitelisted owner chat ID."""
+        """Check if message originated from the whitelisted owner, verifying BOTH chat ID and user ID.
+
+        Security policy: both TELEGRAM_OWNER_CHAT_ID and TELEGRAM_OWNER_USER_ID must match
+        when both are configured. This prevents a group-chat member who shares the same
+        chat_id from impersonating the owner.
+        """
         if not self.owner_chat_id:
             logger.warning("[TelegramGateway] OWNER_CHAT_ID not configured. Denying all requests.")
             return False
@@ -75,6 +86,16 @@ class TelegramGateway:
             cid = update.effective_chat.id if update.effective_chat else "unknown"
             logger.warning("[TelegramGateway] Unauthorized access attempt by %s (chat_id=%s). Silently dropped.", user, cid)
             return False
+        # Additionally verify user ID when configured (prevents group-member impersonation)
+        if self.owner_user_id is not None:
+            effective_uid = update.effective_user.id if update.effective_user else None
+            if effective_uid != self.owner_user_id:
+                user = update.effective_user.username if update.effective_user else "unknown"
+                logger.warning(
+                    "[TelegramGateway] Unauthorized user ID %s (%s) in owner chat. Silently dropped.",
+                    effective_uid, user
+                )
+                return False
         return True
 
     def build_application(self) -> Optional[Application]:
@@ -112,7 +133,6 @@ class TelegramGateway:
             "/positions - View active working positions\n"
             "/pnl - View performance analytics & metrics\n"
             "/pause - Pause strategy signal generation\n"
-            "/resume - Resume strategy execution\n"
             "/flatten - Liquidate all open positions\n"
             "/kill - Trigger emergency order cancellation\n"
             "━━━━━━━━━━━━━━━━━━━"
@@ -215,26 +235,15 @@ class TelegramGateway:
             return
         args = context.args or []
 
-        # If kill switch is engaged, require local admin password authentication
+        # SECURITY INVARIANT: After /kill, Telegram can NEVER lift the halt.
+        # Resumption requires local dashboard admin re-authentication only.
         if self.kill_switch_active:
-            if not args:
-                await update.message.reply_html(
-                    "⛔ <b>KILL SWITCH LOCKED:</b> Emergency kill is active.\n"
-                    "Resuming requires local admin password:\n"
-                    "Usage: <code>/resume &lt;admin_password&gt;</code>"
-                )
-                return
-            provided_pwd = args[0].strip()
-            if provided_pwd != self.admin_password:
-                logger.warning("[TelegramGateway] Failed resume attempt with invalid admin password.")
-                await update.message.reply_html("❌ <b>Authentication Failed:</b> Invalid admin password. System remains killed.")
-                return
-
-            self.kill_switch_active = False
-            if self.strategy_bot:
-                self.strategy_bot.resume()
-            logger.info("[TelegramGateway] Emergency kill switch cleared via authenticated admin password.")
-            await update.message.reply_html("🔓 <b>AUTHENTICATED:</b> Emergency kill cleared. Strategy execution RESUMED successfully.")
+            logger.warning("[TelegramGateway] Telegram resume attempt while kill switch active. BLOCKED.")
+            await update.message.reply_html(
+                "⛔ <b>KILL SWITCH LOCKED — TELEGRAM CANNOT RESUME:</b>\n"
+                "The emergency halt can only be lifted via the local dashboard\n"
+                "with admin re-authentication. This channel cannot clear a kill."
+            )
             return
 
         if "confirm" in [a.lower() for a in args]:
@@ -294,8 +303,8 @@ class TelegramGateway:
             "• StrategyBot paused.\n"
             "• Open positions stops tightened to break-even/entry.\n"
             "• Pending entries vetoed.\n\n"
-            "🔒 <b>SECURITY LOCK:</b> Resuming requires admin password authentication:\n"
-            "<code>/resume &lt;admin_password&gt;</code>"
+            "🔒 <b>SECURITY LOCK:</b> Resumption requires local dashboard admin re-authentication.\n"
+            "Telegram cannot lift this halt."
         )
 
     async def cmd_prohibited_security_action(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -336,8 +345,8 @@ class TelegramGateway:
             if self.kill_switch_active:
                 await query.edit_message_text(
                     "⛔ RESUME BLOCKED: Emergency kill switch is engaged.\n"
-                    "Resuming requires the admin password via chat:\n"
-                    "/resume <admin_password>"
+                    "Use the local dashboard admin re-authentication to lift this halt.\n"
+                    "Telegram cannot resume after /kill."
                 )
             elif self.strategy_bot:
                 self.strategy_bot.resume()
