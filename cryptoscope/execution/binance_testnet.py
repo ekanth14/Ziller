@@ -55,7 +55,7 @@ class BinanceTestnetClient:
     ):
         self.api_key = (api_key or os.getenv("BINANCE_TESTNET_API_KEY", "")).strip().strip("<>\"' \t\r\n")
         self.api_secret = (api_secret or os.getenv("BINANCE_TESTNET_API_SECRET", "")).strip().strip("<>\"' \t\r\n")
-        self.base_url = (base_url or os.getenv("BINANCE_TESTNET_BASE_URL", self.DEFAULT_BASE_URL)).rstrip("/")
+        self.base_url = (base_url or os.getenv('BINANCE_TESTNET_BASE_URL') or self.DEFAULT_BASE_URL).rstrip('/')
         from cryptoscope.security.config import validate_testnet_url
         self.base_url = validate_testnet_url(self.base_url)
         self.timeout = timeout

@@ -194,6 +194,12 @@ def test_example_environment_has_no_values_and_no_legacy_exchange_names():
     assert 'EXCHANGE_API_KEY' not in settings
 
 
+def test_blank_optional_url_uses_the_approved_default(monkeypatch):
+    from cryptoscope.execution.binance_testnet import BinanceTestnetClient
+    monkeypatch.setenv('BINANCE_TESTNET_BASE_URL', '')
+    assert BinanceTestnetClient().base_url == 'https://testnet.binance.vision'
+
+
 def test_client_error_and_representation_do_not_echo_sensitive_server_text(monkeypatch, caplog):
     import io
     from urllib.error import HTTPError
