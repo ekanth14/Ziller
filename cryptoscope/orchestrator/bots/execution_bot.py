@@ -52,16 +52,19 @@ class ExecutionBot(BaseBot):
         mode: str = "PAPER",  # 'OBSERVE', 'PAPER', 'TESTNET', 'LIVE'
         db_path: Optional[str] = None,
         supervisor_timeout_sec: float = 15.0,
+        watchdog_grace_sec: float = 5.0,
         exchange_api_key: str = "",
         exchange_api_secret: str = ""
     ):
         super().__init__(name, bus)
         self.mode = mode.upper()
         self.supervisor_timeout_sec = supervisor_timeout_sec
+        self.watchdog_grace_sec = watchdog_grace_sec
         self.exchange_api_key = exchange_api_key
         self.exchange_api_secret = exchange_api_secret
 
         self.last_supervisor_heartbeat = time.time()
+        self.watchdog_grace_start: Optional[float] = None
         self.emergency_protection_active = False
 
         # SQLite state persistence
@@ -182,6 +185,12 @@ class ExecutionBot(BaseBot):
             self.cached_intents[event.intent_id] = event
         elif isinstance(event, SupervisorHeartbeat):
             self.last_supervisor_heartbeat = time.time()
+            if self.watchdog_grace_start is not None:
+                logger.info(
+                    "[%s] Supervisor heartbeat recovered within grace period (%.2fs). Stops preserved.",
+                    self.name, time.time() - self.watchdog_grace_start
+                )
+                self.watchdog_grace_start = None
             if self.emergency_protection_active:
                 logger.info("[%s] Supervisor heartbeat restored. Disengaging emergency protection.", self.name)
                 self.emergency_protection_active = False
@@ -190,20 +199,6 @@ class ExecutionBot(BaseBot):
                 await self._execute_approved_trade(event)
         elif isinstance(event, MarketUpdate):
             await self._check_position_exits(event)
-
-    async def run(self) -> None:
-        """Watchdog loop checking supervisor heartbeat."""
-        while self._running:
-            now = time.time()
-            self._last_heartbeat = now
-            dt = now - self.last_supervisor_heartbeat
-
-            if dt > self.supervisor_timeout_sec and not self.emergency_protection_active:
-                await self.emergency_protect_positions(
-                    f"SUPERVISOR_SILENT: Watchdog detected no supervisor heartbeat for {dt:.1f}s (> {self.supervisor_timeout_sec}s limit)"
-                )
-
-            await asyncio.sleep(1.0)
 
     async def _execute_approved_trade(self, risk: RiskDecision) -> None:
         intent = self.cached_intents.get(risk.intent_id)
@@ -472,15 +467,26 @@ class ExecutionBot(BaseBot):
         return closed_count
 
     async def run(self) -> None:
-        """Watchdog loop checking supervisor heartbeat and position safety."""
+        """Watchdog loop checking supervisor heartbeat, applying grace period, and position safety."""
         while self._running:
             self._last_heartbeat = time.time()
             elapsed = time.time() - self.last_supervisor_heartbeat
             if elapsed > self.supervisor_timeout_sec and not self.emergency_protection_active:
                 if self.active_positions:
-                    await self.emergency_protect_positions(
-                        f"Supervisor silent for {elapsed:.1f}s (threshold {self.supervisor_timeout_sec:.1f}s)"
-                    )
+                    if self.watchdog_grace_start is None:
+                        self.watchdog_grace_start = time.time()
+                        logger.warning(
+                            "[%s] Supervisor silent for %.1fs (threshold %.1fs). "
+                            "Entering %.1fs grace period before emergency stop adjustment.",
+                            self.name, elapsed, self.supervisor_timeout_sec, self.watchdog_grace_sec
+                        )
+                    elif (time.time() - self.watchdog_grace_start) >= self.watchdog_grace_sec:
+                        await self.emergency_protect_positions(
+                            f"Supervisor silent for {elapsed:.1f}s and exceeded grace period of {self.watchdog_grace_sec:.1f}s"
+                        )
+                        self.watchdog_grace_start = None
+            else:
+                self.watchdog_grace_start = None
             sleep_interval = min(0.05, max(0.01, self.supervisor_timeout_sec / 4))
             await asyncio.sleep(sleep_interval)
 
@@ -489,5 +495,7 @@ class ExecutionBot(BaseBot):
             "mode": self.mode,
             "active_positions_count": len(self.active_positions),
             "emergency_protection_active": self.emergency_protection_active,
-            "seconds_since_supervisor_heartbeat": round(time.time() - self.last_supervisor_heartbeat, 1)
+            "seconds_since_supervisor_heartbeat": round(time.time() - self.last_supervisor_heartbeat, 1),
+            "watchdog_grace_active": self.watchdog_grace_start is not None,
+            "watchdog_grace_sec": self.watchdog_grace_sec,
         }

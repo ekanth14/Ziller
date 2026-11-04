@@ -102,8 +102,14 @@ def test_supervisor_heartbeat_loss_triggers_emergency_protection():
         with tempfile.TemporaryDirectory() as td:
             db_path = str(Path(td) / "test_exec_watchdog.db")
             bus = EventBus()
-            # Fast 0.1s supervisor timeout for test
-            exec_bot = ExecutionBot(bus, mode="PAPER", db_path=db_path, supervisor_timeout_sec=0.1)
+            # Fast 0.1s supervisor timeout, 0.05s grace for test
+            exec_bot = ExecutionBot(
+                bus,
+                mode="PAPER",
+                db_path=db_path,
+                supervisor_timeout_sec=0.1,
+                watchdog_grace_sec=0.05,
+            )
             await exec_bot.start()
 
             alerts: List[SystemAlert] = []
@@ -121,8 +127,8 @@ def test_supervisor_heartbeat_loss_triggers_emergency_protection():
                 "target_price": 110.0
             }
 
-            # Allow watchdog loop to run without supervisor heartbeat
-            await asyncio.sleep(0.25)
+            # Allow watchdog loop to run without supervisor heartbeat (0.1s timeout + 0.05s grace = 0.15s)
+            await asyncio.sleep(0.3)
 
             # Emergency protection must be active
             assert exec_bot.emergency_protection_active is True
@@ -135,6 +141,68 @@ def test_supervisor_heartbeat_loss_triggers_emergency_protection():
             await bus.publish(SupervisorHeartbeat())
             await asyncio.sleep(0.05)
             assert exec_bot.emergency_protection_active is False
+
+            await exec_bot.stop()
+            await bus.stop()
+
+    asyncio.run(_test())
+
+
+def test_watchdog_grace_period_prevents_premature_trade_churn():
+    """Verify that a brief supervisor glitch during the grace period does NOT churn out good trades."""
+    async def _test():
+        with tempfile.TemporaryDirectory() as td:
+            db_path = str(Path(td) / "test_exec_grace.db")
+            bus = EventBus()
+            # 0.10s timeout, 0.30s grace period
+            exec_bot = ExecutionBot(
+                bus,
+                mode="PAPER",
+                db_path=db_path,
+                supervisor_timeout_sec=0.10,
+                watchdog_grace_sec=0.30,
+            )
+            await exec_bot.start()
+
+            # Active position with original protective stop at 95.0 (entry at 100.0)
+            exec_bot.active_positions["ETHUSDT"] = {
+                "symbol": "ETHUSDT",
+                "side": "BUY",
+                "quantity": 1.0,
+                "entry_price": 100.0,
+                "stop_price": 95.0,
+                "target_price": 110.0
+            }
+
+            # Sleep 0.15s: supervisor timeout exceeded, but within grace period
+            await asyncio.sleep(0.15)
+
+            # Grace period is active, but emergency stop tightening must NOT have fired
+            health = exec_bot.get_health_details()
+            assert health["watchdog_grace_active"] is True
+            assert exec_bot.emergency_protection_active is False
+            assert exec_bot.active_positions["ETHUSDT"]["stop_price"] == 95.0, (
+                "Trade must NOT be churned: stop remains at 95.0 during grace period"
+            )
+
+            # Heartbeat arrives during grace period (brief glitch recovered)
+            await bus.publish(SupervisorHeartbeat())
+            await asyncio.sleep(0.05)
+
+            # Grace period cleared, stops preserved
+            health_after = exec_bot.get_health_details()
+            assert health_after["watchdog_grace_active"] is False
+            assert exec_bot.emergency_protection_active is False
+            assert exec_bot.active_positions["ETHUSDT"]["stop_price"] == 95.0
+
+            # Now let supervisor go silent beyond timeout + grace period (0.10 + 0.30 = 0.40s)
+            await asyncio.sleep(0.50)
+
+            # Exceeded grace period -> emergency protection MUST engage
+            assert exec_bot.emergency_protection_active is True
+            assert exec_bot.active_positions["ETHUSDT"]["stop_price"] == 100.0, (
+                "After grace period expires without heartbeat, stop must be tightened to entry"
+            )
 
             await exec_bot.stop()
             await bus.stop()
