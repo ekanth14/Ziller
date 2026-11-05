@@ -1,24 +1,24 @@
 # Development status
 
-Updated: November 5 (Asia/Calcutta). STOPPED after Phase 1 as instructed.
+Updated: November 5 (Asia/Calcutta). Phase 2 was explicitly authorized after Phase 1; its offline run is now complete. STOPPED after Phase 2 with its gate unresolved.
 
 ## Instructions and repository
 
-- `docs/MASTER_PROMPT.md` remains byte-for-byte equal to the source body. The first-run cover note limits this execution to Phases 0 and 1; no later phase or long job is authorized.
+- `docs/MASTER_PROMPT.md` remains byte-for-byte equal to the source body. The first-run cover note originally limited execution to Phases 0 and 1. The user subsequently authorized Phase 2 explicitly and chose to keep it offline without model generation. No Phase 3 or later work is authorized.
 - Workspace: `C:\Users\Ekanth's laptop\Desktop\my projects\zien-crypto`. The alternate project names in earlier prompts refer to this same repository.
 - Active branch: `verified-fleet`. The user approved its fast-forward from `e23ee1a` to the existing `laya-decision` revision `75d915e`; newer work was retained and no history was rewritten.
-- Verified source HEAD: `eca6ebd9bc2892824b627a8ad6ca6184ee3a42d4`. The subsequent report/status commit changes evidence only. Resolve that commit with `git log -1 --oneline -- docs/STATUS.md`.
+- Verified Phase 2 source HEAD: `f7a704d53e7efa634b8e5a4ac78f50abd3bf8cd7`. Phase 1 evidence commit: `676af22`. The subsequent Phase 2 report/status commit changes evidence only; resolve it with `git log -1 --oneline -- docs/STATUS.md`.
 - Part B means multi-coin work, Phases 4-7. Part C means Laya, Phase 8. No Laya integration or training was started.
 
 ## Phase ledger
 
-All phases were initially NOT RUN. Only Phase 0 and Phase 1 were subsequently updated.
+All phases were initially NOT RUN. Phases 0 and 1 were updated first; Phase 2 followed the user’s explicit authorization.
 
 | Phase | Status | Branch / verified source | Blockers or evidence |
 | --- | --- | --- | --- |
 | 0 | PASS for restricted baseline; external checks NOT RUN | verified-fleet / 75d915e; phase commit 0887fa7 | Fresh baseline 214 passed, 13 skipped; reports/PHASE_0_REPORT.md |
 | 1 | FAIL — gate unresolved; local implementation tested | verified-fleet / eca6ebd | 266 passed, 12 skipped; six Node tests passed; history findings and deployment blockers remain; reports/PHASE_1_REPORT.md |
-| 2 | NOT RUN | Not started | Outside authorization; do not proceed |
+| 2 | FAIL / BLOCKED — offline research and implementation verified | verified-fleet / f7a704d | 306 passed, 12 skipped; recorded debate cache absent; no unconditional gap-loss guarantee; reports/PHASE_2_REPORT.md |
 | 3 | NOT RUN | Not started | Outside authorization |
 | 4 | NOT RUN | Not started | Outside authorization; Phase 1 and Phase 2 gates must pass |
 | 5 | NOT RUN | Not started | Outside authorization |
@@ -77,4 +77,21 @@ The five-gate governor source is unchanged. No generated frontend assets, layout
 4. Any paper/testnet execution requires separate explicit approval. Live trading remains prohibited. Exchange-close/reconciliation and protective-stop defects remain unresolved; ordinary tests do not establish trading safety.
 5. Supply trustworthy baseline/request/process evidence only if definitive collaboration attribution is required.
 
-No Phase 2 or later work is authorized. Stop here even with these blockers.
+No Phase 3 or later work is authorized. Phase 1 and Phase 2 must both fully pass before Phase 4 can start. Stop after the authorized Phase 2 run.
+
+
+## Phase 2 results and continuity
+
+- Explicit user instruction: proceed with Phase 2. Later choice: keep this run offline and record the missing debate cache as a blocker. No local model generation is approved by that choice.
+- Source commit: `f7a704d53e7efa634b8e5a4ac78f50abd3bf8cd7`, on `verified-fleet`; prior branch ancestry retained. Report: `reports/PHASE_2_REPORT.md`.
+- Final full test command: `python -B scripts/run_isolated_tests.py`. 318 collected; 306 passed, 12 skipped, eight nonfatal statsmodels API warnings; exit 0, 30.99 seconds. Test evidence copy: `C:\Users\EKANTH~1\AppData\Local\Temp\zillers-phase-audit-sofzodd2`.
+- Final offline research command: `python -B scripts/run_phase2_research.py`; exit 0. Evidence copy: `C:\Users\EKANTH~1\AppData\Local\Temp\zillers-phase-audit-o2v89kmp`. The final legacy slippage-classification refinement was validated by this research run after the full suite.
+- 2.1: real RiskBot and DebateBot handlers run in research. Recorded default rejects all missing votes; zero recorded cache entries exist. Heuristic diagnostic is labeled separately. Daily-loss and drawdown stress scenarios each trigger three vetoes; correlation/position/exposure and emergency-halt regression checks pass. Complete recorded-debate requirement remains FAIL.
+- 2.2: explicit two-leg price stops, notional beta hedge, fee-inclusive fixed-fractional sizing and loss-budget assertions implemented. Legacy pair replay has 81 trades: 51 raw-budget breaches, 41 budget-plus-slippage breaches. All 51 are listed in `reports/PHASE_2_PAIR_VIOLATIONS.csv`, with the stricter-rule Boolean. Corrected mechanical sizing diagnostic has zero such breaches over 62 trades. It is not an approved pipeline: strict RiskBot still rejects ETH/BTC on correlation, and BTC shorts are not an unborrowed Spot execution feature. Synthetic gaps demonstrate that a universal loss bound is unavailable.
+- 2.3: combined profit factor now pools fee-inclusive trade outcomes. The regression reproduces a 28% win-rate case with positive gross profits and nonzero PF. Undefined PF is null with a reason.
+- 2.4: optional already-installed statsmodels ran separate ADF and Engle-Granger diagnostics for train/test. Results are window-sensitive; no structural-break cause is asserted. Only its research manifest entry was added; no installation occurred.
+- 2.5: same 2,160 hourly bars per symbol, 70/30 split, no tuning or downloads. Strict recorded mode stays flat. Heuristic results remain negative with sparse test trades; do not infer edge or readiness. Old/new per-book and shared-account tables, counts and ledgers are in the report and `reports/PHASE_2_RESULTS.json`.
+- Primary new evidence: `reports/PHASE_2_RESULTS.json`, `reports/PHASE_2_PAIR_VIOLATIONS.csv`, `reports/PHASE_2_TEST_OUTPUT.txt`. New copies undergo the existing strict scanner; 14 values in the full JSON evidence were withheld, with explicit metadata. Historical reports/data were not redacted or overwritten in Phase 2.
+- Preservation: the archived candle file and old fleet-report bytes match their disposable input copies at completion (both checks true). Master source equality is true. Five-gate governor, RiskBot source, production environment and operational configuration were not changed. No original DB writes, operational orders, bot restarts, training, UI work or cloud changes occurred. Production governor database remains absent; no production latch was initialized.
+
+Next unfinished task: obtain provenance-backed exact debate records or separately approve their local generation, rerun the default research path and reassess the gate. Preserve gap-loss limitations, correlation vetoes and existing exchange defects; do not relax controls to force PASS. Phase 1 history/configuration/deployment blockers remain. Phases 3-9 have not started.
