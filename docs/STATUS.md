@@ -1,13 +1,13 @@
 # Development status
 
-Updated: November 5 (Asia/Calcutta). Phase 2 was explicitly authorized after Phase 1; its offline run is now complete. STOPPED after Phase 2 with its gate unresolved.
+Updated: November 5 (Asia/Calcutta). Phase 2 was explicitly authorized after Phase 1, followed by local Ollama cache generation. Both runs finished; STOPPED after Phase 2 with its gate unresolved.
 
 ## Instructions and repository
 
-- `docs/MASTER_PROMPT.md` remains byte-for-byte equal to the source body. The first-run cover note originally limited execution to Phases 0 and 1. The user subsequently authorized Phase 2 explicitly and chose to keep it offline without model generation. No Phase 3 or later work is authorized.
+- `docs/MASTER_PROMPT.md` remains byte-for-byte equal to the source body. The first-run cover note originally limited execution to Phases 0 and 1. The user subsequently authorized Phase 2 explicitly, initially chose offline-only, then said “make it online.” Local Ollama cache generation was announced and performed within that scope. No Phase 3 or later work is authorized.
 - Workspace: `C:\Users\Ekanth's laptop\Desktop\my projects\zien-crypto`. The alternate project names in earlier prompts refer to this same repository.
 - Active branch: `verified-fleet`. The user approved its fast-forward from `e23ee1a` to the existing `laya-decision` revision `75d915e`; newer work was retained and no history was rewritten.
-- Verified Phase 2 source HEAD: `f7a704d53e7efa634b8e5a4ac78f50abd3bf8cd7`. Phase 1 evidence commit: `676af22`. The subsequent Phase 2 report/status commit changes evidence only; resolve it with `git log -1 --oneline -- docs/STATUS.md`.
+- Verified latest Phase 2 source HEAD: `4720f62fb01544280e4357d9ae8d524151637434`. Original offline source: `f7a704d53e7efa634b8e5a4ac78f50abd3bf8cd7`. Phase 1 evidence commit: `676af22`. The subsequent Phase 2 report/status commit changes evidence only; resolve it with `git log -1 --oneline -- docs/STATUS.md`.
 - Part B means multi-coin work, Phases 4-7. Part C means Laya, Phase 8. No Laya integration or training was started.
 
 ## Phase ledger
@@ -18,7 +18,7 @@ All phases were initially NOT RUN. Phases 0 and 1 were updated first; Phase 2 fo
 | --- | --- | --- | --- |
 | 0 | PASS for restricted baseline; external checks NOT RUN | verified-fleet / 75d915e; phase commit 0887fa7 | Fresh baseline 214 passed, 13 skipped; reports/PHASE_0_REPORT.md |
 | 1 | FAIL — gate unresolved; local implementation tested | verified-fleet / eca6ebd | 266 passed, 12 skipped; six Node tests passed; history findings and deployment blockers remain; reports/PHASE_1_REPORT.md |
-| 2 | FAIL / BLOCKED — offline research and implementation verified | verified-fleet / f7a704d | 306 passed, 12 skipped; recorded debate cache absent; no unconditional gap-loss guarantee; reports/PHASE_2_REPORT.md |
+| 2 | FAIL / BLOCKED — offline replay and local-model attempts verified | verified-fleet / 4720f62 | 321 passed, 12 skipped; 0 usable votes from 3 real attempts; no unconditional gap-loss guarantee; reports/PHASE_2_REPORT.md |
 | 3 | NOT RUN | Not started | Outside authorization |
 | 4 | NOT RUN | Not started | Outside authorization; Phase 1 and Phase 2 gates must pass |
 | 5 | NOT RUN | Not started | Outside authorization |
@@ -94,4 +94,18 @@ No Phase 3 or later work is authorized. Phase 1 and Phase 2 must both fully pass
 - Primary new evidence: `reports/PHASE_2_RESULTS.json`, `reports/PHASE_2_PAIR_VIOLATIONS.csv`, `reports/PHASE_2_TEST_OUTPUT.txt`. New copies undergo the existing strict scanner; 14 values in the full JSON evidence were withheld, with explicit metadata. Historical reports/data were not redacted or overwritten in Phase 2.
 - Preservation: the archived candle file and old fleet-report bytes match their disposable input copies at completion (both checks true). Master source equality is true. Five-gate governor, RiskBot source, production environment and operational configuration were not changed. No original DB writes, operational orders, bot restarts, training, UI work or cloud changes occurred. Production governor database remains absent; no production latch was initialized.
 
-Next unfinished task: obtain provenance-backed exact debate records or separately approve their local generation, rerun the default research path and reassess the gate. Preserve gap-loss limitations, correlation vetoes and existing exchange defects; do not relax controls to force PASS. Phase 1 history/configuration/deployment blockers remain. Phases 3-9 have not started.
+The original offline next task was to obtain provenance-backed exact debate records or approve local generation. The later authorization and attempted run are recorded below. Next unfinished task: diagnose the failed local-model attempts within the 35-second budget, obtain usable records, rerun default replay and reassess the gate. Preserve gap-loss limitations, correlation vetoes and existing exchange defects; do not relax controls to force PASS. Phase 1 history/configuration/deployment blockers remain. Phases 3-9 have not started.
+
+
+## Phase 2 local-model follow-up
+
+- User authorization: “make it online,” interpreted and announced as local Ollama model generation for the existing cache task. External services, operational orders and production changes remain outside this authorization.
+- Source commit: `4720f62fb01544280e4357d9ae8d524151637434`. Command: `python -B scripts/run_phase2_online.py`; retained copy `C:\Users\EKANTH~1\AppData\Local\Temp\zillers-phase-audit-oy7zmu2k`.
+- Real Ollama 0.40.14 was reachable. Used the available `gemma4-quant:12b`; exact `gemma4:12b` was not present. No model was installed or downloaded. Loaded-model status showed context 4096 and size_vram 0; no failure cause is inferred from that.
+- Found 83 historical requests. Three generation attempts produced zero admissible model votes; stopped after three consecutive failures. The remaining 80 were not attempted. Request windows were 34.5 seconds inside the unchanged 35-second stage budget. Exact failure categories were not retained; do not guess a cause from timing alone.
+- Generation exit 0 records a controlled stop, not inference success. The subsequent offline replay exited 0 and stayed flat: 0 trades, 0 cached model decisions, 0 heuristic decisions, 83 cache misses. Model-dependent performance remains unmeasured and insufficient data.
+- Final suite: `python -B scripts/run_isolated_tests.py`; 333 collected, 321 passed, 12 skipped, eight known warnings, exit 0, 42.58 seconds. Tests use stub model responses; real local attempts are separately documented. Evidence copy: `C:\Users\EKANTH~1\AppData\Local\Temp\zillers-phase-audit-di1uxx98`.
+- New evidence files: `reports/PHASE_2_ONLINE_EVIDENCE.json`, `reports/PHASE_2_ONLINE_TEST_OUTPUT.txt`. Same phase report was updated with a clearly dated/latest local-model section; old offline numerical evidence is preserved.
+- Generation uses a separate local-only guard; the original test guard is unchanged and restored before replay. No production databases/configuration, governor policy, broker/exchange connectivity, UI or running bot were modified. Original candle and previous report byte comparisons remain true. No Phase 3 or later work has begun.
+
+Remaining blocker: usable recorded model decisions within the fixed deadline. First add typed failure categorization or run a bounded diagnosis; do not silently weaken timeout, controls, correlation vetoes or sizing limits. Phase 1 and the gap-loss limitation still prevent a full gate PASS.

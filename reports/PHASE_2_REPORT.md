@@ -1,8 +1,10 @@
 # Phase 2 — backtest integrity
 
-Updated November 5, Asia/Calcutta. Branch `verified-fleet`; source commit `f7a704d53e7efa634b8e5a4ac78f50abd3bf8cd7`.
+Updated November 5, Asia/Calcutta. Branch `verified-fleet`; original offline source `f7a704d53e7efa634b8e5a4ac78f50abd3bf8cd7`; latest local-model source `4720f62fb01544280e4357d9ae8d524151637434`.
 
-**Overall gate: FAIL / BLOCKED.** Offline implementation and research ran; no exact recorded debate cache exists. The owner explicitly chose to keep this run offline and report that blocker. Do not advance to another phase automatically. Phase 1 remains unresolved too.
+**Overall gate: FAIL / BLOCKED.** Offline work was followed by the user’s explicit request to make the Phase 2 cache run online. Local Ollama generation was attempted, but produced no valid recorded votes before the consecutive-failure stop. The offline baseline below is preserved as historical evidence; the latest local-model attempt is documented at the end. Do not advance automatically. Phase 1 remains unresolved too.
+
+## Original offline baseline (preserved)
 
 | Item | Result | Observed evidence |
 | --- | --- | --- |
@@ -128,6 +130,33 @@ New files are in `cryptoscope/backtesting/`, regression tests in `cryptoscope/te
 
 Evidence files: `PHASE_2_RESULTS.json`, `PHASE_2_PAIR_VIOLATIONS.csv`, `PHASE_2_TEST_OUTPUT.txt`. The report publisher applies the existing strict confidentiality scanner only to new evidence; numeric values can be withheld as null and strings redacted. It does not alter prior reports or original research data. Original candle and prior-report bytes were compared against their disposable input copies at completion; equality results are recorded in status.
 
-No operational orders, model generations, dependency installation, training, data downloads, production configuration/database changes, bot restarts, UI changes or cloud deployments were performed. The persistent production latch was not initialized by this work. The known exchange-close/reconciliation, protective-stop and Phase 1 history/deployment issues remain unresolved.
+During the original offline run, no operational orders, model generations, dependency installation, training, data downloads, production configuration/database changes, bot restarts, UI changes or cloud deployments were performed. The persistent production latch was not initialized by this work. The known exchange-close/reconciliation, protective-stop and Phase 1 history/deployment issues remain unresolved.
 
 Next unfinished Phase 2 item: obtain a provenance-backed exact recorded debate cache or separately approve local generation, then replay the default path and reassess its gate. The owner chose offline-only for this run. A universal gap-proof stop-loss bound remains unavailable; retain explicit gap sensitivity and do not weaken risk controls to manufacture PASS. No Phase 3 or multi-coin work is authorized here. **Do not trade live.**
+
+
+## Authorized local-model attempt — latest Phase 2 evidence
+
+The user subsequently said “make it online,” in response to the recorded-cache blocker. This was interpreted and announced as permission for local Ollama inference only. No public hosting, external data access, exchange connectivity or operational orders were enabled. The earlier offline-only decision is superseded for this narrowly scoped cache job.
+
+Command: `python -B scripts/run_phase2_online.py`. Research copy: `C:\Users\EKANTH~1\AppData\Local\Temp\zillers-phase-audit-oy7zmu2k`. Ollama version GET returned 0.40.14. Model inventory had `gemma4-quant:12b`, but not the exact `gemma4:12b` tag; the available model was explicitly named before use. A later read-only loaded-model check returned that model with context 4096 and size_vram 0. That observation alone does not diagnose the inference failures.
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Local service reachability | PASS | Real version/tags GETs succeeded. |
+| Historical request discovery | PASS | 83 exact-input requests identified using the frozen archive and strict flat-cache replay. No future prices, backtest outcomes or account credentials were sent. |
+| Model-call execution | PASS attempted; FAIL usable output | Three actual local generation attempts completed without an admissible vote. This is real service evidence, not a stub. |
+| Recorded cache completion | FAIL | 0 valid votes from 3 attempts; 80 requests not attempted after the stop. |
+| Consecutive-failure stop | PASS | Status `stopped_after_three_consecutive_failures`; checkpoint retained. No automatic retries or deadline extension. |
+| Default cache replay | PASS fail-closed behavior; NOT RUN usable-model performance | Generation process exit 0 and separate offline replay exit 0. Zero model votes, zero heuristic votes, zero trades in recorded mode; all 83 debate requests remain cache misses. Insufficient data for trading performance. |
+| Final-source regression suite | PASS within isolated scope | 333 collected; 321 passed, 12 skipped, eight known statsmodels warnings; exit 0, 42.58 seconds. |
+
+Attempt durations in seconds: 34.524, 34.526, 34.514. The client request budget was 34.5 seconds inside the unchanged 35-second stage deadline. No exception text or model prose was retained as control data. The exact transport/parser failure category was not captured, so the durations alone are not asserted to prove a particular cause. A follow-up diagnosis should retain typed failure categories and measure the model within the same deadline; do not silently increase it.
+
+The new launcher creates a credential-free disposable environment. Its separate generation guard allows only `http://127.0.0.1:11434/api/generate` for HTTP; outside-copy writes, external sockets/DNS, model pulls/creation, dashboard trading endpoints and external requests remain denied. The normal test guard is unchanged. The launcher restores the original model-blocking guard before replay. It never invokes a broker or order client. The fixed model choices exclude implicit cloud model selection.
+
+The cache stores normalized decisions, timing, request identifiers and provenance. Free-form model text is not persisted as trusted control information. Opposite-direction/low-confidence approvals are converted to rejections. Invalid votes never become recorded model hits. Missing votes continue to reject. Unit tests for these rules and guard behavior use stubs; they are separate from the three actual service attempts.
+
+Final source commit: `4720f62fb01544280e4357d9ae8d524151637434`. The real generation attempt preceded the final argument/validation tightening; it accepted no votes. The full suite ran against final source. No second generation job was started merely to reproduce failures. Online-specific safe evidence: `PHASE_2_ONLINE_EVIDENCE.json` and `PHASE_2_ONLINE_TEST_OUTPUT.txt`; the original offline results and violation list remain unchanged.
+
+The original candle archive and previous fleet report still match the disposable input bytes. The production latch was not initialized, and production configuration/services were not restarted or changed. The five-gate governor remains untouched. There is no new evidence of a strategy edge. Phase 2 remains blocked; Phase 1’s unresolved findings also remain. No Phase 3 work started. Do not trade live.
