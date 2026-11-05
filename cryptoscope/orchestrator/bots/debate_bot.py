@@ -73,6 +73,10 @@ class DebateBot(BaseBot):
             "target": pre.take_profit,
             "strategy": pre.strategy_id,
         }
+        # Offline replay keys must bind to the exact information available at
+        # the decision bar. This optional context carries no sizing authority.
+        if pre.intent and 'debate_context' in pre.intent.metadata:
+            indicators['replay_context'] = pre.intent.metadata['debate_context']
 
         try:
             debate_task = asyncio.to_thread(
