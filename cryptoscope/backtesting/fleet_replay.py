@@ -331,4 +331,5 @@ async def replay(store, *, mode='recorded', records=None, only=None, capital=100
     assert math.isclose(cash-capital,math.fsum(t['pnl'] for t in trades),abs_tol=1e-7)
     return dict(metrics=trade_metrics(trades,capital,curve),trades=trades,equity_curve=curve,
                 stages=pipeline.summary(),no_signal=dict(no_signal),
-                debate_request_keys=pipeline.engine.keys,loss_budget_breaches=gap_excesses)
+                debate_request_keys=pipeline.engine.keys,
+                debate_requests=pipeline.engine.requests,loss_budget_breaches=gap_excesses)

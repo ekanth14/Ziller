@@ -24,11 +24,14 @@ class RecordedDebateEngine:
         self.mode = mode
         self.counts = Counter()
         self.keys = []
+        self.requests = {}
 
     def deliberate_combined(self, *, symbol, direction, entry, stop, target,
                            indicators, timeout_sec):
         key = debate_key(symbol, direction, entry, stop, target, indicators)
         self.keys.append(key)
+        self.requests[key] = dict(symbol=symbol,direction=direction,entry=entry,
+                                  stop=stop,target=target,indicators=indicators)
         record = self.records.get(key)
         if record is not None:
             if not isinstance(record,dict):
@@ -40,6 +43,7 @@ class RecordedDebateEngine:
                 and isinstance(record.get('model'),str) and bool(record['model'].strip())
                 and not record.get('fallback_used',False)
                 and record.get('verdict') in {'APPROVE', 'REJECT'}
+                and (record['verdict'] != 'APPROVE' or record.get('action',direction) == direction)
                 and isinstance(score, (int, float)) and not isinstance(score, bool)
                 and math.isfinite(score) and 0 <= score <= 10
                 and isinstance(record.get('latency_ms'), (int, float))
