@@ -115,8 +115,7 @@ class ReplayPipeline:
             self.risk.daily_realized_pnl = 0.0
             self.risk.daily_loss_circuit_breaker = False
             self.day = day
-        self.risk.current_nav = nav
-        self.risk.peak_nav = max(self.risk.peak_nav, nav)
+        self.risk.observe_portfolio_nav(nav)
 
     def _veto(self, stage, reasons):
         self.counts[stage] += 1

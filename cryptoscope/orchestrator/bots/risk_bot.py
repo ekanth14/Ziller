@@ -73,6 +73,7 @@ class RiskBot(BaseBot):
         # State tracking
         self.daily_realized_pnl: float = 0.0
         self.daily_loss_circuit_breaker: bool = False
+        self.drawdown_circuit_breaker: bool = False
         self.closed_trades_count: int = 0
         self.open_positions: Dict[str, Dict[str, Any]] = {}
         self.cached_intents: Dict[str, TradeIntent] = {}
@@ -110,6 +111,8 @@ class RiskBot(BaseBot):
 
         current_drawdown_pct = (self.peak_nav - self.current_nav) / self.peak_nav if self.peak_nav > 0 else 0.0
         if current_drawdown_pct >= self.max_drawdown_pct:
+            self.drawdown_circuit_breaker = True
+        if self.drawdown_circuit_breaker:
             veto_reasons.append(f"MAX_DRAWDOWN: Drawdown ({current_drawdown_pct*100:.1f}%) exceeds limit.")
 
         if len(self.open_positions) >= self.max_open_positions and intent.symbol not in self.open_positions:
@@ -134,6 +137,16 @@ class RiskBot(BaseBot):
             return False
         return ((intent.direction == 'BUY' and intent.stop_loss < intent.entry_price < intent.take_profit)
                 or (intent.direction == 'SELL' and intent.take_profit < intent.entry_price < intent.stop_loss))
+
+    def observe_portfolio_nav(self, nav):
+        """Mark total portfolio equity and latch a drawdown breach on observation."""
+        if not math.isfinite(nav):
+            self.drawdown_circuit_breaker = True
+            return
+        self.current_nav = nav
+        self.peak_nav = max(self.peak_nav,nav)
+        if self.peak_nav <= 0 or (self.peak_nav-nav)/self.peak_nav >= self.max_drawdown_pct:
+            self.drawdown_circuit_breaker = True
 
     def _handle_fill(self, fill: Fill) -> None:
         """Track open position exposure."""
@@ -205,6 +218,8 @@ class RiskBot(BaseBot):
         # Gate 3: Max Portfolio Drawdown
         current_drawdown_pct = (self.peak_nav - self.current_nav) / self.peak_nav
         if current_drawdown_pct >= self.max_drawdown_pct:
+            self.drawdown_circuit_breaker = True
+        if self.drawdown_circuit_breaker:
             veto_reasons.append(
                 f"MAX_DRAWDOWN: Current drawdown ({current_drawdown_pct*100:.1f}%) exceeds max allowed ({self.max_drawdown_pct*100:.1f}%)"
             )
@@ -305,5 +320,6 @@ class RiskBot(BaseBot):
             "current_nav": self.current_nav,
             "daily_realized_pnl": self.daily_realized_pnl,
             "open_positions": list(self.open_positions.keys()),
-            "max_daily_loss_usd": self.initial_nav * self.max_daily_loss_pct
+            "max_daily_loss_usd": self.initial_nav * self.max_daily_loss_pct,
+            "drawdown_halted": self.drawdown_circuit_breaker
         }

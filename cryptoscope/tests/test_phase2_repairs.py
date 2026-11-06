@@ -138,3 +138,15 @@ def test_actual_portfolio_limit_exercises_reconcile_counts():
     assert result['per_coin']['reasons']['EXPOSURE_CAP']==1
     assert result['per_coin']['risk_post_veto']==1
     assert result['order_notional']['approved_quantity']==5
+
+
+def test_drawdown_halt_survives_market_recovery_and_day_rollover():
+    async def run():
+        pipeline=ReplayPipeline(mode='heuristic_diagnostic')
+        pipeline.mark(8900,0)
+        assert pipeline.risk.drawdown_circuit_breaker
+        pipeline.mark(10100,86400)
+        assert pipeline.risk.drawdown_circuit_breaker
+        assert await pipeline.approve(TradeIntent(entry_price=100,stop_loss=98,take_profit=104)) is None
+        assert pipeline.reasons['MAX_DRAWDOWN']==1
+    asyncio.run(run())
