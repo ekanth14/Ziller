@@ -240,6 +240,18 @@ class CandleStoreTests(unittest.TestCase):
 
 
 class CoinGeckoServiceTests(unittest.TestCase):
+    def test_connection_status_tracks_metadata_provenance_and_expiry(self):
+        cg = CoinGeckoService()
+        self.assertEqual(cg.connection_status()['state'], 'offline')
+        cg.cached_listings = [{'source': 'coingecko'}]
+        cg.last_fetch = time.time()
+        self.assertEqual(cg.connection_status()['state'], 'connected')
+        cg.last_fetch -= cg.CACHE_TTL_SECONDS + 1
+        self.assertEqual(cg.connection_status()['state'], 'reconnecting')
+        cg.last_fetch = time.time()
+        cg.cached_listings = [{'source': 'binance_24hr'}]
+        self.assertEqual(cg.connection_status()['state'], 'offline')
+
     def test_cached_listings_and_schema(self):
         cg = CoinGeckoService()
         mock_data = [

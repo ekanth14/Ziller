@@ -47,6 +47,21 @@ class CoinGeckoService:
         self._binance_pairs_fetched: float = 0.0
         self._lock = threading.Lock()
 
+    def connection_status(self):
+        """Report the last actual metadata fetch, including fallback provenance."""
+        with self._lock:
+            age = time.time() - self.last_fetch if self.last_fetch else None
+            from_coingecko = bool(self.cached_listings) and any(
+                item.get('source') == 'coingecko' for item in self.cached_listings)
+            return {
+                'state': ('connected' if age is not None and age <= self.CACHE_TTL_SECONDS
+                          else 'reconnecting') if from_coingecko else 'offline',
+                'endpoint': 'api.coingecko.com',
+                'last_heartbeat_age': round(age, 1) if age is not None and from_coingecko else None,
+                'consecutive_errors': int(bool(self.last_error)),
+                'error': 'Metadata fetch unavailable' if self.last_error else None,
+            }
+
     def _get_binance_usdt_pairs(self) -> Set[str]:
         """Fetch or return cached active Binance spot USDT trading pairs."""
         now = time.time()

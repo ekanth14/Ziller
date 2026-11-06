@@ -1837,14 +1837,13 @@ function initSseStream() {
               $('market-change').className = `kpi-tag ${chg >= 0 ? 'green' : 'rose'}`;
             }
 
-            // Real-time update of latest candle in chart
-            const candles = state.candlesBySymbol[curSymbol] || state.data?.snapshots?.[curSymbol]?.candles;
-            if (candles && candles.length) {
-              const lastCandle = candles[candles.length - 1];
-              lastCandle.close = curTicker.price;
-              if (curTicker.price > (lastCandle.high || 0)) lastCandle.high = curTicker.price;
-              if (curTicker.price < (lastCandle.low || Infinity)) lastCandle.low = curTicker.price;
-              renderChart();
+            // Keep closed exchange candles immutable. Refresh the actual OHLC
+            // series once the next five-minute candle has closed.
+            const candles = state.candlesBySymbol[curSymbol];
+            const lastCandle = candles?.[candles.length - 1];
+            if (lastCandle && Date.now() / 1000 - lastCandle.close_time > 300 && !state.candleRefreshPending) {
+              state.candleRefreshPending = true;
+              loadCandlesForSymbol(curSymbol, true).finally(() => { state.candleRefreshPending = false; });
             }
 
             // Real-time update of Order Book

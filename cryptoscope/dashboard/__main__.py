@@ -127,6 +127,10 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
         kill_switch = PersistentKillSwitch(kill_switch)
     laya_evaluator = laya_evaluator or LayaTier2Evaluator()
 
+    def connection_status():
+        return {**market_aggregator.get_connection_status(),
+                'coingecko': coingecko_service.connection_status()}
+
     class Handler(BaseHTTPRequestHandler):
         def send(self, status, content, kind, download=None, cookies=None):
             self.send_response(status)
@@ -194,7 +198,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
             if url.path == "/ready":
                 return self.json(200, {
                     "status": "ready",
-                    "exchanges": market_aggregator.get_connection_status(),
+                    "exchanges": connection_status(),
                     "fx": fx_service.get_rate(),
                 })
 
@@ -265,7 +269,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
             if url.path in {"/api/market/status", "/api/market/connections"}:
                 return self.json(200, {
                     "status": "online",
-                    "exchanges": market_aggregator.get_connection_status(),
+                    "exchanges": connection_status(),
                     "server": get_server_metrics(),
                     "timestamp": time.time(),
                 })
@@ -284,7 +288,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     for _ in range(60):
                         payload = json.dumps({
                             "tickers": market_aggregator.get_all_tickers(),
-                            "connections": market_aggregator.get_connection_status(),
+                            "connections": connection_status(),
                             "timestamp": time.time(),
                         })
                         self.wfile.write(f"data: {payload}\n\n".encode("utf-8"))
@@ -356,7 +360,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     })
 
             if url.path == "/api/market/connections":
-                return self.json(200, market_aggregator.get_connection_status())
+                return self.json(200, connection_status())
 
             if url.path == "/api/market/listings":
                 page = int(query.get("page", [1])[0])
@@ -476,7 +480,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
             try:
                 if url.path == "/api/dashboard":
                     res = data.overview(workspace)
-                    res["connections"] = market_aggregator.get_connection_status()
+                    res["connections"] = connection_status()
                     res["fx"] = fx_service.get_rate("INR")
                     return self.json(200, res)
                 if url.path == '/api/features':
@@ -1043,6 +1047,7 @@ def main():
             risk_governor,
             live_governor,
             kill_switch,
+            laya_evaluator=laya_evaluator,
         )
     )
     def checkpoint_wal():

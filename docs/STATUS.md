@@ -109,3 +109,16 @@ The original offline next task was to obtain provenance-backed exact debate reco
 - Generation uses a separate local-only guard; the original test guard is unchanged and restored before replay. No production databases/configuration, governor policy, broker/exchange connectivity, UI or running bot were modified. Original candle and previous report byte comparisons remain true. No Phase 3 or later work has begun.
 
 Remaining blocker: usable recorded model decisions within the fixed deadline. First add typed failure categorization or run a bounded diagnosis; do not silently weaken timeout, controls, correlation vetoes or sizing limits. Phase 1 and the gap-loss limitation still prevent a full gate PASS.
+
+
+## Online localhost dashboard — November 6
+
+The user requested a working online dashboard and fixes after the isolated preview could not receive external data. Latest scope permits the dashboard's public feeds and normal local app startup; it does not authorize orders or override the unresolved phase gates.
+
+- Running workspace dashboard: http://localhost:8910/. Repeatable launcher: `python -B scripts/run_dashboard.py` (optional `--port`). The older isolated preview on 8900 is not the working online instance.
+- Verified eight live symbols; three verified across Binance/Coinbase/Kraken. Listings returned 85 assets; chart returned 100 candles; currency rates available. All four market-source statuses showed connected.
+- Installed gemma4-quant:12b is connected for explanation availability. Laya trading classifier remains unfinished; no new inference success or latency claim is made. Emergency halt remains engaged.
+- Fixed CoinGecko source status, duplicate AI initialization, historical-candle mutation and several fixed telemetry values. Added a launcher that excludes order settings from its process environment and retains existing workspace users/research.
+- Focused isolated suite: 65 passed, 1 skipped, exit 0 (23.05 seconds). JavaScript syntax check passed. Initial online browser check had zero page exceptions; 401 for the signed-out account endpoint was expected. Automatic navigation of the user's browser was blocked by disabled browser control.
+- Normal dashboard startup may initialize local auth schema and update public candle caches. No account data was reset, no files/DBs deleted, no operational orders or bot startup occurred, and .env was not edited.
+- Evidence: reports/LOCAL_DASHBOARD_ONLINE_REPORT.md. Prior Phase 1/2 blockers and exchange safety defects remain. No later phase was started.

@@ -83,7 +83,7 @@
         </div>
         <div class="sidebar-telemetry-row">
           <span>ENGINES ACTIVE</span>
-          <span>100.0%</span>
+          <span>—</span>
         </div>
       </div>
 
@@ -118,7 +118,7 @@
         </a>
         <a class="sidebar-link" href="#risk">
           <span>VaR & Risk Stress</span>
-          <span class="sidebar-badge">0.04%</span>
+          <span class="sidebar-badge">—</span>
         </a>
         <a class="sidebar-link" href="#research">
           <span>Explain Logs (AI)</span>
@@ -151,11 +151,11 @@
         </div>
         <div class="stat-item">
           <span>MEM POOL:</span>
-          <span class="val" id="mem-pool-val">2.4 GB</span>
+          <span class="val" id="mem-pool-val">—</span>
         </div>
         <div class="stat-item">
           <span>CLOCK DRIFT:</span>
-          <span class="val ok" id="clock-drift-val">&lt; 1ms (NTP)</span>
+          <span class="val ok" id="clock-drift-val">Not measured</span>
         </div>
       </div>
       <div style="margin-top: 10px; font-family: var(--font-mono); font-size: 8px; color: var(--text-sub); line-height: 1.4;">
@@ -195,7 +195,7 @@
       <article class="kpi-card">
         <div class="kpi-card-header">
           <span class="kpi-label">Portfolio NAV (USDT)</span>
-          <span class="kpi-tag green">+3.84% 24h</span>
+          <span class="kpi-tag green">24H RETURN: —</span>
         </div>
         <div class="kpi-value-row">
           <div class="kpi-value cyan" id="cash">—</div>
@@ -203,7 +203,7 @@
         </div>
         <div class="kpi-foot">
           <span id="cash-note">Paper account</span>
-          <span>VOLATILITY: 8.4%</span>
+          <span>VOLATILITY: —</span>
         </div>
       </article>
 
@@ -227,15 +227,15 @@
       <article class="kpi-card">
         <div class="kpi-card-header">
           <span class="kpi-label">Risk Attribution</span>
-          <span class="kpi-tag green">LOW VAR (95%)</span>
+          <span class="kpi-tag green">RISK: UNMEASURED</span>
         </div>
         <div class="kpi-value-row">
-          <div class="kpi-value">3.42 <span style="font-size: 13px; color: var(--text-sub);">/ 4.88</span></div>
-          <span class="kpi-sub" style="color: var(--danger-rose);">-4.12% DD</span>
+          <div class="kpi-value">— <span style="font-size: 13px; color: var(--text-sub);">/ —</span></div>
+          <span class="kpi-sub" style="color: var(--danger-rose);">DRAWDOWN: —</span>
         </div>
         <div class="kpi-foot">
           <span>SHARPE / SORTINO</span>
-          <span>RECOVERY: 11.2x</span>
+          <span>RECOVERY: —</span>
         </div>
       </article>
 
@@ -259,15 +259,15 @@
       <article class="kpi-card">
         <div class="kpi-card-header">
           <span class="kpi-label">Execution SOR Telemetry</span>
-          <span class="kpi-tag green">0.84ms</span>
+          <span class="kpi-tag green">LATENCY: —</span>
         </div>
         <div class="kpi-value-row">
-          <div class="kpi-value cyan">$384.19M</div>
-          <span class="kpi-sub">-0.84 bps</span>
+          <div class="kpi-value cyan">—</div>
+          <span class="kpi-sub">SLIPPAGE: —</span>
         </div>
         <div class="kpi-foot">
-          <span>FILL RATE: 99.4%</span>
-          <span>SOR TICK: SYNCED</span>
+          <span>FILL RATE: —</span>
+          <span>NO EXECUTION TELEMETRY</span>
         </div>
       </article>
     </section>
@@ -374,19 +374,19 @@
           <div class="chart-stats-footer">
             <div class="stat-pill">
               <span class="title">StatArb Share:</span>
-              <span class="val">+42.8% ($678.9K)</span>
+              <span class="val">—</span>
             </div>
             <div class="stat-pill">
               <span class="title">Funding Basis:</span>
-              <span class="val">+28.1% ($445.7K)</span>
+              <span class="val">—</span>
             </div>
             <div class="stat-pill">
               <span class="title">HFT Spreads:</span>
-              <span class="val">+21.3% ($337.8K)</span>
+              <span class="val">—</span>
             </div>
             <div class="stat-pill">
               <span class="title">Multi-Trend:</span>
-              <span class="val">+7.8% ($123.7K)</span>
+              <span class="val">—</span>
             </div>
           </div>
 
@@ -437,22 +437,22 @@
                   <div class="orderbook-row">
                     <div class="orderbook-depth-bar bid" style="width: 85%;"></div>
                     <span class="bid-price" id="ob-bid-1">—</span>
-                    <span class="book-size">14.82</span>
+                    <span class="book-size">—</span>
                   </div>
                   <div class="orderbook-row">
                     <div class="orderbook-depth-bar bid" style="width: 68%;"></div>
                     <span class="bid-price" id="ob-bid-2">—</span>
-                    <span class="book-size">8.40</span>
+                    <span class="book-size">—</span>
                   </div>
                   <div class="orderbook-row">
                     <div class="orderbook-depth-bar bid" style="width: 45%;"></div>
                     <span class="bid-price" id="ob-bid-3">—</span>
-                    <span class="book-size">5.15</span>
+                    <span class="book-size">—</span>
                   </div>
                   <div class="orderbook-row">
                     <div class="orderbook-depth-bar bid" style="width: 25%;"></div>
                     <span class="bid-price" id="ob-bid-4">—</span>
-                    <span class="book-size">2.90</span>
+                    <span class="book-size">—</span>
                   </div>
                 </div>
               </div>
@@ -467,22 +467,22 @@
                   <div class="orderbook-row">
                     <div class="orderbook-depth-bar ask" style="width: 90%;"></div>
                     <span class="ask-price" id="ob-ask-1">—</span>
-                    <span class="book-size">18.42</span>
+                    <span class="book-size">—</span>
                   </div>
                   <div class="orderbook-row">
                     <div class="orderbook-depth-bar ask" style="width: 72%;"></div>
                     <span class="ask-price" id="ob-ask-2">—</span>
-                    <span class="book-size">11.10</span>
+                    <span class="book-size">—</span>
                   </div>
                   <div class="orderbook-row">
                     <div class="orderbook-depth-bar ask" style="width: 50%;"></div>
                     <span class="ask-price" id="ob-ask-3">—</span>
-                    <span class="book-size">6.25</span>
+                    <span class="book-size">—</span>
                   </div>
                   <div class="orderbook-row">
                     <div class="orderbook-depth-bar ask" style="width: 30%;"></div>
                     <span class="ask-price" id="ob-ask-4">—</span>
-                    <span class="book-size">3.40</span>
+                    <span class="book-size">—</span>
                   </div>
                 </div>
               </div>
