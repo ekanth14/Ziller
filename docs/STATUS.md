@@ -1,13 +1,13 @@
 # Development status
 
-Updated: November 5 (Asia/Calcutta). Phase 2 was explicitly authorized after Phase 1, followed by local Ollama cache generation. Both runs finished; STOPPED after Phase 2 with its gate unresolved.
+Updated: November 6 (Asia/Calcutta). Phase 2 repairs completed and verified; stopped before Phase 3. Phase 1 remains unresolved.
 
 ## Instructions and repository
 
 - `docs/MASTER_PROMPT.md` remains byte-for-byte equal to the source body. The first-run cover note originally limited execution to Phases 0 and 1. The user subsequently authorized Phase 2 explicitly, initially chose offline-only, then said “make it online.” Local Ollama cache generation was announced and performed within that scope. No Phase 3 or later work is authorized.
 - Workspace: `C:\Users\Ekanth's laptop\Desktop\my projects\zien-crypto`. The alternate project names in earlier prompts refer to this same repository.
 - Active branch: `verified-fleet`. The user approved its fast-forward from `e23ee1a` to the existing `laya-decision` revision `75d915e`; newer work was retained and no history was rewritten.
-- Verified latest Phase 2 source HEAD: `4720f62fb01544280e4357d9ae8d524151637434`. Original offline source: `f7a704d53e7efa634b8e5a4ac78f50abd3bf8cd7`. Phase 1 evidence commit: `676af22`. The subsequent Phase 2 report/status commit changes evidence only; resolve it with `git log -1 --oneline -- docs/STATUS.md`.
+- Verified latest Phase 2 source HEAD: `364f72e19dba8a522b8bd22fdb6fc6fbb8de99ce`; main repair `1cdcda0`. The following report/status commit changes evidence only. Resolve it with `git log -1 --oneline -- docs/STATUS.md`.
 - Part B means multi-coin work, Phases 4-7. Part C means Laya, Phase 8. No Laya integration or training was started.
 
 ## Phase ledger
@@ -18,7 +18,7 @@ All phases were initially NOT RUN. Phases 0 and 1 were updated first; Phase 2 fo
 | --- | --- | --- | --- |
 | 0 | PASS for restricted baseline; external checks NOT RUN | verified-fleet / 75d915e; phase commit 0887fa7 | Fresh baseline 214 passed, 13 skipped; reports/PHASE_0_REPORT.md |
 | 1 | FAIL — gate unresolved; local implementation tested | verified-fleet / eca6ebd | 266 passed, 12 skipped; six Node tests passed; history findings and deployment blockers remain; reports/PHASE_1_REPORT.md |
-| 2 | FAIL / BLOCKED — offline replay and local-model attempts verified | verified-fleet / 4720f62 | 321 passed, 12 skipped; 0 usable votes from 3 real attempts; no unconditional gap-loss guarantee; reports/PHASE_2_REPORT.md |
+| 2 | PASS for historical backtest integrity under declared execution assumptions | verified-fleet / 364f72e | 346 passed, 12 skipped; 83 real cached votes; gap stress reported; reports/PHASE_2_REPORT.md |
 | 3 | NOT RUN | Not started | Outside authorization |
 | 4 | NOT RUN | Not started | Outside authorization; Phase 1 and Phase 2 gates must pass |
 | 5 | NOT RUN | Not started | Outside authorization |
@@ -122,3 +122,29 @@ The user requested a working online dashboard and fixes after the isolated previ
 - Focused isolated suite: 65 passed, 1 skipped, exit 0 (23.05 seconds). JavaScript syntax check passed. Initial online browser check had zero page exceptions; 401 for the signed-out account endpoint was expected. Automatic navigation of the user's browser was blocked by disabled browser control.
 - Normal dashboard startup may initialize local auth schema and update public candle caches. No account data was reset, no files/DBs deleted, no operational orders or bot startup occurred, and .env was not edited.
 - Evidence: reports/LOCAL_DASHBOARD_ONLINE_REPORT.md. Prior Phase 1/2 blockers and exchange safety defects remain. No later phase was started.
+
+
+## Phase 2 repair execution history — November 6 (superseded by completed verification below)
+
+User instruction: fix everything in Phase 2. Source repair commit `1cdcda0fbf76c8fdb805e8d918197ac547c27150` tightens actual RiskBot sizing, replay portfolio peaks, observed pair-exit prices, diagnostics and recorded-model generation. Final isolated suite: 345 passed, 12 skipped, exit 0, 38.76 seconds; evidence copy `C:\Users\EKANTH~1\AppData\Local\Temp\zillers-phase-audit-4r293wjy`.
+
+Real model-cache generation is running in `C:\Users\EKANTH~1\AppData\Local\Temp\zillers-phase-audit-1svgvjv1`; 83 requests total. Do not treat the earlier failed local-model run as the latest evidence. The compact scored-committee protocol has produced valid decisions inside the existing deadline; full coverage and the final committed-source replay are still pending. No Phase 2 PASS is asserted until those outputs are checked. No later phase or operational order is authorized by this repair.
+
+
+## Latest Phase 2 completed verification — November 6
+
+This section supersedes earlier Phase 2 FAIL/in-progress statements while preserving their evidence. Source commits: `1cdcda0` and `364f72e19dba8a522b8bd22fdb6fc6fbb8de99ce`. Phase 2 status: PASS for the implemented historical backtest and its explicitly declared execution model. This does not establish strategy edge, guarantee future stop fills or resolve Phase 1.
+
+- 2.1: Actual RiskBot/DebateBot handlers run with a real cache. 83 valid model votes from 83 requests, zero failures; local gemma4-quant:12b with frozen scored-committee protocol, no hidden template, same 35-second stage deadline. Median request 11.886 seconds, maximum 16.314 seconds (model requests, not trade performance). No trained classifier skill is claimed.
+- Final recorded shared replay: train has 234 proposals, 180 risk pre-vetoes, 42 debate vetoes, 12 approvals and 54 cached decisions; test has 76 proposals, 58 risk pre-vetoes, 16 debate vetoes, 2 approvals and 18 cached decisions. Zero misses and zero heuristic decisions in recorded mode. No-signal counts are separate. Pure heuristic diagnostic and recorded per-book comparisons are labeled separately.
+- Recorded portfolio: training net PnL 41.3434 with 12 trades; test net PnL -12.1140 with 2 trades. Both are insufficient data. No robust out-of-sample edge is established; do not trade live.
+- 2.2: Correct combined-risk sizing and frozen pair stops now use observed adverse exit prices without inventing prices outside the untriggered hedge candle. Zero budget-plus-slippage breaches across 45 train and 17 test mechanical trades; test is insufficient data. Twelve predeclared gap stresses explicitly report excess losses. A future-market universal stop-fill guarantee is not a valid backtest assumption and is not claimed.
+- Actual strict Spot policy retains the 0.85 correlation cap and rejects ETH/BTC at 0.88. An explicit unsupported-short veto replaces the unreachable pair runtime exception. Mechanical sizing tests do not imply executable unborrowed Spot shorts.
+- Actual RiskBot now applies its advertised order-notional cap, rounds quantity down, recomputes size risk, updates partial-exit exposure and rejects invalid brackets. Drawdown breaches latch and survive equity recovery/day rollover within the run. Replay total-NAV marks cannot be replaced by a fictitious cash-only peak.
+- 2.3: Trade-level fee-inclusive PF and ledger/cash reconciliation pass. 2.4: separate ADF level, difference, ratio and Engle-Granger train/test diagnostics ran, with API warnings resolved and no causal speculation. 2.5: same 90-day archived hourly observations, frozen parameters/split, recorded-cache final-source replay and old/new tables completed. Research-bar fingerprint matches the current archive observations.
+- Final full test command: `python -B scripts/run_isolated_tests.py`: 358 collected, 346 passed, 12 skipped, no warnings, exit 0, 42.47 seconds. Five external checks remain excluded by isolation and seven require optional QuantJourney. Final test copy: `C:\Users\EKANTH~1\AppData\Local\Temp\zillers-phase-audit-gaawv10f`.
+- Real generation: `python -B scripts/run_phase2_online.py`; generation and its original-copy replay exited 0. Final-source replay: `python -B scripts/run_phase2_research.py --cache <retained cache path>`; exited 0 in `C:\Users\EKANTH~1\AppData\Local\Temp\zillers-phase-audit-mw_f74ph`. No model/external calls occur in final replay.
+- Durable internal cache: `work/research/phase2-repair/recorded-debate-cache.json` (83 records with provenance). New published evidence: `reports/PHASE_2_REPAIR_RESULTS.json`, `reports/PHASE_2_REPAIR_TEST_OUTPUT.txt`; main report `reports/PHASE_2_REPORT.md` starts with latest verdict and retains older sections. Strict publication sanitization withheld 12 values with explicit metadata; raw internal evidence remains available for reproduction. Earlier reports and violation lists were preserved.
+- Five-gate governor source unchanged. No operational orders, model training, dependency installation, production environment edits, history rewrite, file/database deletion or later phase work occurred. The online dashboard was not restarted by this research repair.
+
+Next development decision: Phase 3 operations/exchange work needs explicit scope authorization and its service/order approvals. Phase 1 security/history/deployment blockers remain, so Phase 4 is still gated even with the scoped Phase 2 PASS. Phase 8 Laya classifier integration remains unfinished. No remaining coding blocker is asserted for the completed Phase 2 historical integrity checks; real-market gap/slippage and sparse-trade limitations remain documented.

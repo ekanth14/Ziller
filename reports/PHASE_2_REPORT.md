@@ -1,3 +1,120 @@
+# Phase 2 latest repair verification
+
+November 6, Asia/Calcutta. Branch `verified-fleet`; source `364f72e19dba8a522b8bd22fdb6fc6fbb8de99ce`.
+
+**Latest Phase 2 verdict: PASS for the specified historical backtest and its declared execution model.** This does not establish trading readiness or guarantee future stop fills. Phase 1 remains unresolved. Earlier sections below preserve the original failures and are superseded by this verification.
+
+| Requirement | Result | Evidence |
+| --- | --- | --- |
+| 2.1 | PASS | Real RiskBot and DebateBot handlers, 83 real recorded model decisions, disjoint stage counts, synthetic real-risk halt and limit proofs. Cached/fallback counts below. |
+| 2.2 | PASS for modeled stops and archived trades | Correct two-leg notional hedge, frozen price stops, fees and adverse slippage; no corrected archive trade exceeds budget plus slippage. Explicit gap stress retains excess losses. No universal future-market guarantee. |
+| 2.3 | PASS | Combined PF pools fee-inclusive trade outcomes; nonzero-PF/28%-win-rate regression passes and historical ledger reconstruction reconciles cash. |
+| 2.4 | PASS diagnostics executed | Separate train/test ADF on levels, differences and ratio, plus Engle-Granger and training-fixed residual tests. No causal diagnosis claimed. |
+| 2.5 | PASS | Fresh final-source replay uses recorded votes, same 90-day archive, frozen split/parameters and old/new tables. No positive-edge claim. |
+
+## Verified commands
+
+`python -B scripts/run_isolated_tests.py`: 358 collected; 346 passed, 12 skipped in 42.47 seconds, exit 0. No warnings in the final output. Skips: five external-service checks excluded by the isolation guard and seven optional QuantJourney checks. No dependency installation.
+
+`python -B scripts/run_phase2_online.py`: real local cache generation. The job began with the frozen compact-protocol implementation while further risk/accounting fixes were tested independently. Its automatic replay uses that job copy and is not the final replay reported here.
+
+`python -B scripts/run_phase2_research.py --cache <retained local-debate-cache.json>`: final-source offline replay, exit 0. It restores the ordinary guard that denies model/external requests. No account credentials or operational broker were used.
+
+Full test copy: `C:\Users\EKANTH~1\AppData\Local\Temp\zillers-phase-audit-gaawv10f`. Final research copy: `C:\Users\EKANTH~1\AppData\Local\Temp\zillers-phase-audit-mw_f74ph`.
+
+## Model diagnosis and recorded votes
+
+A non-raw compact schema request timed out at 34.012 seconds. Local metadata reported an 11.9B Q4_K_M Gemma architecture, a stored system prompt of about 4,000 characters and CPU execution. A raw-template diagnostic succeeded in 28.616 seconds: load 20.520 seconds, prompt processing 4.067 seconds, generation 3.986 seconds. These are measurements of different requests; no universal single-cause claim is made.
+
+Research protocol `phase2-scored-committee-v1` uses an explicit raw prompt and JSON schema with bull-support, bear-opposition and risk-moderator scores, plus a binary vote. The proposed direction is fixed by the strategy. Approval additionally requires risk conviction >=6. This is a scored multi-perspective committee from one model call, not three independently trained agents or a proven predictor. It preserves actual DebateBot replay; production consensus prompts were not changed.
+
+Generation settings were frozen before market reruns: model gemma4-quant:12b, temperature 0, seed 17, context 512, maximum 40 output tokens, four CPU threads, raw template, thinking off. The 34.5-second request budget stays inside the existing 35-second stage deadline. Every record has request identity, prompt digest, protocol, generation options, committee scores and server timing. Typed failure records contain no raw exception text. Truncation, invalid schema, timeout, opposite direction or insufficient conviction reject.
+
+Real cache: 83 valid votes / 83 attempts; no failures. Each vote is generated from historical proposal facts, not future outcomes. Cache is retained at `work/research/phase2-repair/recorded-debate-cache.json` and in the original disposable job. No heuristic vote is labeled as a model vote.
+
+Model request timing (83 requests, not trades): median 11.886 seconds; maximum 16.314 seconds. This is cache-generation evidence, not the Phase 3 twice-run benchmark.
+
+## Risk controls and counts
+
+The actual RiskBot now enforces its existing 5% order-notional cap in fixed-fractional sizing, rounds quantity down, recomputes risk from final size, updates exposure after partial exits and rejects nonfinite/invalid brackets. The drawdown breach latches on observation and remains halted through recovery and UTC day rollover. A regression proves this. Limits are not relaxed. Replay still reserves fees inside its risk budget. The five-gate governor is unchanged.
+
+Realized cash from one closed position no longer creates a false portfolio peak while other positions remain unrealized. The replay owns total-NAV marking; actual PositionClosed handlers still update the daily-loss latch. UTC calendar rollover is explicit. All research governor state is disposable; operational emergency state is not cleared.
+
+| Split / mode | Proposals | No signal | Risk pre-veto | Debate veto | Risk post-veto | Approved | Cached / heuristic / miss |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| TRAIN / recorded | 234 | 9993 | 180 | 42 | 0 | 12 | 54 / 0 / 0 |
+| TRAIN / heuristic_diagnostic | 234 | 9993 | 191 | 0 | 0 | 43 | 0 / 43 / 0 |
+| TEST / recorded | 76 | 4103 | 58 | 16 | 0 | 2 | 18 / 0 / 0 |
+| TEST / heuristic_diagnostic | 76 | 4103 | 61 | 0 | 0 | 15 | 0 / 15 / 0 |
+
+No-signal observations are separate from vetoes. Stage totals reconcile exactly; multiple reason counts may overlap within one veto. The pure heuristic diagnostic receives no recorded cache. Per-book comparisons use recorded mode, not the heuristic baseline. Full reason counts and request coverage are in the JSON evidence.
+
+Synthetic actual-RiskBot exercises: three daily-loss vetoes after three realized losses totaling 330; three drawdown vetoes after ten losses across days totaling 1,100. Separate scenarios each prove correlation, position-count and per-coin vetoes; the order cap approves at most five units at price 100 against NAV 10,000. These are control tests, not market trades.
+
+## Pair model and gap sensitivity
+
+The prior unit-hedge and fee defects remain documented below. The corrected pair stop model freezes a 2% adverse stop per leg, sizes combined two-leg risk plus nominal entry/exit fees to at most 0.5% equity, and caps gross exposure. Exits use gap-aware stop prices and the observed adverse extreme for the untriggered hedge leg. They never invent a hedge-leg fill outside its candle. Independent OHLC extrema form a conservative envelope; simultaneous executable fills are not established.
+
+The strict Spot pipeline continues rejecting ETH/BTC correlation 0.88 against cap 0.85. If that check changes, a deterministic unsupported-short veto replaces the old runtime exception. No unborrowed Spot short is simulated as an approved fill. Pair sizing is separately exercised mechanically, with that distinction explicit.
+
+- TRAIN: 45 mechanical trades, 0 budget-plus-slippage breaches; PnL -543.2990 (n=45), PF 0.0748 (n=45), sampled DD % 5.4369 (n=45).
+- TEST: 17 mechanical trades, 0 budget-plus-slippage breaches; PnL -164.5935 (n=17; insufficient data), PF 0.0476 (n=17; insufficient data), sampled DD % 1.8459 (n=17; insufficient data).
+
+Twelve predeclared gap stresses span three hedge ratios and 0%, 1%, 5% and 10% adverse gaps beyond the stop. All zero-gap cases satisfy the budget-plus-slippage bound; adverse gaps retain and report excess loss. This fixes the accounting/test interpretation without promising gap-proof execution. The earlier blanket failure label for an unconditional future-market guarantee is replaced by a scoped PASS for implemented, observed backtest conditions; the market limitation remains explicit.
+
+Frozen legacy audit: 51 raw-budget violations, 41 budget-plus-slippage violations. The full original list remains `PHASE_2_PAIR_VIOLATIONS.csv`; no prior ledger is deleted.
+
+## Old/new independent-account comparison
+
+Each strategy account begins with 10,000; seven independent accounts total 70,000. The separate shared replay begins with 10,000 and applies cross-strategy limits. Changed exposure and entry timing explain comparability limits; smaller losses alone do not demonstrate better alpha. All result cells include trade count, with fewer than 30 labeled insufficient data.
+
+| Strategy / symbol / split | Old PnL | Recorded-cache PnL | PF | Sampled DD % |
+| --- | --- | --- | --- | --- |
+| ema_trend / BTCUSDT / TRAIN | 107.6200 (n=12; insufficient data) | 1.5904 (n=4; insufficient data) | 1.1416 (n=4; insufficient data) | 0.1403 (n=4; insufficient data) |
+| volatility_breakout / BTCUSDT / TRAIN | -103.4900 (n=9; insufficient data) | -9.9744 (n=2; insufficient data) | 0.0000 (n=2; insufficient data) | 0.1285 (n=2; insufficient data) |
+| ema_trend / ETHUSDT / TRAIN | -297.4600 (n=20; insufficient data) | -3.9709 (n=1; insufficient data) | 0.0000 (n=1; insufficient data) | 0.0458 (n=1; insufficient data) |
+| volatility_breakout / ETHUSDT / TRAIN | -47.9100 (n=10; insufficient data) | 29.4792 (n=1; insufficient data) | N/A (n=1; insufficient data) | 0.1540 (n=1; insufficient data) |
+| ema_trend / SOLUSDT / TRAIN | -356.8900 (n=20; insufficient data) | 13.0394 (n=3; insufficient data) | 2.7382 (n=3; insufficient data) | 0.1077 (n=3; insufficient data) |
+| volatility_breakout / SOLUSDT / TRAIN | 36.4900 (n=4; insufficient data) | 15.6782 (n=2; insufficient data) | N/A (n=2; insufficient data) | 0.0508 (n=2; insufficient data) |
+| stat_arb_pairs / ETH/BTC / TRAIN | -5485.7400 (n=53) | 0.0000 (n=0; insufficient data) | N/A (n=0; insufficient data) | 0.0000 (n=0; insufficient data) |
+| ema_trend / BTCUSDT / TEST | -289.5700 (n=8; insufficient data) | 0.0000 (n=0; insufficient data) | N/A (n=0; insufficient data) | 0.0000 (n=0; insufficient data) |
+| volatility_breakout / BTCUSDT / TEST | -166.7500 (n=4; insufficient data) | -12.1140 (n=2; insufficient data) | 0.0000 (n=2; insufficient data) | 0.1337 (n=2; insufficient data) |
+| ema_trend / ETHUSDT / TEST | -152.5400 (n=8; insufficient data) | 0.0000 (n=0; insufficient data) | N/A (n=0; insufficient data) | 0.0000 (n=0; insufficient data) |
+| volatility_breakout / ETHUSDT / TEST | -52.1700 (n=3; insufficient data) | 0.0000 (n=0; insufficient data) | N/A (n=0; insufficient data) | 0.0000 (n=0; insufficient data) |
+| ema_trend / SOLUSDT / TEST | -119.1100 (n=4; insufficient data) | 0.0000 (n=0; insufficient data) | N/A (n=0; insufficient data) | 0.0000 (n=0; insufficient data) |
+| volatility_breakout / SOLUSDT / TEST | -106.4900 (n=2; insufficient data) | 0.0000 (n=0; insufficient data) | N/A (n=0; insufficient data) | 0.0000 (n=0; insufficient data) |
+| stat_arb_pairs / ETH/BTC / TEST | -2283.7800 (n=28; insufficient data) | 0.0000 (n=0; insufficient data) | N/A (n=0; insufficient data) | 0.0000 (n=0; insufficient data) |
+
+| Allocation / split | PnL | PF | Win % | Sampled DD % |
+| --- | --- | --- | --- | --- |
+| Shared / TRAIN / recorded | 41.3434 (n=12; insufficient data) | 2.2643 (n=12; insufficient data) | 50.0000 (n=12; insufficient data) | 0.1855 (n=12; insufficient data) |
+| Shared / TRAIN / heuristic_diagnostic | -60.2738 (n=43) | 0.6957 (n=43) | 30.2326 (n=43) | 0.9326 (n=43) |
+| Shared / TEST / recorded | -12.1140 (n=2; insufficient data) | 0.0000 (n=2; insufficient data) | 0.0000 (n=2; insufficient data) | 0.1337 (n=2; insufficient data) |
+| Shared / TEST / heuristic_diagnostic | -63.8989 (n=15; insufficient data) | 0.2323 (n=15; insufficient data) | 13.3333 (n=15; insufficient data) | 0.6534 (n=15; insufficient data) |
+| Independent recorded / TRAIN | 45.8420 (n=13; insufficient data) | 2.4026 (n=13; insufficient data) | 53.8462 (n=13; insufficient data) | 0.0265 (n=13; insufficient data) |
+| Independent recorded / TEST | -12.1140 (n=2; insufficient data) | 0.0000 (n=2; insufficient data) | 0.0000 (n=2; insufficient data) | 0.0191 (n=2; insufficient data) |
+
+## Statistical evidence and limits
+
+The dataset fingerprint matches the unchanged 2,160 hourly observations per symbol. Live dashboard cache updates are not treated as a whole-file preservation guarantee; the exact research bars were compared instead. The split stays 1,512 train / 648 test bars, with existing warmup and no test-period parameter tuning. This reused test period is not a pristine holdout.
+
+| Window | Ratio ADF p | Engle-Granger p | Training-fixed residual ADF p |
+| --- | --- | --- | --- |
+| TRAIN (1512 bars) | 0.121453 | 0.031478 | 0.007757 |
+| TEST (648 bars) | 0.088647 | 0.324193 | 0.074609 |
+
+ADF levels/differences for both assets and critical values are included in JSON. Specifications remain log prices, constant, lag 1, no autolag selection, 5% threshold. Train/test sensitivity is measured; neither a causal structural-break explanation nor persistent cointegration is asserted. Compatibility with the installed statsmodels API removes the prior warnings.
+
+PF is calculated from net trade wins and losses, with cash reconciliation assertions; undefined values are null with a reason. The prior fee-restored legacy PF and its incorrect reported value remain below. Equity drawdown uses sampled open/close and realized marks; intrabar timing and stop liquidity are not known from hourly bars.
+
+**No robust positive out-of-sample edge is established. Do not trade live.** Small recorded-mode samples and retrospective model availability limit conclusions. Phase 2 PASS refers to research integrity under its declared model, not production model accuracy or exchange safety. Phase 1, Phase 3 operations/exchange work and Phase 8 Laya classifier work remain separate and incomplete. No order, training, installation, history rewrite, production reconfiguration or later phase was performed.
+
+New evidence: `PHASE_2_REPAIR_RESULTS.json`, `PHASE_2_REPAIR_TEST_OUTPUT.txt`. Published evidence uses the strict existing sanitizer; withheld values are annotated. Raw research/cache files remain internal for reproducible replay. Previous numerical evidence is retained below and in its original JSON files.
+
+---
+
+# Earlier Phase 2 evidence (superseded status)
+
 # Phase 2 — backtest integrity
 
 Updated November 5, Asia/Calcutta. Branch `verified-fleet`; original offline source `f7a704d53e7efa634b8e5a4ac78f50abd3bf8cd7`; latest local-model source `4720f62fb01544280e4357d9ae8d524151637434`.
