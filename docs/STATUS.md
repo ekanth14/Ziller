@@ -148,3 +148,12 @@ This section supersedes earlier Phase 2 FAIL/in-progress statements while preser
 - Five-gate governor source unchanged. No operational orders, model training, dependency installation, production environment edits, history rewrite, file/database deletion or later phase work occurred. The online dashboard was not restarted by this research repair.
 
 Next development decision: Phase 3 operations/exchange work needs explicit scope authorization and its service/order approvals. Phase 1 security/history/deployment blockers remain, so Phase 4 is still gated even with the scoped Phase 2 PASS. Phase 8 Laya classifier integration remains unfinished. No remaining coding blocker is asserted for the completed Phase 2 historical integrity checks; real-market gap/slippage and sparse-trade limitations remain documented.
+
+
+## Latest localhost live-data repair — November 6
+
+User reported live data failure and asked to continue. The original localhost:8900 address still served the old isolated preview, while 8910 served actual fresh data. Only the two stale dashboard processes created by this chat were identified and stopped. The actual workspace dashboard now runs at http://localhost:8900/ and the launcher defaults to 8900 again.
+
+Freshness fixes prevent socket-open events, cached metadata, expired quotes, archived bot quotes or closed-candle redraws from masquerading as a live quote. Binance no-quote cycles now activate the existing fallback policy. No trading bot was stopped, no order placed, and the emergency halt remains engaged.
+
+Validation: 47 Python tests passed in isolated data; six Node freshness tests passed; JavaScript syntax passed. Three real stream frames had increasing timestamps and all eight symbols fresh. Actual headless browser on port 8900 showed LIVE STREAMING and a current price with zero page exceptions. Evidence: reports/LIVE_DATA_REPAIR.md. Phase gates and research results are unchanged.

@@ -1,6 +1,6 @@
 """Run the workspace dashboard with public online data and trading disabled.
 
-Usage: python -B scripts/run_dashboard.py [--port 8910]
+Usage: python -B scripts/run_dashboard.py [--port 8900]
 Uses existing local users and research records. Never edits .env or starts a bot.
 """
 import argparse
@@ -30,7 +30,7 @@ def dashboard_environment():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--port', type=int, default=8910)
+    parser.add_argument('--port', type=int, default=8900)
     args = parser.parse_args()
     return subprocess.call([sys.executable, '-B', '-m', 'cryptoscope.dashboard',
                             '--port', str(args.port)], cwd=ROOT, env=dashboard_environment())

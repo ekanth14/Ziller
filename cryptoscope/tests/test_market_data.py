@@ -197,6 +197,20 @@ class KrakenFeedTests(unittest.TestCase):
 
 
 class BinanceFeedTests(unittest.TestCase):
+    def test_empty_quote_cycles_trigger_actual_poll_fallback(self):
+        feed = BinanceFeed(on_ticker=lambda t: None, symbols=['BTCUSDT'])
+        feed._running = True
+        cycles = []
+        def pause(_):
+            cycles.append(1)
+            if len(cycles) == 3:
+                feed._running = False
+        with patch.object(feed, 'fetch_book_ticker', return_value=None), patch(
+                'cryptoscope.market_data.binance_feed.time.sleep', side_effect=pause):
+            feed._poll_loop()
+        self.assertEqual(feed.active_rest_host, BinanceFeed.FALLBACK_REST)
+        self.assertEqual(feed._consecutive_errors, 3)
+
     def test_binance_feed_switches_to_fallback_on_consecutive_errors(self):
         feed = BinanceFeed(on_ticker=lambda t: None, symbols=["BTCUSDT"])
         self.assertEqual(feed.active_rest_host, BinanceFeed.PRIMARY_REST)

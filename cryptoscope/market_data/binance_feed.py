@@ -42,10 +42,14 @@ class BinanceFeed:
     def _poll_loop(self):
         while self._running:
             try:
+                received = False
                 for symbol in self.symbols:
                     ticker = self.fetch_book_ticker(symbol)
                     if ticker:
                         self.on_ticker(ticker)
+                        received = True
+                if not received:
+                    raise ConnectionError('No public quotes received this cycle')
                 self._consecutive_errors = 0
                 time.sleep(1.0)
             except Exception as e:

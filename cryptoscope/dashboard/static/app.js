@@ -37,6 +37,28 @@ const state = {
   activeSymbol: 'ETHUSDT'
 };
 
+function isFreshTicker(ticker, now = Date.now()) {
+  return !!ticker && ['verified', 'single-source', 'unverified'].includes(ticker.status)
+    && Number.isFinite(ticker.price) && ticker.price > 0
+    && Number.isFinite(ticker.age_seconds) && ticker.age_seconds >= 0
+    && Number.isFinite(ticker.receivedAtMs) && now >= ticker.receivedAtMs
+    && ticker.age_seconds + (now - ticker.receivedAtMs) / 1000 <= 5;
+}
+
+function refreshFeedStatus() {
+  const symbol = $('symbol')?.value || state.activeSymbol || 'ETHUSDT';
+  const ticker = state.tickers[symbol];
+  const fresh = isFreshTicker(ticker);
+  const verified = fresh && ticker.status === 'verified';
+  const disagreement = fresh && ticker.status === 'unverified';
+  if ($('feed-status-text')) {
+    $('feed-status-text').textContent = verified ? 'LIVE STREAMING' : disagreement ? 'PRICE DISAGREEMENT' : fresh ? 'LIVE · SINGLE SOURCE' : 'WAITING FOR FRESH DATA';
+    $('feed-status-text').className = 'val ' + (verified ? 'ok' : 'warn');
+  }
+  if ($('feed-status-dot')) $('feed-status-dot').style.background = verified ? 'var(--secondary-emerald)' : 'var(--warning-amber)';
+  if (!fresh && $('market-price')) $('market-price').textContent = '—';
+}
+
 const money = value => {
   if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—';
   const num = Number(value);
@@ -546,13 +568,13 @@ function renderChart() {
   const first = visible[0];
   const pctChange = ((last.close / first.close) - 1) * 100;
   
-  if ($('market-price')) $('market-price').textContent = money(last.close);
+  if ($('market-price')) $('market-price').textContent = isFreshTicker(state.tickers[symbol]) ? money(state.tickers[symbol].price) : '—';
   if ($('market-change')) {
     $('market-change').textContent = `${pctChange >= 0 ? '+' : ''}${pctChange.toFixed(2)}% (${N}b)`;
     $('market-change').className = `kpi-tag ${pctChange >= 0 ? 'green' : 'rose'}`;
   }
   if ($('chart-interval')) $('chart-interval').textContent = `5m · ${N} Candlestick Bars`;
-  if ($('snapshot-time')) $('snapshot-time').textContent = `Live · ${new Date(last.close_time * 1000).toLocaleTimeString()}`;
+  if ($('snapshot-time')) $('snapshot-time').textContent = `Last closed bar · ${new Date(last.close_time * 1000).toLocaleTimeString()}`;
 
   // Default HUD values
   updateHudValues(last);
@@ -682,16 +704,14 @@ function updateHudValues(c) {
 function renderOrderBook() {
   const currentSymbol = $('symbol')?.value || state.activeSymbol || 'ETHUSDT';
   const ticker = state.tickers[currentSymbol];
-  const botQuotes = state.data?.autotrader?.runtime?.quotes || {};
-  const quote = botQuotes[currentSymbol];
-
-  let bid = ticker?.bid ?? quote?.bid;
-  let ask = ticker?.ask ?? quote?.ask;
+  const fresh = isFreshTicker(ticker);
+  let bid = fresh ? ticker.bid : null;
+  let ask = fresh ? ticker.ask : null;
 
   // Truthful rendering: Never fabricate synthetic bid/ask steps when exchange data is missing
   if (!bid || !ask || !Number.isFinite(bid) || !Number.isFinite(ask) || bid <= 0 || ask <= 0) {
     if ($('ob-spread')) $('ob-spread').textContent = '—';
-    if ($('ob-midpoint')) $('ob-midpoint').textContent = ticker?.price ? `${ticker.price.toFixed(ticker.price < 1 ? 4 : 2)} USDT (Single-Source)` : '—';
+    if ($('ob-midpoint')) $('ob-midpoint').textContent = fresh ? `${ticker.price.toFixed(ticker.price < 1 ? 4 : 2)} USDT` : '—';
     ['ob-bid-1', 'ob-bid-2', 'ob-bid-3', 'ob-bid-4', 'ob-ask-1', 'ob-ask-2', 'ob-ask-3', 'ob-ask-4'].forEach(id => {
       if ($(id)) $(id).textContent = '—';
     });
@@ -1462,7 +1482,7 @@ async function fetchListings() {
     const tickerMap = {};
     if (Array.isArray(tickersRes?.tickers)) {
       tickersRes.tickers.forEach(t => {
-        if (t.symbol) tickerMap[t.symbol.toUpperCase()] = t;
+        if (t.symbol) tickerMap[t.symbol.toUpperCase()] = { ...t, receivedAtMs: Date.now() };
       });
     } else if (tickersRes?.tickers && typeof tickersRes.tickers === 'object') {
       Object.assign(tickerMap, tickersRes.tickers);
@@ -1480,6 +1500,7 @@ async function fetchListings() {
     state.tickers = { ...state.tickers, ...tickerMap };
     updateSymbolDropdown();
     renderListings();
+    refreshFeedStatus();
   } catch (err) {
     console.error("fetchListings error:", err);
     if ($('listings-body')) {
@@ -1773,6 +1794,7 @@ function clock(){
   if ($('clock')) $('clock').textContent=new Date().toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit',second:'2-digit'}); 
 }
 clock(); setInterval(clock, 1000);
+setInterval(() => { refreshFeedStatus(); renderOrderBook(); }, 1000);
 setInterval(()=>{ 
   if($('auto-refresh')?.checked && !state.busy && !document.hidden) {
     refresh();
@@ -1791,11 +1813,7 @@ function initSseStream() {
     const sse = new EventSource('/api/market/stream');
     sse.onopen = () => {
       sseRetryCount = 0;
-      if ($('feed-status-dot')) $('feed-status-dot').style.background = 'var(--secondary-emerald)';
-      if ($('feed-status-text')) {
-        $('feed-status-text').textContent = 'LIVE STREAMING';
-        $('feed-status-text').className = 'val ok';
-      }
+      refreshFeedStatus();
     };
     sse.onmessage = e => {
       try {
@@ -1803,14 +1821,15 @@ function initSseStream() {
         if (payload.tickers && Array.isArray(payload.tickers)) {
           const map = {};
           payload.tickers.forEach(t => {
-            if (t.symbol) map[t.symbol.toUpperCase()] = t;
+            if (t.symbol) map[t.symbol.toUpperCase()] = { ...t, receivedAtMs: Date.now() };
           });
           state.tickers = { ...state.tickers, ...map };
+          refreshFeedStatus();
 
           // Real-time tick update for currently active chart symbol
           const curSymbol = $('symbol')?.value || state.activeSymbol || 'ETHUSDT';
           const curTicker = map[curSymbol];
-          if (curTicker && Number.isFinite(curTicker.price)) {
+          if (isFreshTicker(curTicker)) {
             // Update market price display with tick flash
             if ($('market-price')) {
               const oldPrice = state.previousPrices[curSymbol];
