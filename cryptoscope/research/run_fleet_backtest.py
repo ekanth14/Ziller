@@ -13,8 +13,8 @@ from pathlib import Path
 from cryptoscope.backtesting.fleet_replay import FROZEN_PARAMETERS,load_archive,data_fingerprint,replay
 from cryptoscope.backtesting.integrity import trade_metrics
 from cryptoscope.backtesting.legacy_audit import audit_legacy
-from cryptoscope.backtesting.pair_audit import audit_pair_stops
-from cryptoscope.backtesting.risk_exercises import exercise_risk_halts
+from cryptoscope.backtesting.pair_audit import audit_pair_stops,gap_sensitivity
+from cryptoscope.backtesting.risk_exercises import exercise_risk_halts,exercise_portfolio_limits
 from cryptoscope.backtesting.stationarity import stationarity_windows
 from cryptoscope.security.halt_state import GovernorState
 
@@ -33,18 +33,21 @@ async def research(args):
                                start=store['BTCUSDT'][0]['open_time'],end=store['BTCUSDT'][-1]['close_time'],
                                train_bars=1512,test_bars=648,ordering_gaps_alignment='PASS'),
                   cache=dict(record_count=len(records),source='user-supplied' if args.cache else 'no exact recorded cache found'),
-                  shared_account={},comparison_books=[],pair_stop_audit={},risk_exercises=await exercise_risk_halts())
+                  shared_account={},comparison_books=[],pair_stop_audit={},gap_sensitivity=gap_sensitivity(),
+                  risk_exercises=await exercise_risk_halts(),portfolio_exercises=await exercise_portfolio_limits())
     for split,lo,hi in [('TRAIN',0,1512),('TEST',1512,2160)]:
         window = {s:bars[lo:hi] for s,bars in store.items()}
         result['shared_account'][split] = {}
         for mode in ('recorded','heuristic_diagnostic'):
-            result['shared_account'][split][mode] = await replay(window,mode=mode,records=records)
+            result['shared_account'][split][mode] = await replay(window,mode=mode,
+                records=records if mode=='recorded' else None)
+        comparison_mode = 'recorded' if args.cache else 'heuristic_diagnostic'
         for symbol in ('BTCUSDT','ETHUSDT','SOLUSDT'):
             for strategy in ('ema_trend','volatility_breakout'):
-                book = await replay(window,mode='heuristic_diagnostic',records=records,only=(strategy,symbol))
-                result['comparison_books'].append(dict(book,split=split,strategy=strategy,symbol=symbol))
-        book = await replay(window,mode='heuristic_diagnostic',records=records,only=('stat_arb_pairs','ETH/BTC'))
-        result['comparison_books'].append(dict(book,split=split,strategy='stat_arb_pairs',symbol='ETH/BTC'))
+                book = await replay(window,mode=comparison_mode,records=records,only=(strategy,symbol))
+                result['comparison_books'].append(dict(book,split=split,strategy=strategy,symbol=symbol,debate_mode=comparison_mode))
+        book = await replay(window,mode=comparison_mode,records=records,only=('stat_arb_pairs','ETH/BTC'))
+        result['comparison_books'].append(dict(book,split=split,strategy='stat_arb_pairs',symbol='ETH/BTC',debate_mode=comparison_mode))
         result['pair_stop_audit'][split] = audit_pair_stops(window['ETHUSDT'],window['BTCUSDT'])
     result['independent_account_aggregates'] = {}
     for split in ('TRAIN','TEST'):

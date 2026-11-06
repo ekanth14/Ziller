@@ -20,6 +20,8 @@ class RecordedDebateEngine:
     def __init__(self, records=None, mode='recorded'):
         if mode not in {'recorded', 'heuristic_diagnostic'}:
             raise ValueError('Unknown offline debate mode')
+        if records is not None and not isinstance(records,dict):
+            raise ValueError('Debate cache records must be an object')
         self.records = records or {}
         self.mode = mode
         self.counts = Counter()

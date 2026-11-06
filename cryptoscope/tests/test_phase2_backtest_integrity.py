@@ -97,7 +97,7 @@ def test_actual_debate_and_risk_use_fixture_cache_and_enforce_size_cap():
         assert qty == 5  # Real RiskBot approves a larger quantity; clamp to its 5% order cap.
         assert pipeline.engine.counts == {'cached':1}
         assert pipeline.summary()['approved'] == 1
-        assert pipeline.summary()['size_reductions'] == 1
+        assert pipeline.summary()['size_reductions'] == 0  # Actual RiskBot now applies its own 5% notional cap.
     asyncio.run(run())
 
 

@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import math
 import time
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -101,6 +102,8 @@ class RiskBot(BaseBot):
     def check_pre_trade_risk(self, intent: TradeIntent) -> Tuple[bool, List[str]]:
         """Deterministic pre-trade risk gating before expensive LLM deliberation."""
         veto_reasons = []
+        if not self._valid_prices(intent):
+            return False, ['INVALID_PRICES: Finite positive prices and a protective stop are required.']
 
         if self.daily_loss_circuit_breaker:
             veto_reasons.append("DAILY_LOSS_LIMIT: Circuit breaker active.")
@@ -124,6 +127,14 @@ class RiskBot(BaseBot):
 
         return len(veto_reasons) == 0, veto_reasons
 
+    @staticmethod
+    def _valid_prices(intent):
+        values = (intent.entry_price,intent.stop_loss,intent.take_profit)
+        if not all(type(v) in (int,float) and math.isfinite(v) and v > 0 for v in values):
+            return False
+        return ((intent.direction == 'BUY' and intent.stop_loss < intent.entry_price < intent.take_profit)
+                or (intent.direction == 'SELL' and intent.take_profit < intent.entry_price < intent.stop_loss))
+
     def _handle_fill(self, fill: Fill) -> None:
         """Track open position exposure."""
         sym = fill.symbol
@@ -139,6 +150,8 @@ class RiskBot(BaseBot):
                 pos["quantity"] -= fill.quantity
                 if pos["quantity"] <= 1e-6:
                     self.open_positions.pop(sym, None)
+                else:
+                    pos['usd_value'] = pos['quantity'] * pos['entry']
 
     def _handle_position_closed(self, closed: PositionClosed) -> None:
         """Update daily PnL and NAV tracking."""
@@ -169,6 +182,11 @@ class RiskBot(BaseBot):
         intent = self.cached_intents.get(debate.intent_id)
         if not intent:
             logger.warning("[%s] Missing cached TradeIntent for debate %s", self.name, debate.debate_id)
+            return
+
+        if not self._valid_prices(intent):
+            await self.emit(RiskDecision(intent_id=intent.intent_id,symbol=intent.symbol,
+                decision='VETOED',veto_reasons=['INVALID_PRICES: Invalid trade bracket.']))
             return
 
         veto_reasons: List[str] = []
@@ -244,7 +262,17 @@ class RiskBot(BaseBot):
                 )
             else:
                 approved_usd = remaining_room
-                approved_qty = round(approved_usd / entry, 4)
+                approved_qty = min(approved_qty,approved_usd / entry)
+
+        # Enforce advertised notional limits in fixed-fractional mode too.
+        # Round down so precision handling never increases approved exposure.
+        approved_usd = min(approved_usd,self.current_nav * self.max_order_pct,
+                           max(0.0,max_coin_usd-existing_exposure))
+        approved_qty = math.floor(min(approved_qty,approved_usd/entry)*100_000_000)/100_000_000
+        approved_usd = approved_qty * entry
+        risk_usd = approved_qty * abs(entry-stop)
+        if not math.isfinite(approved_qty) or approved_qty <= 0:
+            veto_reasons.append('INVALID_SIZE: No positive size within limits.')
 
         decision_status = "VETOED" if veto_reasons else "APPROVED"
 

@@ -21,3 +21,21 @@ async def exercise_risk_halts():
         results[name] = dict(pipeline.summary(),closed_loss_events=count,
                             nav=pipeline.risk.current_nav,daily_pnl=pipeline.risk.daily_realized_pnl)
     return results
+
+
+async def exercise_portfolio_limits():
+    """Synthetic control proofs, with actual pre/post risk stage counts."""
+    results={}
+    for name in ('correlation','position_count','per_coin','order_notional'):
+        pipeline=ReplayPipeline(mode='heuristic_diagnostic')
+        symbol='BTCUSDT'
+        if name=='correlation':
+            pipeline.risk.open_positions['BTCUSDT']=dict(quantity=5,usd_value=500)
+            symbol='ETHUSDT'
+        elif name=='position_count':
+            pipeline.risk.open_positions={s:dict(quantity=1,usd_value=100) for s in ('A','B','C')}
+        elif name=='per_coin':
+            pipeline.risk.open_positions['BTCUSDT']=dict(quantity=15,usd_value=1500)
+        quantity=await pipeline.approve(TradeIntent(symbol=symbol,entry_price=100,stop_loss=98,take_profit=104))
+        results[name]=dict(pipeline.summary(),approved_quantity=quantity)
+    return results

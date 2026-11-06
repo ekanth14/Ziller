@@ -14,7 +14,7 @@ from pathlib import Path
 import time
 import urllib.request
 
-from cryptoscope.agents.consensus import DeliberationConsensusEngine
+from cryptoscope.backtesting.compact_debate import CompactDebateEngine as DeliberationConsensusEngine
 from cryptoscope.backtesting.debate_cache import debate_key
 from cryptoscope.backtesting.fleet_replay import FROZEN_PARAMETERS,load_archive,replay
 from cryptoscope.security.halt_state import GovernorState
@@ -22,6 +22,8 @@ from cryptoscope.security.halt_state import GovernorState
 
 def normalize_vote(raw,request,model,budget):
     """Only successful, direction-consistent model votes become cache hits."""
+    if not isinstance(raw,dict):
+        return None
     score,latency = raw.get('conviction_score'),raw.get('latency_ms')
     valid = (not raw.get('fallback_used',True) and raw.get('model') == model
         and raw.get('verdict') in {'APPROVE','REJECT'}
@@ -37,6 +39,7 @@ def normalize_vote(raw,request,model,budget):
     # Do not persist free-form model text as trusted control information.
     return dict(source='recorded_model',model=model,verdict=verdict,
                 conviction_score=score,latency_ms=latency,fallback_used=False,
+                provenance={k:raw[k] for k in ('protocol','prompt_sha256','generation_options','committee_scores','timing') if k in raw},
                 recorded_at=datetime.now(timezone.utc).isoformat(),
                 action=request['direction'] if verdict=='APPROVE' else 'STAND_ASIDE')
 
@@ -94,6 +97,7 @@ def main():
             failures += 1
         attempt = dict(index=index,input_key=key,elapsed_seconds=round(elapsed,3),
                        status='recorded_model' if vote else 'failed_closed',
+                       failure_category=None if vote else raw.get('failure_category','invalid_vote'),
                        verdict=vote['verdict'] if vote else 'REJECT')
         cache['attempts'].append(attempt)
         # Checkpoint each completed request. No retries or timeout extension.

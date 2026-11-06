@@ -1,6 +1,7 @@
 """Optional research diagnostics; never imported by the core trading runtime."""
 import importlib.metadata
 import math
+import inspect
 
 
 def stationarity_windows(store):
@@ -20,7 +21,8 @@ def stationarity_windows(store):
     alpha,beta = np.linalg.lstsq(np.column_stack([np.ones(split),train_btc]),train_eth,rcond=None)[0]
 
     def adf(series):
-        statistic,pvalue,lags,nobs,critical = adfuller(series,maxlag=1,regression='c',autolag=None)
+        options = {'result_object':False} if 'result_object' in inspect.signature(adfuller).parameters else {}
+        statistic,pvalue,lags,nobs,critical = adfuller(series,maxlag=1,regression='c',autolag=None,**options)
         return dict(statistic=float(statistic),pvalue=float(pvalue),lags=int(lags),nobs=int(nobs),
                     critical_values={k:float(v) for k,v in critical.items()},reject_unit_root_5pct=bool(pvalue<0.05))
 
@@ -32,6 +34,8 @@ def stationarity_windows(store):
             raise ValueError('Degenerate cointegration diagnostic')
         result['windows'][name] = dict(bars=hi-lo,start=store['ETHUSDT'][lo]['open_time'],
             end=store['ETHUSDT'][hi-1]['close_time'],log_ratio_adf=adf(eth-btc),
+            eth_log_level_adf=adf(eth),btc_log_level_adf=adf(btc),
+            eth_log_difference_adf=adf(np.diff(eth)),btc_log_difference_adf=adf(np.diff(btc)),
             train_fixed_residual_adf=adf(eth-alpha-beta*btc),
             engle_granger=dict(statistic=float(statistic),pvalue=float(pvalue),
                               critical_values=[float(v) for v in critical],reject_no_cointegration_5pct=bool(pvalue<0.05)))

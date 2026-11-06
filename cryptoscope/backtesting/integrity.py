@@ -6,13 +6,19 @@ import math
 
 def trade_metrics(trades, initial_capital, equity_curve=()):
     """Pool net *trade* outcomes, never strategy net totals, for profit factor."""
+    if not math.isfinite(initial_capital) or initial_capital <= 0:
+        raise ValueError('Initial capital must be finite and positive')
     pnls = [float(t['pnl']) for t in trades]
+    if not all(math.isfinite(p) for p in pnls):
+        raise ValueError('Trade outcomes must be finite')
     gross_profit = math.fsum(p for p in pnls if p > 0)
     gross_loss = math.fsum(-p for p in pnls if p < 0)
     net = math.fsum(pnls)
     peak = initial_capital
     drawdown = 0.0
     for equity in equity_curve:
+        if not math.isfinite(equity):
+            raise ValueError('Equity must be finite')
         peak = max(peak, equity)
         drawdown = max(drawdown, (peak - equity) / peak if peak > 0 else 0)
     return dict(
@@ -85,6 +91,11 @@ def pair_stop_prices(plan, eth_bar, btc_bar):
     research bound, not a claim that exchange stop fills occur at those prices.
     Opening gaps remain uncapped and can exceed a fixed fractional budget.
     """
-    if eth_bar['low'] <= plan['stop_eth'] or btc_bar['high'] >= plan['stop_btc']:
-        return [min(eth_bar['open'],plan['stop_eth']),max(btc_bar['open'],plan['stop_btc'])]
+    eth_trigger = eth_bar['low'] <= plan['stop_eth']
+    btc_trigger = btc_bar['high'] >= plan['stop_btc']
+    if eth_trigger or btc_trigger:
+        # On a pair exit the untriggered hedge leg uses its observed adverse
+        # bar extreme, not an invented stop price outside that candle's range.
+        return [min(eth_bar['open'],plan['stop_eth']) if eth_trigger else eth_bar['low'],
+                max(btc_bar['open'],plan['stop_btc']) if btc_trigger else btc_bar['high']]
     return None

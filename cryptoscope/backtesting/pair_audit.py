@@ -7,6 +7,21 @@ from cryptoscope.autotrader.strategies.stat_arb_pairs import StatArbPairsStrateg
 from cryptoscope.backtesting.integrity import pair_size, pair_stop_prices, settle_legs, trade_metrics
 
 
+def gap_sensitivity():
+    """Predeclared execution stress, not a parameter search or return forecast."""
+    results=[]
+    for beta in (0.5,1.0,2.0):
+        plan=pair_size(10000,3000,90000,beta)
+        legs=[dict(quantity=plan['quantity_eth'],entry=3000),dict(quantity=plan['quantity_btc'],entry=90000)]
+        for adverse_gap in (0.0,0.01,0.05,0.10):
+            prices=[plan['stop_eth']*(1-adverse_gap),plan['stop_btc']*(1+adverse_gap)]
+            result=settle_legs(legs,prices,0.00075,0.0005)
+            results.append(dict(beta=beta,adverse_gap=adverse_gap,risk_budget=plan['risk_budget'],
+                loss_usd=-result['pnl'],slippage_usd=result['slippage_usd'],
+                excess_usd=max(0,-result['pnl']-plan['risk_budget']-result['slippage_usd'])))
+    return results
+
+
 def audit_pair_stops(eth,btc,capital=10000.0):
     if [c['open_time'] for c in eth] != [c['open_time'] for c in btc]:
         raise ValueError('Pair timestamps must match')
@@ -36,6 +51,12 @@ def audit_pair_stops(eth,btc,capital=10000.0):
                               exit_time=timestamp,reason=reason,legs=position['legs'],exit_prices=prices,
                               risk_budget=position['plan']['risk_budget'],planned_loss=position['plan']['planned_loss'])
                 result['loss_budget_breach'] = -result['pnl'] > result['risk_budget']+result['slippage_usd']+1e-8
+                nominal_stop = settle_legs(position['legs'],
+                    [position['plan']['stop_eth'],position['plan']['stop_btc']],0.00075,0.0005)
+                result['stop_model_loss_usd'] = -nominal_stop['pnl']
+                result['gap_excess_usd'] = max(0,-result['pnl']-result['risk_budget']-result['slippage_usd'])
+                result['gap_observed'] = (a['open'] < position['plan']['stop_eth'] or
+                                          b['open'] > position['plan']['stop_btc'])
                 cash += result['pnl']
                 trades.append(result)
                 position = None
@@ -52,6 +73,7 @@ def audit_pair_stops(eth,btc,capital=10000.0):
                 position['exit_pending'] = True
         elif result and result.get('side') == 'LONG_SPREAD' and result['hedge_ratio_beta'] > 0:
             pending = dict(beta=result['hedge_ratio_beta'],time=a['close_time'])
+    assert abs(cash-capital-sum(t['pnl'] for t in trades)) < 1e-7
     return dict(label='mechanical sizing audit only; bypasses approval pipeline; not deployable',
                 metrics=trade_metrics(trades,capital,curve),trades=trades,
                 loss_budget_breaches=[t for t in trades if t['loss_budget_breach']])

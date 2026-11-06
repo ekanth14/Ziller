@@ -142,6 +142,11 @@ class ReplayPipeline:
         if not passed:
             self._veto('risk_pre_veto', reasons)
             return None
+        if pair_intent is not None:
+            # Binance Spot has no unborrowed short leg. Correlation approval
+            # must never accidentally turn the sizing diagnostic into execution.
+            self._veto('risk_pre_veto', ['PAIR_SHORT_UNSUPPORTED_SPOT'])
+            return None
         self.debates.clear()
         await self.debate._deliberate_intent(intent)
         if len(self.debates) != 1:
@@ -177,7 +182,11 @@ class ReplayPipeline:
 
     async def closed(self, trade):
         # The real risk event handler tracks realized loss and circuit breaker.
+        marked_peak = self.risk.peak_nav
         await self.risk.on_event(PositionClosed(symbol=trade['symbols'][0], pnl_usd=trade['pnl']))
+        # Cash alone excludes remaining unrealized positions and must not create
+        # a fictitious portfolio high. The replay marks total NAV each boundary.
+        self.risk.peak_nav = marked_peak
 
     def summary(self):
         names = ('proposals','risk_pre_veto','debate_veto','risk_post_veto','approved','size_reductions')
@@ -275,8 +284,6 @@ async def replay(store, *, mode='recorded', records=None, only=None, capital=100
             qty = await pipeline.approve(intent,pair_intent=other)
             if qty is None:
                 continue
-            if other is not None:
-                raise RuntimeError('Atomic pair approval needs review before research fills')
             slip = 0.0005 if symbol in SYMBOLS[:2] else 0.001
             positions.append(dict(strategy=strategy,legs=[dict(symbol=symbol,quantity=qty,entry=entry)],
                 entry_time=first['open_time'],signal_time=proposal['context']['bar_close'],
