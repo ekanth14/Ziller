@@ -1,8 +1,7 @@
 """CoinGecko and Binance market data adapter for verified listed crypto assets.
 
-Filters tokens strictly to actively traded spot pairs on Binance/Coinbase,
-ensuring unlisted tokens (delisted coins, private exchange tokens, non-trading pairs)
-are never presented in the execution terminal.
+Filters metadata candidates to Binance Spot USDT pairs with status TRADING.
+This display list is not the broader point-in-time trading universe of Phase 5.
 """
 import json
 import logging
@@ -15,25 +14,6 @@ from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger("cryptoscope.coingecko")
 
-CORE_BINANCE_PAIRS: Set[str] = {
-    "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
-    "AVAXUSDT", "LINKUSDT", "SUIUSDT", "NEARUSDT", "PEPEUSDT", "SHIBUSDT", "DOTUSDT",
-    "LTCUSDT", "UNIUSDT", "APTUSDT", "POLUSDT", "FETUSDT", "RENDERUSDT", "XLMUSDT",
-    "BCHUSDT", "HBARUSDT", "FILUSDT", "VETUSDT", "ICPUSDT", "AAVEUSDT", "ALGOUSDT",
-    "ATOMUSDT", "MKRUSDT", "STXUSDT", "GRTUSDT", "INJUSDT", "TAOUSDT", "TIAUSDT",
-    "SEIUSDT", "FTMUSDT", "SANDUSDT", "MANAUSDT", "AXSUSDT", "THETAUSDT", "RUNEUSDT",
-    "KASUSDT", "FLOKIUSDT", "BONKUSDT", "WIFUSDT", "JUPUSDT", "ENAUSDT", "WLDUSDT",
-    "GALAUSDT", "CHZUSDT", "CRVUSDT", "LDOUSDT", "PENDLEUSDT", "PYTHUSDT", "BEAMUSDT",
-    "BLURUSDT", "DYDXUSDT", "FLOWUSDT", "EGLDUSDT", "ZECUSDT", "IOTAUSDT", "NEOUSDT",
-    "KAVAUSDT", "ROSEUSDT", "QNTUSDT", "SNXUSDT", "COMPUSDT", "1INCHUSDT", "ENJUSDT",
-}
-
-DELISTED_OR_UNLISTED_BASES: Set[str] = {
-    "XMR", "USDS", "WBT", "LEO", "FTT", "LUNA", "UST", "USTC", "HUSD", "BUSD",
-    "DAI", "USDC", "USDT", "USD", "EUR", "GBP"
-}
-
-
 class CoinGeckoService:
     BASE_URL = "https://api.coingecko.com/api/v3"
     CACHE_TTL_SECONDS = 90.0
@@ -43,7 +23,7 @@ class CoinGeckoService:
         self.cached_listings: List[Dict[str, Any]] = []
         self.last_fetch: float = 0.0
         self.last_error: Optional[str] = None
-        self._binance_pairs: Set[str] = set(CORE_BINANCE_PAIRS)
+        self._binance_pairs: Set[str] = set()
         self._binance_pairs_fetched: float = 0.0
         self._lock = threading.Lock()
 
@@ -65,7 +45,7 @@ class CoinGeckoService:
     def _get_binance_usdt_pairs(self) -> Set[str]:
         """Fetch or return cached active Binance spot USDT trading pairs."""
         now = time.time()
-        if self._binance_pairs and (now - self._binance_pairs_fetched < 3600.0) and len(self._binance_pairs) > 100:
+        if self._binance_pairs_fetched and now - self._binance_pairs_fetched < 3600.0:
             return self._binance_pairs
 
         try:
@@ -87,7 +67,7 @@ class CoinGeckoService:
         except Exception as e:
             logger.debug("Binance exchangeInfo check used fallback: %s", e)
 
-        return self._binance_pairs
+        return set()  # Unknown or expired active-universe state fails closed.
 
     def get_top_listings(self, per_page: int = 50, page: int = 1) -> Dict[str, Any]:
         """Return cached top crypto assets filtered to actively traded exchange pairs."""
@@ -110,12 +90,16 @@ class CoinGeckoService:
                 "per_page": per_page,
                 "age_seconds": round(age, 1) if age else None,
                 "stale": is_stale,
-                "attribution": "Data verified by Binance & CoinGecko",
+                "attribution": "CoinGecko metadata / Binance active Spot markets",
+                "filter_policy": "USDT Spot pairs with exchange status TRADING; no static asset blacklist",
                 "error": self.last_error if is_stale else None,
             }
 
     def _fetch_markets_locked(self, per_page: int = 150):
         binance_pairs = self._get_binance_usdt_pairs()
+        if not binance_pairs:
+            self.last_error = 'Active exchange universe unavailable'
+            return
 
         params = {
             "vs_currency": "usd",
@@ -138,9 +122,7 @@ class CoinGeckoService:
                 parsed = []
                 for row in data:
                     base_sym = (row.get("symbol") or "").upper()
-                    # Skip unlisted, delisted, stablecoin bases, and non-trading assets
-                    if base_sym in DELISTED_OR_UNLISTED_BASES:
-                        continue
+                    # Activity is determined by the current exchange universe.
                     sym = base_sym + "USDT"
                     # Strictly require that coin is actively listed on Binance
                     if sym not in binance_pairs:
@@ -193,10 +175,8 @@ class CoinGeckoService:
             parsed_bin = []
             for t in bin_tickers:
                 sym = t.get("symbol", "")
-                if sym.endswith("USDT") and (sym in CORE_BINANCE_PAIRS or len(parsed_bin) < 80):
+                if sym in binance_pairs:
                     base = sym.removesuffix("USDT")
-                    if base in DELISTED_OR_UNLISTED_BASES:
-                        continue
                     price = float(t.get("lastPrice") or 0.0)
                     chg = float(t.get("priceChangePercent") or 0.0)
                     parsed_bin.append({
@@ -210,16 +190,16 @@ class CoinGeckoService:
                         "price": price,
                         "change_24h_pct": chg,
                         "price_change_percentage_24h": chg,
-                        "market_cap": 0.0,
-                        "market_cap_rank": 9999,
-                        "total_volume": float(t.get("volume") or 0.0),
+                        "market_cap": None,
+                        "market_cap_rank": None,
+                        "total_volume": float(t.get("quoteVolume") or 0.0),
                         "high_24h": float(t.get("highPrice") or 0.0),
                         "low_24h": float(t.get("lowPrice") or 0.0),
-                        "price_change_percentage_1h": 0.0,
-                        "price_change_percentage_7d": 0.0,
-                        "price_change_percentage_30d": 0.0,
+                        "price_change_percentage_1h": None,
+                        "price_change_percentage_7d": None,
+                        "price_change_percentage_30d": None,
                         "sparkline_7d": [],
-                        "circulating_supply": 0.0,
+                        "circulating_supply": None,
                         "source": "binance_24hr",
                         "is_listed": True,
                     })

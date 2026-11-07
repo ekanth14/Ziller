@@ -8,10 +8,8 @@ const DEFAULT_SYMBOLS = [
   'NEARUSDT', 'PEPEUSDT', 'SHIBUSDT', 'DOTUSDT', 'LTCUSDT', 
   'UNIUSDT', 'APTUSDT', 'POLUSDT', 'FETUSDT', 'RENDERUSDT'
 ];
-const UNLISTED_SYMBOLS = new Set([
-  'XMRUSDT', 'USDSUSDT', 'WBTUSDT', 'LEOUSDT', 'FTTUSDT', 'LUNAUSDT', 'LUNCUSDT', 'USTCUSDT', 'BUSDUSDT',
-  'USDTUSDT', 'USDCUSDT', 'DAIUSDT', 'USDUSDT', 'XMR', 'USDS', 'WBT', 'LEO', 'FTT', 'LUNA', 'LUNC'
-]);
+// Exchange activity is verified by the server; avoid a stale asset blacklist.
+const UNLISTED_SYMBOLS = new Set();
 
 const state = {
   workspace: 'research',

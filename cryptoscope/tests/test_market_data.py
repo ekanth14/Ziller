@@ -294,7 +294,8 @@ class CoinGeckoServiceTests(unittest.TestCase):
         mock_resp.__enter__.return_value = mock_resp
         mock_resp.__exit__.return_value = None
 
-        with patch("cryptoscope.market_data.coingecko.urlopen", return_value=mock_resp):
+        with patch("cryptoscope.market_data.coingecko.urlopen", return_value=mock_resp), patch.object(
+                cg,'_get_binance_usdt_pairs',return_value={'BTCUSDT'}):
             res = cg.get_top_listings(per_page=10, page=1)
             self.assertEqual(res["total"], 1)
             self.assertEqual(len(res["items"]), 1)
@@ -311,6 +312,20 @@ class CoinGeckoServiceTests(unittest.TestCase):
         from cryptoscope.market_data.base import LIVE_PRICE_FRESHNESS_SECONDS, METADATA_FRESHNESS_SECONDS
         self.assertEqual(LIVE_PRICE_FRESHNESS_SECONDS, 5.0)
         self.assertEqual(METADATA_FRESHNESS_SECONDS, 120.0)
+
+    def test_active_pair_universe_has_no_static_blacklist(self):
+        cg=CoinGeckoService()
+        response=MagicMock();response.__enter__.return_value=response
+        response.read.return_value=json.dumps({'symbols':[
+            {'symbol':'USDCUSDT','status':'TRADING'}, {'symbol':'BTCUSDT','status':'BREAK'}]}).encode()
+        with patch('cryptoscope.market_data.coingecko.urlopen',return_value=response):
+            self.assertEqual(cg._get_binance_usdt_pairs(),{'USDCUSDT'})
+
+    def test_unknown_active_pair_universe_fails_closed(self):
+        cg=CoinGeckoService()
+        with patch('cryptoscope.market_data.coingecko.urlopen',side_effect=OSError('fixture')):
+            self.assertEqual(cg._get_binance_usdt_pairs(),set())
+            self.assertEqual(cg.get_top_listings()['items'],[])
 
 
 if __name__ == "__main__":
