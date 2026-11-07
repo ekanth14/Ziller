@@ -29,7 +29,7 @@ def main():
             # stop a periodic backup schedule after one transient failure.
             print(json.dumps(dict(destination=str(target),passed=False,error_type=type(error).__name__)),flush=True)
             if not args.interval:return 1
-        if not args.interval:break
+        if not args.interval:return 0 if result['passed'] else 1
         time.sleep(args.interval)
 
 

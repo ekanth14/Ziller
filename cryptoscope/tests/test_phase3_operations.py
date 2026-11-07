@@ -37,6 +37,15 @@ def test_metrics_are_actual_process_observations():
     assert result['sockets'] is None or result['sockets']>=0
 
 
+def test_backup_without_databases_cannot_report_success(tmp_path):
+    import subprocess,sys
+    empty=tmp_path/'empty';empty.mkdir()
+    result=backup_and_verify(empty,tmp_path/'retained-empty-snapshot')
+    assert result['databases']==[] and result['passed'] is False
+    command=[sys.executable,'-B','-m','scripts.run_database_backups','--root',str(empty)]
+    assert subprocess.run(command,capture_output=True,timeout=15).returncode==1
+
+
 def test_windows_metrics_reuse_ctypes_definitions():
     import os
     if os.name!='nt':pytest.skip('Windows native telemetry')

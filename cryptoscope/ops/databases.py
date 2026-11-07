@@ -71,7 +71,7 @@ def backup_and_verify(root,destination):
         manifest.append(dict(path=str(relative),integrity=integrity,logical_restore_equal=same,
                              snapshot=database_info(target)))
     result=dict(created_at=datetime.now(timezone.utc).isoformat(),databases=manifest,
-                passed=all(m['integrity']=='ok' and m['logical_restore_equal'] for m in manifest),
+                passed=bool(manifest) and all(m['integrity']=='ok' and m['logical_restore_equal'] for m in manifest),
                 note='Per-database consistent backup; not an atomic cross-database transaction. Restores retained separately; production never overwritten.')
     (destination/'manifest.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
     return result
