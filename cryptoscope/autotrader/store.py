@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+from cryptoscope.storage.sqlite import connect_database
 import time
 import uuid
 from contextlib import contextmanager
@@ -52,7 +53,7 @@ class BotStore:
 
     @contextmanager
     def connect(self):
-        db=sqlite3.connect(self.path,timeout=10)
+        db=connect_database(self.path)
         try:
             with db:
                 yield db

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import re
 import sqlite3
+from cryptoscope.storage.sqlite import connect_database
 import threading
 import time
 from cryptoscope.providers.laya import LayaProvider
@@ -29,7 +30,7 @@ class DashboardData:
     def query(path, sql, params=()):
         if not path.exists():
             return []
-        with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=2)) as db:
+        with closing(connect_database(path, readonly=True)) as db:
             return db.execute(sql, params).fetchall()
 
     def runs(self, workspace):

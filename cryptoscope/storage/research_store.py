@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 import sqlite3
+from cryptoscope.storage.sqlite import connect_database
 import time
 import uuid
 from contextlib import contextmanager
@@ -17,7 +18,7 @@ class ResearchStore:
 
     @contextmanager
     def connect(self):
-        db = sqlite3.connect(self.path, timeout=15)
+        db = connect_database(self.path)
         try:
             with db:
                 yield db

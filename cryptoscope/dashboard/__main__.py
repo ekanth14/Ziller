@@ -81,36 +81,9 @@ def is_collab_authorized(headers) -> bool:
 
 
 def get_server_metrics():
-    threads = threading.active_count()
-    rss_mb = 0.0
-    try:
-        import ctypes
-        from ctypes import wintypes
-        class PROCESS_MEMORY_COUNTERS_EX(ctypes.Structure):
-            _fields_ = [
-                ('cb', wintypes.DWORD),
-                ('PageFaultCount', wintypes.DWORD),
-                ('PeakWorkingSetSize', ctypes.c_size_t),
-                ('WorkingSetSize', ctypes.c_size_t),
-                ('QuotaPeakPagedPoolUsage', ctypes.c_size_t),
-                ('QuotaPagedPoolUsage', ctypes.c_size_t),
-                ('QuotaPeakNonPagedPoolUsage', ctypes.c_size_t),
-                ('QuotaNonPagedPoolUsage', ctypes.c_size_t),
-                ('PagefileUsage', ctypes.c_size_t),
-                ('PeakPagefileUsage', ctypes.c_size_t),
-                ('PrivateUsage', ctypes.c_size_t),
-            ]
-        GetProcessMemoryInfo = ctypes.windll.psapi.GetProcessMemoryInfo
-        GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, ctypes.POINTER(PROCESS_MEMORY_COUNTERS_EX), wintypes.DWORD]
-        GetProcessMemoryInfo.restype = wintypes.BOOL
-        handle = ctypes.windll.kernel32.GetCurrentProcess()
-        pmc = PROCESS_MEMORY_COUNTERS_EX()
-        pmc.cb = ctypes.sizeof(PROCESS_MEMORY_COUNTERS_EX)
-        if GetProcessMemoryInfo(handle, ctypes.byref(pmc), pmc.cb):
-            rss_mb = round(pmc.WorkingSetSize / (1024 * 1024), 2)
-    except Exception:
-        pass
-    return {"threads": threads, "rss_mb": rss_mb}
+    from cryptoscope.ops.telemetry import process_metrics
+    return process_metrics()
+
 
 def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_service=None, market_aggregator=None, coingecko_service=None, risk_governor=None, live_governor=None, kill_switch=None, laya_evaluator=None):
     form_guard = FormGuard()
@@ -132,6 +105,12 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 'coingecko': coingecko_service.connection_status()}
 
     class Handler(BaseHTTPRequestHandler):
+        protocol_version = 'HTTP/1.1'
+
+        def setup(self):
+            super().setup()
+            self.connection.settimeout(15)
+
         def send(self, status, content, kind, download=None, cookies=None):
             self.send_response(status)
             self.send_header("Content-Type", kind)
@@ -281,7 +260,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream; charset=utf-8")
                 self.send_header("Cache-Control", "no-cache")
-                self.send_header("Connection", "keep-alive")
+                self.send_header("Connection", "close")
+                self.close_connection = True
                 self.send_header("X-Accel-Buffering", "no")
                 self.end_headers()
                 try:
@@ -1061,7 +1041,8 @@ def main():
         ]:
             if db_path.exists():
                 try:
-                    c = sqlite3.connect(str(db_path))
+                    c = sqlite3.connect(str(db_path), timeout=5.0)
+                    c.execute("PRAGMA busy_timeout=5000")
                     c.execute("PRAGMA wal_checkpoint(TRUNCATE);")
                     c.close()
                 except Exception:

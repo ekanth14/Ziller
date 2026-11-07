@@ -3,6 +3,7 @@
 import logging
 from pathlib import Path
 import sqlite3
+from cryptoscope.storage.sqlite import connect_database
 import time
 from typing import Any, Dict, List, Optional
 
@@ -53,7 +54,7 @@ class JournalBot(BaseBot):
 
     def _init_db(self) -> None:
         """Create journal tables with indexes and WAL journal mode."""
-        conn = sqlite3.connect(str(self.db_path), timeout=10.0)
+        conn = connect_database(str(self.db_path))
         try:
             conn.execute("PRAGMA journal_mode = WAL")
             conn.execute("PRAGMA busy_timeout = 5000")
@@ -140,7 +141,7 @@ class JournalBot(BaseBot):
 
     async def on_event(self, event: BaseEvent) -> None:
         """Route incoming events into SQLite journal."""
-        conn = sqlite3.connect(str(self.db_path), timeout=10.0)
+        conn = connect_database(str(self.db_path))
         try:
             if isinstance(event, Signal):
                 reasons_str = "; ".join(event.reasons) if isinstance(event.reasons, list) else str(event.reasons)
@@ -198,7 +199,7 @@ class JournalBot(BaseBot):
     def get_performance_metrics(self, window_days: int = 1) -> Dict[str, Any]:
         """Compute performance metrics across the given historical window."""
         cutoff = time.time() - (window_days * 86400.0)
-        conn = sqlite3.connect(str(self.db_path), timeout=10.0)
+        conn = connect_database(str(self.db_path))
         conn.row_factory = sqlite3.Row
         try:
             cur = conn.cursor()
