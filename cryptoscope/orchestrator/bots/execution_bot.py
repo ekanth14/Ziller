@@ -1,10 +1,14 @@
 """ExecutionBot: Order routing, exchange-level stop loss, supervisor watchdog, and state persistence."""
 
 import asyncio
+from contextlib import closing
 import json
+import hashlib
 import logging
+import math
 from pathlib import Path
 import sqlite3
+from cryptoscope.storage.sqlite import connect_database
 import time
 from typing import Any, Dict, List, Optional
 
@@ -93,6 +97,8 @@ class ExecutionBot(BaseBot):
         self.active_positions: Dict[str, Dict[str, Any]] = {}
         self.active_orders: Dict[str, Dict[str, Any]] = {}
         self.cached_intents: Dict[str, TradeIntent] = {}
+        self.last_exchange_reconciliation = 0.0
+        self.last_emergency_poll = 0.0
 
         # Reconcile on startup
         self.reconcile_state()
@@ -102,10 +108,35 @@ class ExecutionBot(BaseBot):
         self.subscribe(SupervisorHeartbeat)
         self.subscribe(MarketUpdate)
 
+    async def start(self):
+        if self.mode=='TESTNET':self.reconcile_testnet_positions()
+        await super().start()
+
+    def reconcile_testnet_positions(self):
+        """Read exchange protection on restart/periodically; mismatches halt.
+
+        Filled or partial protection requires accounting reconciliation. A read
+        never erases exposure or silently resumes the emergency latch.
+        """
+        self.last_exchange_reconciliation=time.time()
+        for symbol,pos in self.active_positions.items():
+            try:
+                reference=pos.get('stop_order_id')
+                if pos.get('mode')!='TESTNET' or not str(reference).isdigit():raise ValueError()
+                order=self.binance_client.get_order(symbol=symbol,order_id=int(reference))
+                if (order.get('symbol')!=symbol or order.get('side')!='SELL' or order.get('status')!='NEW'
+                    or order.get('type') not in {'STOP_LOSS','STOP_LOSS_LIMIT'}
+                    or abs(float(order.get('origQty',0))-pos['quantity'])>1e-9
+                    or float(order.get('executedQty',0))!=0):raise ValueError()
+            except Exception:
+                self.halt_state.halt('Exchange protection mismatch; reconciliation required',self.name)
+
     def _init_db(self) -> None:
         """Initialize SQLite tables for persistent state reconciliation."""
-        conn = sqlite3.connect(str(self.db_path), timeout=10.0)
+        conn = connect_database(str(self.db_path))
         try:
+            if conn.execute('PRAGMA user_version').fetchone()[0]>1:
+                raise RuntimeError('Execution database schema is newer than this application')
             conn.execute("PRAGMA journal_mode = WAL")
             conn.execute("PRAGMA busy_timeout = 5000")
             conn.execute("""
@@ -136,13 +167,17 @@ class ExecutionBot(BaseBot):
                     created_at REAL NOT NULL
                 )
             """)
+            if 'mode' not in [r[1] for r in conn.execute('PRAGMA table_info(positions)')]:
+                conn.execute("ALTER TABLE positions ADD COLUMN mode TEXT NOT NULL DEFAULT 'UNKNOWN'")
+            if conn.execute('PRAGMA user_version').fetchone()[0]<1:
+                conn.execute('PRAGMA user_version=1')
             conn.commit()
         finally:
             conn.close()
 
     def reconcile_state(self) -> None:
         """Reconcile persisted positions and orders on startup."""
-        conn = sqlite3.connect(str(self.db_path), timeout=10.0)
+        conn = connect_database(str(self.db_path))
         try:
             conn.row_factory = sqlite3.Row
             rows = conn.execute("SELECT * FROM positions").fetchall()
@@ -154,30 +189,39 @@ class ExecutionBot(BaseBot):
                     "entry_price": float(r["entry_price"]),
                     "stop_price": float(r["stop_price"]),
                     "target_price": float(r["target_price"]),
-                    "stop_order_id": r["stop_order_id"]
+                    "stop_order_id": r["stop_order_id"],
+                    "created_at": r['created_at'],
+                    'mode':r['mode'],
                 }
+            pending=conn.execute("SELECT * FROM orders WHERE status='RECONCILE_REQUIRED'").fetchall()
+            for row in pending:
+                self.active_orders[row['order_id']]=dict(row)
+                if row['order_id'].startswith('close_') and row['symbol'] in self.active_positions:
+                    self.active_positions[row['symbol']]['exit_client_id']=row['order_id']
+            if self.mode=='TESTNET' and (pending or any(p.get('mode')!='TESTNET' or not str(p.get('stop_order_id','')).isdigit() for p in self.active_positions.values())):
+                self.halt_state.halt('Persisted exchange exposure requires reconciliation',self.name)
             logger.info("[%s] State reconciled: %d active positions loaded.", self.name, len(self.active_positions))
         finally:
             conn.close()
 
     def _save_position_db(self, pos: Dict[str, Any]) -> None:
-        conn = sqlite3.connect(str(self.db_path), timeout=10.0)
+        conn = connect_database(str(self.db_path))
         try:
             conn.execute("""
                 INSERT OR REPLACE INTO positions 
-                (symbol, side, quantity, entry_price, stop_price, target_price, stop_order_id, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (symbol, side, quantity, entry_price, stop_price, target_price, stop_order_id, created_at, updated_at, mode)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 pos["symbol"], pos["side"], pos["quantity"], pos["entry_price"],
                 pos["stop_price"], pos["target_price"], pos.get("stop_order_id"),
-                pos.get("created_at", time.time()), time.time()
+                pos.get("created_at", time.time()), time.time(),pos.get('mode',self.mode)
             ))
             conn.commit()
         finally:
             conn.close()
 
     def _remove_position_db(self, symbol: str) -> None:
-        conn = sqlite3.connect(str(self.db_path), timeout=10.0)
+        conn = connect_database(str(self.db_path))
         try:
             conn.execute("DELETE FROM positions WHERE symbol = ?", (symbol,))
             conn.commit()
@@ -253,7 +297,7 @@ class ExecutionBot(BaseBot):
 
         try:
             executed_price = price
-            stop_order_id = f"stop_ord_{int(time.time()*1000)}"
+            stop_order_id = None if self.mode == 'TESTNET' else f"paper_stop_{int(time.time()*1000)}"
 
             # Check mock order executor hook if set for failure injection testing
             if hasattr(self, "_test_order_executor") and self._test_order_executor:
@@ -264,16 +308,28 @@ class ExecutionBot(BaseBot):
                 price = res.get("executed_price", price)
                 executed_price = price
             elif self.mode == "TESTNET":
+                if side!='BUY':raise RuntimeError('Spot short entry is unsupported')
+                if symbol in self.active_positions:raise RuntimeError('Existing exposure must be reconciled before another entry')
+                if not all(math.isfinite(v) and v>0 for v in (qty,price,intent.stop_loss,intent.take_profit)):
+                    raise RuntimeError('Invalid execution parameters')
+                reference_hash=hashlib.sha256(intent.intent_id.encode()).hexdigest()[:24]
+                entry_reference='entry_'+reference_hash
                 # Real Binance Spot Testnet execution
+                if not self._record_uncertain_order(intent.intent_id,symbol,side,entry_reference,qty):
+                    raise RuntimeError('Duplicate entry reference requires reconciliation')
                 entry_res = self.binance_client.create_order(
                     symbol=symbol,
                     side=side,
                     order_type="MARKET",
                     quantity=qty,
-                    client_order_id=f"entry_{intent.intent_id}"[:32]
+                    client_order_id=entry_reference
                 )
-                executed_qty = float(entry_res.get("executedQty", qty))
+                executed_qty = float(entry_res.get("executedQty", 0))
                 cummulative_quote_qty = float(entry_res.get("cummulativeQuoteQty", 0.0))
+                if entry_res.get('status') != 'FILLED' or not math.isfinite(executed_qty) or executed_qty <= 0 or not math.isfinite(cummulative_quote_qty) or cummulative_quote_qty <= 0:
+                    self.halt_state.halt('Entry execution requires exchange reconciliation',self.name)
+                    self._record_uncertain_order(intent.intent_id,symbol,side,entry_res.get('orderId'),qty)
+                    raise RuntimeError('Entry not confirmed fully filled; entries halted for reconciliation')
                 if executed_qty > 0 and cummulative_quote_qty > 0:
                     executed_price = cummulative_quote_qty / executed_qty
                 else:
@@ -282,25 +338,30 @@ class ExecutionBot(BaseBot):
 
                 # Place exchange-level protective stop-loss order
                 stop_side = "SELL" if side == "BUY" else "BUY"
+                stop_reference='stop_'+reference_hash
                 try:
+                    self._record_uncertain_order(intent.intent_id,symbol,stop_side,stop_reference,qty,order_type='STOP_LOSS')
                     stop_res = self.binance_client.create_order(
                         symbol=symbol,
                         side=stop_side,
-                        order_type="STOP_LOSS_LIMIT",
+                        order_type="STOP_LOSS",
                         quantity=qty,
                         stop_price=intent.stop_loss,
-                        price=intent.stop_loss,
-                        client_order_id=f"stop_{intent.intent_id}"[:32]
+                        client_order_id=stop_reference
                     )
-                    stop_order_id = str(stop_res.get("orderId", stop_order_id))
+                    if not str(stop_res.get('orderId','')).isdigit() or stop_res.get('status') != 'NEW':
+                        raise RuntimeError('Protective order was not confirmed resting')
+                    stop_order_id = str(stop_res['orderId'])
+                    with closing(connect_database(str(self.db_path))) as db:
+                        db.execute("UPDATE orders SET status='NEW' WHERE order_id=?",(stop_reference,));db.commit()
                     logger.info("[%s] Binance Testnet Stop-Loss order registered: %s", self.name, stop_order_id)
                 except Exception as stop_err:
-                    logger.warning("[%s] Testnet stop order placement issue: %s", self.name, stop_err)
+                    self.halt_state.halt('Exchange protection unavailable; reconciliation required',self.name)
                     await self.emit(SystemAlert(
                         severity="HIGH",
                         source=self.name,
-                        title="Exchange Stop-Loss Notice",
-                        message=f"Exchange stop order returned: {stop_err}. Software stop-loss armed.",
+                        title="Exchange protection failed; trading halted",
+                        message="Confirmed entry remains tracked without a confirmed protective order. Operator reconciliation required.",
                         details={"symbol": symbol, "stop_price": intent.stop_loss}
                     ))
 
@@ -309,10 +370,8 @@ class ExecutionBot(BaseBot):
             fill_id = f"fill_{int(time.time()*1000)}"
 
             # Place exchange-level protective stop-loss order
-            logger.info(
-                "[%s] Placed EXCHANGE-LEVEL Stop-Loss [%s] for %s @ %.4f (Distance: %.2f%%)",
-                self.name, stop_order_id, symbol, intent.stop_loss, risk.stop_distance_pct
-            )
+            if stop_order_id is not None:
+                logger.info('[%s] Protective order reference recorded for %s',self.name,symbol)
 
             fill = Fill(
                 fill_id=fill_id,
@@ -337,15 +396,20 @@ class ExecutionBot(BaseBot):
                 "stop_price": intent.stop_loss,
                 "target_price": intent.take_profit,
                 "stop_order_id": stop_order_id,
-                "created_at": time.time()
+                "created_at": time.time(),
+                'mode':self.mode,
             }
             self.active_positions[symbol] = pos_data
             self._save_position_db(pos_data)
+            if self.mode=='TESTNET':
+                with closing(connect_database(str(self.db_path))) as db:
+                    db.execute("UPDATE orders SET status='FILLED' WHERE order_id=?",(entry_reference,));db.commit()
 
             logger.info("[%s] FILLED: %s %s qty=%.4f @ %.4f. Stop: %.4f, Target: %.4f", self.name, side, symbol, qty, executed_price, intent.stop_loss, intent.take_profit)
             await self.emit(fill)
 
         except Exception as exc:
+            if self.mode=='TESTNET':self.halt_state.halt('Exchange entry unresolved; reconciliation required',self.name)
             logger.error("[%s] Order execution failed / rejected: %s", self.name, exc)
             await self.emit(SystemAlert(
                 severity="ERROR",
@@ -354,6 +418,54 @@ class ExecutionBot(BaseBot):
                 message=str(exc),
                 details={"symbol": symbol, "intent_id": intent.intent_id}
             ))
+
+    def _record_uncertain_order(self,intent_id,symbol,side,order_id,quantity,order_type='MARKET'):
+        with closing(connect_database(str(self.db_path))) as db:
+            inserted=db.execute('INSERT OR IGNORE INTO orders VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+                (str(order_id or 'entry_'+intent_id),intent_id,symbol,side,order_type,quantity,
+                 None,None,'RECONCILE_REQUIRED',self.mode,time.time()))
+            db.commit()
+            return inserted.rowcount==1
+
+    def _confirmed_testnet_close(self,symbol,pos):
+        """Do not remove local exposure until a full exchange close is confirmed."""
+        try:
+            if pos.get('mode')!='TESTNET':raise RuntimeError('Position provenance is not testnet')
+            stop_id=pos.get('stop_order_id')
+            if stop_id and str(stop_id).isdigit():
+                stop=self.binance_client.get_order(symbol=symbol,order_id=int(stop_id))
+                if stop.get('status')=='FILLED':
+                    result=stop
+                else:
+                    if float(stop.get('executedQty',0))>0:raise RuntimeError('Partial stop requires reconciliation')
+                    canceled=stop if stop.get('status')=='CANCELED' else self.binance_client.cancel_order(symbol=symbol,order_id=int(stop_id))
+                    if canceled.get('status')!='CANCELED' or float(canceled.get('executedQty',0))>0:
+                        raise RuntimeError('Stop cancellation not confirmed')
+                    result=None
+            else:result=None
+            if result is None:
+                # A retained close reference prevents a blind duplicate order
+                # when the previous response was lost.
+                reference=pos.get('exit_client_id')
+                if reference:
+                    result=self.binance_client.get_order(symbol=symbol,client_order_id=reference)
+                else:
+                    import uuid
+                    reference='close_'+uuid.uuid4().hex[:24]
+                    pos['exit_client_id']=reference
+                    self._record_uncertain_order(reference,symbol,'SELL' if pos['side']=='BUY' else 'BUY',reference,pos['quantity'])
+                    result=self.binance_client.create_order(symbol=symbol,side='SELL' if pos['side']=='BUY' else 'BUY',
+                        order_type='MARKET',quantity=pos['quantity'],client_order_id=reference)
+            filled=float(result.get('executedQty',0));quote=float(result.get('cummulativeQuoteQty',0))
+            if result.get('status')!='FILLED' or not math.isfinite(filled) or abs(filled-pos['quantity'])>1e-9 or filled<=0 or not math.isfinite(quote) or quote<=0:
+                raise RuntimeError('Close execution not confirmed fully filled')
+            if pos.get('exit_client_id'):
+                with closing(connect_database(str(self.db_path))) as db:
+                    db.execute("UPDATE orders SET status='FILLED' WHERE order_id=?",(pos['exit_client_id'],));db.commit()
+            return quote/filled
+        except Exception:
+            self.halt_state.halt('Exchange close unresolved; exposure retained',self.name)
+            return None
 
     async def _check_position_exits(self, update: MarketUpdate) -> None:
         """Check active positions against current prices for stop-loss or take-profit hits."""
@@ -393,6 +505,10 @@ class ExecutionBot(BaseBot):
                 exit_price = target
 
         if exit_triggered:
+            if self.mode=='TESTNET':
+                actual=self._confirmed_testnet_close(sym,pos)
+                if actual is None:return
+                exit_price=actual
             pnl_usd = (exit_price - entry) * qty if side == "BUY" else (entry - exit_price) * qty
             pnl_pct = ((exit_price - entry) / entry) * 100.0 if side == "BUY" else ((entry - exit_price) / entry) * 100.0
 
@@ -428,6 +544,10 @@ class ExecutionBot(BaseBot):
 
         # Tighten stops to break-even or flatten positions
         for sym, pos in list(self.active_positions.items()):
+            if self.mode=='TESTNET':
+                # Existing exchange protection is retained. A software price
+                # change is not an exchange stop modification.
+                continue
             logger.warning("[%s] Emergency protective action on %s: tightening stop to entry @ %.4f", self.name, sym, pos["entry_price"])
             pos["stop_price"] = pos["entry_price"]
             self._save_position_db(pos)
@@ -437,36 +557,19 @@ class ExecutionBot(BaseBot):
         closed_count = 0
         for sym, pos in list(self.active_positions.items()):
             if self.mode == "TESTNET":
-                # Attempt to cancel working stop order on exchange
-                stop_id = pos.get("stop_order_id")
-                if stop_id and str(stop_id).isdigit():
-                    try:
-                        self.binance_client.cancel_order(symbol=sym, order_id=int(stop_id))
-                        logger.info("[%s] Canceled exchange stop order %s for %s", self.name, stop_id, sym)
-                    except Exception as err:
-                        logger.warning("[%s] Failed to cancel testnet stop order %s: %s", self.name, stop_id, err)
-                # Place market closing order
-                try:
-                    exit_side = "SELL" if pos["side"] == "BUY" else "BUY"
-                    self.binance_client.create_order(
-                        symbol=sym,
-                        side=exit_side,
-                        order_type="MARKET",
-                        quantity=pos["quantity"],
-                    )
-                    logger.info("[%s] Testnet market close order executed for %s", self.name, sym)
-                except Exception as err:
-                    logger.error("[%s] Failed to market close testnet position %s: %s", self.name, sym, err)
+                actual=self._confirmed_testnet_close(sym,pos)
+                if actual is None:continue
+            else:actual=pos['entry_price']
 
             pnl_usd = 0.0
             closed = PositionClosed(
                 symbol=sym,
                 side=pos["side"],
                 entry_price=pos["entry_price"],
-                exit_price=pos["entry_price"],
+                exit_price=actual,
                 quantity=pos["quantity"],
-                pnl_usd=0.0,
-                pnl_pct=0.0,
+                pnl_usd=(actual-pos['entry_price'])*pos['quantity']*(1 if pos['side']=='BUY' else -1),
+                pnl_pct=(actual/pos['entry_price']-1)*100*(1 if pos['side']=='BUY' else -1),
                 duration_seconds=0.0,
                 exit_reason="MANUAL_FLATTEN"
             )
@@ -477,10 +580,28 @@ class ExecutionBot(BaseBot):
         logger.warning("[%s] Flattened %d positions: %s", self.name, closed_count, reason)
         return closed_count
 
+    async def apply_emergency_action(self):
+        """Consume the dashboard's durable request; never clear the halt latch.
+
+        The dashboard and fleet may be separate processes. A dashboard response
+        is acknowledgement of the request, not proof of an exchange fill.
+        Unknown/partial exposure remains halted for manual reconciliation.
+        """
+        state=self.halt_state.snapshot()
+        if (state['halted'] and state['action']=='HALT_FLATTEN' and
+                self.mode in {'PAPER','TESTNET'} and self.active_positions):
+            return await self.flatten_all_positions('Durable master HALT_FLATTEN request')
+        return 0
+
     async def run(self) -> None:
         """Watchdog loop checking supervisor heartbeat, applying grace period, and position safety."""
         while self._running:
             self._last_heartbeat = time.time()
+            if time.time()-self.last_emergency_poll>=1:
+                self.last_emergency_poll=time.time()
+                await self.apply_emergency_action()
+            if self.mode=='TESTNET' and time.time()-self.last_exchange_reconciliation>=60:
+                self.reconcile_testnet_positions()
             elapsed = time.time() - self.last_supervisor_heartbeat
             if elapsed > self.supervisor_timeout_sec and not self.emergency_protection_active:
                 if self.active_positions:

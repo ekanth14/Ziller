@@ -22,6 +22,7 @@ def test_only_execution_bot_imports_exchange_clients():
         Path("cryptoscope/agents"),
         Path("cryptoscope/security"),
         Path("cryptoscope/backtesting"),
+        Path("cryptoscope/ops"),
     ]
 
     violations = []

@@ -213,11 +213,10 @@ class BinanceTestnetClient:
             if stop_price is None:
                 raise ValueError("stop_price is required for STOP_LOSS orders")
             params["stopPrice"] = f"{stop_price:.2f}"
-            if price is not None:
+            if order_type.upper() == 'STOP_LOSS_LIMIT':
+                if price is None:raise ValueError('Limit price required for stop-limit order')
                 params["price"] = f"{price:.2f}"
-            else:
-                params["price"] = f"{stop_price:.2f}"
-            params["timeInForce"] = time_in_force
+                params["timeInForce"] = time_in_force
 
         return self._request("POST", "/api/v3/order", params=params, signed=True)
 

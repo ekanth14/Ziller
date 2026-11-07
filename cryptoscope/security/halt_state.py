@@ -91,7 +91,11 @@ class PersistentKillSwitch:
 
     def execute_kill_switch(self, action, triggered_by, **callbacks):
         self.state.halt('Master emergency halt', triggered_by, action)
-        return self.delegate.execute_kill_switch(action=action, triggered_by=triggered_by, **callbacks)
+        result=self.delegate.execute_kill_switch(action=action, triggered_by=triggered_by, **callbacks)
+        if not callbacks:
+            result.update(execution_requested=True,execution_confirmed=False,
+                execution_note='Durable halt recorded; the execution process must confirm exchange actions separately')
+        return result
 
     def resume_bot(self, admin_reauthenticated, admin_email):
         if admin_reauthenticated is not True:

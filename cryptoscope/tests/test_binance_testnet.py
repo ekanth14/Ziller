@@ -203,7 +203,7 @@ def test_execution_bot_testnet_order_flow_and_exchange_stop_loss():
 
             # Exchange stop-loss order check
             assert stop_ord["side"] == "SELL"
-            assert stop_ord["type"] == "STOP_LOSS_LIMIT"
+            assert stop_ord["type"] == "STOP_LOSS"
             assert stop_ord["stop_price"] == 63500.0
             assert stop_ord["quantity"] == 0.015
 
@@ -241,13 +241,21 @@ def test_execution_bot_testnet_flatten_cancels_stop_and_closes():
                 "stop_price": 63500.0,
                 "target_price": 68000.0,
                 "stop_order_id": "1002",
+                "mode": "TESTNET",
             }
 
             canceled_orders = []
             market_orders = []
 
-            bot.binance_client.cancel_order = lambda symbol, order_id=None, **kw: canceled_orders.append((symbol, order_id))
-            bot.binance_client.create_order = lambda symbol, side, order_type, quantity, **kw: market_orders.append((symbol, side, order_type, quantity))
+            bot.binance_client.get_order = lambda **kw: {"status":"NEW","executedQty":"0"}
+            def cancel(symbol,order_id=None,**kw):
+                canceled_orders.append((symbol,order_id))
+                return {"status":"CANCELED","executedQty":"0"}
+            def create(symbol,side,order_type,quantity,**kw):
+                market_orders.append((symbol,side,order_type,quantity))
+                return {"status":"FILLED","executedQty":str(quantity),"cummulativeQuoteQty":str(quantity*65000)}
+            bot.binance_client.cancel_order = cancel
+            bot.binance_client.create_order = create
 
             count = await bot.flatten_all_positions("Operator test flatten")
             assert count == 1
