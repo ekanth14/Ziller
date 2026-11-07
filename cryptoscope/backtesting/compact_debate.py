@@ -30,6 +30,8 @@ class CompactDebateEngine:
                        format=SCHEMA,options=settings,keep_alive='15m')
         provenance = dict(protocol=PROTOCOL,prompt_sha256=hashlib.sha256(prompt.encode()).hexdigest(),
                           generation_options=settings)
+        json_valid = None
+        timing = {}
         try:
             request = urllib.request.Request('http://127.0.0.1:11434/api/generate',
                 data=json.dumps(payload).encode(),headers={'Content-Type':'application/json'})
@@ -38,9 +40,14 @@ class CompactDebateEngine:
             elapsed = (time.perf_counter()-started)*1000
             if elapsed > timeout_sec*1000:
                 raise TimeoutError()
-            if not isinstance(body,dict) or body.get('done') is not True or body.get('done_reason') != 'stop':
+            if not isinstance(body,dict):
                 raise ValueError('incomplete_generation')
             result = json.loads(body.get('response',''))
+            json_valid = True
+            timing = {k:body.get(k) for k in ('load_duration','prompt_eval_duration',
+                    'eval_duration','prompt_eval_count','eval_count')}
+            if body.get('done') is not True or body.get('done_reason') != 'stop':
+                raise ValueError('incomplete_generation')
             if not isinstance(result,dict) or set(result)!=set(SCHEMA['required']):
                 raise ValueError('invalid_schema')
             if any(type(result[k]) is not int or not 0 <= result[k] <= (1 if k=='vote' else 10) for k in result):
@@ -49,8 +56,7 @@ class CompactDebateEngine:
             return dict(model=model,verdict='APPROVE' if approved else 'REJECT',
                 action=direction if approved else 'STAND_ASIDE',conviction_score=result['risk'],
                 latency_ms=elapsed,fallback_used=False,committee_scores=result,
-                **provenance,timing={k:body.get(k) for k in ('load_duration','prompt_eval_duration',
-                    'eval_duration','prompt_eval_count','eval_count')})
+                output_json_valid=True,**provenance,timing=timing)
         except (TimeoutError,socket.timeout):
             failure='timeout'
         except urllib.error.HTTPError as error:
@@ -58,6 +64,7 @@ class CompactDebateEngine:
         except urllib.error.URLError as error:
             failure='timeout' if isinstance(error.reason,(TimeoutError,socket.timeout)) else 'transport'
         except json.JSONDecodeError:
+            json_valid=False
             failure='invalid_json'
         except ValueError:
             failure='invalid_or_incomplete_output'
@@ -65,4 +72,4 @@ class CompactDebateEngine:
             failure='transport'
         return dict(model=model,verdict='REJECT',action='STAND_ASIDE',conviction_score=0,
                     fallback_used=True,latency_ms=(time.perf_counter()-started)*1000,
-                    failure_category=failure,**provenance)
+                    failure_category=failure,output_json_valid=json_valid,timing=timing,**provenance)
