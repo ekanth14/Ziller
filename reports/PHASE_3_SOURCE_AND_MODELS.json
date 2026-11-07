@@ -1,0 +1,25 @@
+{
+  "cryptoscope/ops/telemetry.py": {
+    "soak_copy_sha256": "28bf3aaed4cc7a82dfeb96ea4f925004ec7aea057e8cab009a8682dad9c41351",
+    "matches_current_source": true
+  },
+  "cryptoscope/dashboard/__main__.py": {
+    "soak_copy_sha256": "163e1e4ce5cf923016684316347b9c794002243091a0f1e133d71cda1587002e",
+    "matches_current_source": true
+  },
+  "scripts/run_phase3_soak.py": {
+    "soak_copy_sha256": "cc3741c54414bf5629e7ae15012ccf12c832913543a56e0ca9d8a5a089afc146",
+    "matches_current_source": true
+  },
+  "ollama": {
+    "http_status": 200,
+    "available_models": [
+      "laya-crypto:latest",
+      "laya-quant:latest",
+      "laya-ai:latest",
+      "laya-ai-quant:latest",
+      "gemma4-quant:12b",
+      "laya:latest"
+    ]
+  }
+}

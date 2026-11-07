@@ -1,0 +1,48 @@
+{
+  "duration_seconds": 3486.782,
+  "target_clients": 50,
+  "metrics": "real server process metrics; sockets are owned TCP rows, not client count",
+  "sample_count": 43,
+  "sampling_interval_seconds": 30,
+  "slope_mb_per_minute": 0.29896560242272163,
+  "tail_slope_mb_per_minute": 0.042219722692751024,
+  "plateau": true,
+  "plateau_rule": "second-half absolute slope <=0.1 MB/min and range <=10 MB",
+  "throughput": [
+    {
+      "mode": "close",
+      "requests": 100,
+      "successful": 100,
+      "tcp_connections_opened": 100,
+      "http_versions": [
+        11
+      ],
+      "seconds": 1.0188099000006332,
+      "successful_requests_per_second": 98.15373800346644
+    },
+    {
+      "mode": "keep_alive",
+      "requests": 100,
+      "successful": 100,
+      "tcp_connections_opened": 1,
+      "http_versions": [
+        11
+      ],
+      "seconds": 0.06450330000006943,
+      "successful_requests_per_second": 1550.3082787995709
+    }
+  ],
+  "graceful_shutdown": true,
+  "shutdown_seconds": 72269.219,
+  "server_exit": 0,
+  "counters": {
+    "active_sse": 0,
+    "sse_connects": 1101,
+    "sse_frames": 61958,
+    "sse_failures": 252,
+    "api_ok": 5990,
+    "api_failed": 3
+  },
+  "minimum_sampled_active_sse": 0,
+  "status": "REVIEW"
+}

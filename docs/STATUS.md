@@ -1,10 +1,10 @@
 # Development status
 
-Updated: November 6 (Asia/Calcutta). Phase 2 repairs completed and verified; stopped before Phase 3. Phase 1 remains unresolved.
+Updated: November 7 (Asia/Calcutta). Phase 2 repairs completed and verified; Phase 3 authorized checks are collected; overall status is PARTIAL / NOT COMPLETE. Phase 1 remains unresolved. Phase 4 has not started.
 
 ## Instructions and repository
 
-- `docs/MASTER_PROMPT.md` remains byte-for-byte equal to the source body. The first-run cover note originally limited execution to Phases 0 and 1. The user subsequently authorized Phase 2 explicitly, initially chose offline-only, then said “make it online.” Local Ollama cache generation was announced and performed within that scope. No Phase 3 or later work is authorized.
+- `docs/MASTER_PROMPT.md` remains byte-for-byte equal to the source body. The user subsequently authorized Phase 2 and Phase 3, approved benchmarking installed `gemma4-quant:12b` as a labeled substitution, WAL migration of five named working databases after backup/restore checks, and two read-only Binance Spot Testnet authentication checks. Orders, model installation, training, LIVE activation and Phase 4+ remain unauthorized.
 - Workspace: `C:\Users\Ekanth's laptop\Desktop\my projects\zien-crypto`. The alternate project names in earlier prompts refer to this same repository.
 - Active branch: `verified-fleet`. The user approved its fast-forward from `e23ee1a` to the existing `laya-decision` revision `75d915e`; newer work was retained and no history was rewritten.
 - Verified latest Phase 2 source HEAD: `364f72e19dba8a522b8bd22fdb6fc6fbb8de99ce`; main repair `1cdcda0`. The following report/status commit changes evidence only. Resolve it with `git log -1 --oneline -- docs/STATUS.md`.
@@ -19,7 +19,7 @@ All phases were initially NOT RUN. Phases 0 and 1 were updated first; Phase 2 fo
 | 0 | PASS for restricted baseline; external checks NOT RUN | verified-fleet / 75d915e; phase commit 0887fa7 | Fresh baseline 214 passed, 13 skipped; reports/PHASE_0_REPORT.md |
 | 1 | FAIL — gate unresolved; local implementation tested | verified-fleet / eca6ebd | 266 passed, 12 skipped; six Node tests passed; history findings and deployment blockers remain; reports/PHASE_1_REPORT.md |
 | 2 | PASS for historical backtest integrity under declared execution assumptions | verified-fleet / 364f72e | 346 passed, 12 skipped; 83 real cached votes; gap stress reported; reports/PHASE_2_REPORT.md |
-| 3 | NOT RUN | Not started | Outside authorization |
+| 3 | PARTIAL / NOT COMPLETE | verified-fleet / source 5bb2144 | 366 passed, 12 skipped; real authentication PASS; load/shutdown checks PASS but frozen RSS plateau criterion not met; exchange lifecycle and seven-day run NOT RUN |
 | 4 | NOT RUN | Not started | Outside authorization; Phase 1 and Phase 2 gates must pass |
 | 5 | NOT RUN | Not started | Outside authorization |
 | 6 | NOT RUN | Not started | Outside authorization |
@@ -58,7 +58,7 @@ Implemented source commits:
 
 The five-gate governor source is unchanged. No generated frontend assets, layout or styling were changed; stored proposal serialization was secured in the backend renderer.
 
-## Evidence and preservation limits
+## Evidence and preservation limits (historical Phase 1 snapshot)
 
 - Main report: `reports/PHASE_1_REPORT.md`.
 - History evidence: `reports/PHASE_1_HISTORY_SCAN.json`, including its exact scan HEAD and safe detector output.
@@ -157,3 +157,21 @@ User reported live data failure and asked to continue. The original localhost:89
 Freshness fixes prevent socket-open events, cached metadata, expired quotes, archived bot quotes or closed-candle redraws from masquerading as a live quote. Binance no-quote cycles now activate the existing fallback policy. No trading bot was stopped, no order placed, and the emergency halt remains engaged.
 
 Validation: 47 Python tests passed in isolated data; six Node freshness tests passed; JavaScript syntax passed. Three real stream frames had increasing timestamps and all eight symbols fresh. Actual headless browser on port 8900 showed LIVE STREAMING and a current price with zero page exceptions. Evidence: reports/LIVE_DATA_REPAIR.md. Phase gates and research results are unchanged.
+
+
+## Latest Phase 3 operations verification — November 7
+
+Explicit user scope: move from completed Phase 2 into Phase 3. Approved substitution: installed gemma4-quant:12b, with the difference labeled. After successful backup/restore checks the user approved WAL migration of exactly five working databases. The user separately approved the API-key-header and signed-account read-only Testnet authentication checks. No exchange order approval exists; no operational orders, LIVE activation, training, installation or Phase 4 job was run.
+
+Source commits: e0b899c (SQLite policy/backups, HTTP/telemetry and soak), bdd20ed (confirmed exchange exits, durable emergency request handling and stub tests), daaf237 (active listing policy), c0359f8 (real debate benchmark), c939ed0 (spec), 5bb2144 (empty-backup failure guard). Master prompt and protected five-gate governor remain unchanged.
+
+- Full isolated suite: 378 collected, 366 passed, 12 skipped in 63.31 seconds, exit 0. Five external-service checks were excluded and seven require the optional environment. Exchange lifecycle tests are stub-based. Output: reports/PHASE_3_TESTS_FINAL.txt.
+- Real local benchmark: two runs of the same 30 historical scenarios, compact scored committee protocol. Both had 29/30 valid JSON and one timeout. Run 1 p50/p95 14.043625/14.548035 seconds; Run 2 13.669174/15.254703. Run 2 had a 184.298153-second timeout return; no successful hard 35-second deadline claim. No native Laya classifier work was started.
+- All 13 working databases observed WAL. Five approved mode changes preserved logical contents. The intermediate inventory contained 71 files, 69 WAL and two unchanged DELETE archives; after the final worker restart, the final inventory contains 97 files. All 13 working databases remain WAL. Five active admin sessions remain. The 131 rows are decision_journal records, not executions.
+- Actual initial and scheduled backup batches each backed up 13 databases, restored each separately and passed integrity/equality checks. The initial hourly worker PID 41444 was safely replaced with PID 34480 to load the final guard; its fresh third 13-database snapshot/restore batch passed. This is a development process, not a Windows service. Monitor work/backups/phase3-*/manifest.json. Cross-database atomicity, off-machine recovery and reboot persistence are not established. A separate two-cycle, 60-second isolated scheduler check captured changed fixture data without overwriting its first snapshot; both restore checks passed (reports/PHASE_3_BACKUP_SCHEDULE.json).
+- Both approved real Testnet authentication requests returned HTTP 200. Account data was discarded; status-only evidence published. Real order lifecycle and seven-day run remain NOT RUN without separate order approval and full lifecycle acceptance.
+- Initial soak was rejected after long gaps, client errors and retained ctypes type growth. A 100-call reproduction retained 100 pointer definitions before repair and zero afterward. Definitions are now cached. Replacement run completed 1800.016 seconds, 61 samples, 8725 successful API requests and 89868 SSE frames with zero load failures; isolated server exited 0 in 2.36 seconds. Whole/tail RSS slopes -0.047562/-0.230951 MB/minute; a late RSS decline fails the frozen absolute-slope criterion, so result remains REVIEW. Cause of the decline is unknown; no sustained-growth claim. CSV and JSON: reports/PHASE_3_SOAK.csv and reports/PHASE_3_SOAK.json.
+- Existing localhost:8900 health/readiness returned HTTP 200, eight tickers and 86 total listings (50 on page 1). This running process was not restarted to load Phase 3 changes. Repaired source is exercised in isolation; /ready is informational and is not a fail-closed trading-readiness gate. Source listing filters now derive activity from verified Spot USDT status TRADING, without static asset blacklists; this is not the Phase 5 universe.
+- Remaining exchange limitations include partial-fill/commission accounting and uncertain-entry cancellation/reconciliation. Known exposure is retained and halted on ambiguity. Full real exchange lifecycle proof and order IDs are absent; do not start unattended trading or the seven-day run.
+
+Main report: reports/PHASE_3_REPORT.md. Related JSON/CSV evidence is under reports/PHASE_3_*. Phase 3 authorized checks are collected, but it remains PARTIAL / NOT COMPLETE: frozen plateau criterion not met, benchmark timeout outlier unresolved, real exchange lifecycle NOT RUN, partial-fill/commission accounting and uncertain-entry reconciliation incomplete. The seven-day run was not started. Phase 1 remains unresolved and blocks Phase 4; Phase 2 retains its scoped historical integrity PASS. Do not trade live.

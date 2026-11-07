@@ -1,0 +1,17 @@
+{
+  "interval_seconds": 60,
+  "cycles_observed": 2,
+  "snapshots": [
+    {
+      "passed": true,
+      "value": 1
+    },
+    {
+      "passed": true,
+      "value": 2
+    }
+  ],
+  "passed": true,
+  "disposable_copy": "C:\\Users\\EKANTH~1\\AppData\\Local\\Temp\\zillers-phase-audit-msbpae5g",
+  "scope": "one disposable fixture DB; original databases untouched"
+}

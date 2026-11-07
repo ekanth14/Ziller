@@ -1,0 +1,224 @@
+{
+  "created_at": "[REDACTED]-11-07T09:17:40.984408+00:00",
+  "databases": [
+    {
+      "path": "data\\orders.db",
+      "integrity": "ok",
+      "logical_restore_equal": true,
+      "snapshot": {
+        "journal_mode": "wal",
+        "connection_busy_timeout_ms": 5000,
+        "user_version": 0,
+        "schema_version": 1,
+        "tables": {
+          "execution_orders": 0,
+          "execution_positions": 0
+        }
+      }
+    },
+    {
+      "path": "work\\autotrader\\autotrader.sqlite3",
+      "integrity": "ok",
+      "logical_restore_equal": true,
+      "snapshot": {
+        "journal_mode": "wal",
+        "connection_busy_timeout_ms": 5000,
+        "user_version": 0,
+        "schema_version": 1,
+        "tables": {
+          "runtime": 1,
+          "commands": 1,
+          "decisions": 802,
+          "events": 61
+        }
+      }
+    },
+    {
+      "path": "work\\autotrader\\paper.sqlite3",
+      "integrity": "ok",
+      "logical_restore_equal": true,
+      "snapshot": {
+        "journal_mode": "wal",
+        "connection_busy_timeout_ms": 5000,
+        "user_version": 0,
+        "schema_version": 1,
+        "tables": {
+          "account": 1,
+          "positions": 0,
+          "fills": 0,
+          "controls": 1,
+          "auto_risk": 1,
+          "auto_marks": 2
+        }
+      }
+    },
+    {
+      "path": "work\\crypto_candles.db",
+      "integrity": "ok",
+      "logical_restore_equal": true,
+      "snapshot": {
+        "journal_mode": "wal",
+        "connection_busy_timeout_ms": 5000,
+        "user_version": 0,
+        "schema_version": 1,
+        "tables": {}
+      }
+    },
+    {
+      "path": "work\\research-agent\\paper.sqlite3",
+      "integrity": "ok",
+      "logical_restore_equal": true,
+      "snapshot": {
+        "journal_mode": "wal",
+        "connection_busy_timeout_ms": 5000,
+        "user_version": 0,
+        "schema_version": 1,
+        "tables": {
+          "account": 1,
+          "positions": 0,
+          "fills": 0,
+          "controls": 1
+        }
+      }
+    },
+    {
+      "path": "work\\research-agent\\research.sqlite3",
+      "integrity": "ok",
+      "logical_restore_equal": true,
+      "snapshot": {
+        "journal_mode": "wal",
+        "connection_busy_timeout_ms": 5000,
+        "user_version": 0,
+        "schema_version": 1,
+        "tables": {
+          "runs": 8
+        }
+      }
+    },
+    {
+      "path": "work\\runtime\\crypto_candles.db",
+      "integrity": "ok",
+      "logical_restore_equal": true,
+      "snapshot": {
+        "journal_mode": "wal",
+        "connection_busy_timeout_ms": 5000,
+        "user_version": 0,
+        "schema_version": 1,
+        "tables": {
+          "crypto_candles": 15089
+        }
+      }
+    },
+    {
+      "path": "work\\runtime\\orchestrator_execution.db",
+      "integrity": "ok",
+      "logical_restore_equal": true,
+      "snapshot": {
+        "journal_mode": "wal",
+        "connection_busy_timeout_ms": 5000,
+        "user_version": 0,
+        "schema_version": 1,
+        "tables": {
+          "positions": 0,
+          "orders": 0
+        }
+      }
+    },
+    {
+      "path": "work\\runtime\\paper_execution.db",
+      "integrity": "ok",
+      "logical_restore_equal": true,
+      "snapshot": {
+        "journal_mode": "wal",
+        "connection_busy_timeout_ms": 5000,
+        "user_version": 0,
+        "schema_version": 1,
+        "tables": {
+          "account": 1,
+          "positions": 0,
+          "fills": 0,
+          "controls": 1
+        }
+      }
+    },
+    {
+      "path": "work\\runtime\\research.db",
+      "integrity": "ok",
+      "logical_restore_equal": true,
+      "snapshot": {
+        "journal_mode": "wal",
+        "connection_busy_timeout_ms": 5000,
+        "user_version": 0,
+        "schema_version": 1,
+        "tables": {
+          "records": 0,
+          "settings": 0,
+          "bars": 978
+        }
+      }
+    },
+    {
+      "path": "work\\runtime\\trading.db",
+      "integrity": "ok",
+      "logical_restore_equal": true,
+      "snapshot": {
+        "journal_mode": "wal",
+        "connection_busy_timeout_ms": 5000,
+        "user_version": 0,
+        "schema_version": 1,
+        "tables": {
+          "meta": 5,
+          "positions": 0,
+          "orders": 0,
+          "events": 4,
+          "pnl_events": 0,
+          "decision_journal": 131
+        }
+      }
+    },
+    {
+      "path": "work\\runtime\\trading_journal.db",
+      "integrity": "ok",
+      "logical_restore_equal": true,
+      "snapshot": {
+        "journal_mode": "wal",
+        "connection_busy_timeout_ms": 5000,
+        "user_version": 0,
+        "schema_version": 1,
+        "tables": {
+          "signals": 3,
+          "trade_intents": 1,
+          "debates": 1,
+          "risk_decisions": 1,
+          "orders": 0,
+          "fills": 0,
+          "positions_closed": 0
+        }
+      }
+    },
+    {
+      "path": "work\\runtime\\users.db",
+      "integrity": "ok",
+      "logical_restore_equal": true,
+      "snapshot": {
+        "journal_mode": "wal",
+        "connection_busy_timeout_ms": 5000,
+        "user_version": 0,
+        "schema_version": 1,
+        "tables": {
+          "users": 2,
+          "sessions": 5,
+          "password_resets": 0,
+          "watchlists": 0,
+          "user_settings": 2
+        }
+      }
+    }
+  ],
+  "passed": true,
+  "note": "Per-database consistent backup; not an atomic cross-database transaction. Restores retained separately; production never overwritten.",
+  "security_redactions": {
+    "withheld_values": 1,
+    "notice": "Sensitive material removed. Null may denote a withheld numeric value."
+  }
+}

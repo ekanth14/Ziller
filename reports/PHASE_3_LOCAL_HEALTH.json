@@ -1,0 +1,74 @@
+{
+  "/health": {
+    "http_status": 200,
+    "body": {
+      "status": "healthy",
+      "timestamp": 1794041319.7368183,
+      "terminal": "[REDACTED]ERS"
+    }
+  },
+  "/ready": {
+    "http_status": 200,
+    "body": {
+      "status": "ready",
+      "exchanges": {
+        "binance": {
+          "state": "connected",
+          "endpoint": "stream.binance.com",
+          "last_heartbeat_age": 0.2,
+          "consecutive_errors": 0,
+          "error": null
+        },
+        "coinbase": {
+          "state": "connected",
+          "endpoint": "ws-feed.exchange.coinbase.com",
+          "last_heartbeat_age": 0.1,
+          "consecutive_errors": 0,
+          "error": null
+        },
+        "kraken": {
+          "state": "connected",
+          "endpoint": "ws.kraken.com",
+          "last_heartbeat_age": 0.8,
+          "consecutive_errors": 0,
+          "error": null
+        },
+        "coingecko": {
+          "state": "connected",
+          "endpoint": "api.coingecko.com",
+          "last_heartbeat_age": 73.9,
+          "consecutive_errors": 0,
+          "error": null
+        }
+      },
+      "fx": {
+        "status": "available",
+        "target": "INR",
+        "rate": 94.139177,
+        "age_seconds": 270.0,
+        "source": "open_er_api",
+        "error": null
+      }
+    }
+  },
+  "/api/market/tickers": {
+    "http_status": 200,
+    "keys": [
+      "tickers"
+    ],
+    "count": 8
+  },
+  "/api/market/listings": {
+    "http_status": 200,
+    "returned_items": 50,
+    "total": 86,
+    "page": 1,
+    "per_page": 50,
+    "stale": false,
+    "error": null
+  },
+  "security_redactions": {
+    "withheld_values": 1,
+    "notice": "Sensitive material removed. Null may denote a withheld numeric value."
+  }
+}
