@@ -122,12 +122,14 @@ Hardware telemetry profiling CPU affinity pinning, zero-copy buffer allocations,
    - **5 Mandatory Live Gates:**
      1. System environment variable `LIVE_TRADING=true`.
      2. Real exchange API credentials set in environment (`EXCHANGE_API_KEY`, `EXCHANGE_API_SECRET`).
-     3. Minimum 50 closed paper trades with net-positive PnL.
+     3. At least 28 forward paper days and 100 paper trades, net-positive PnL, drawdown at most 15%, and DSR at least 0.95 (configurable thresholds).
      4. Admin password re-authentication within the past 5 minutes.
      5. Exact operator confirmation string `"ENABLE LIVE TRADING"`.
    - **Risk Governor:** 5% max position limit, 1.0 gross leverage limit (spot only, no shorting), max 10 open orders, 3% daily loss limit auto-halt, 5s stale feed halt, and 1.0% price divergence halt.
    - **Emergency Kill-Switch:** Master emergency kill switch canceling open orders, flattening positions, setting state to `HALTED`, and requiring admin re-auth to resume.
    - **Idempotent Exchange Adapter:** UUIDv4 client order IDs for deduplication across network retries.
+
+The activation gate reads legacy `EXCHANGE_API_KEY` / `EXCHANGE_API_SECRET` settings; dedicated testnet credentials are separate. Gate 2 currently checks presence, not exchange withdrawal permissions. Gate 3 accepts an omitted DSR as the configured threshold and does not require timestamp evidence when callers supply aggregate statistics. These are existing readiness limitations; the protected governor was not changed. LIVE remains disabled. Authentication and sessions use `work/runtime/users.db`.
 
 ---
 

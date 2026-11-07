@@ -100,7 +100,7 @@ zien-crypto/
 │   │   └── coingecko.py                # Top 100+ Crypto Listings & Metadata Provider
 │   │
 │   ├── auth/                           # Security, Session & Cryptographic Store
-│   │   ├── store.py                    # SQLite User Credentials & Session Storage (auth.db)
+│   │   ├── store.py                    # SQLite User Credentials & Session Storage (users.db)
 │   │   └── security.py                 # Scrypt (N=2^17) Key Derivation, CSRF, Rate Limiting
 │   │
 │   ├── fx/                             # Currency Conversion Layer
@@ -126,7 +126,7 @@ zien-crypto/
 │
 ├── work/runtime/                       # Production Runtime Persistence
 │   ├── crypto_candles.db               # SQLite Master Candle Database (5m, 15m, 1h, 1d)
-│   └── auth.db                         # SQLite Cryptographic Auth & User Session DB
+│   └── users.db                        # SQLite Auth & User Sessions (work/runtime/users.db)
 │
 ├── data/
 │   └── collaborations.json             # Operator Collaboration Proposals Storage
@@ -170,11 +170,11 @@ flowchart TD
 
     subgraph RiskGovernanceLayer [4. Deterministic Risk Gateways]
         DEC --> RG[LiveMultiGateGovernor]
-        RG --> G1[Gate 1: Kill Switch State]
-        RG --> G2[Gate 2: On-Chain Operator & Rugpull Score]
-        RG --> G3[Gate 3: AMM Slippage & Constant-Product Drain]
-        RG --> G4[Gate 4: Fractional Kelly Size & Risk-Per-Trade Cap]
-        RG --> G5[Gate 5: Minimum Reward/Risk Ratio >= 1.5]
+        RG --> G1[Gate 1: Explicit LIVE environment flag]
+        RG --> G2[Gate 2: Exchange credential settings present]
+        RG --> G3[Gate 3: Forward paper track record and thresholds]
+        RG --> G4[Gate 4: Admin reauthentication within 300 seconds]
+        RG --> G5[Gate 5: Exact operator confirmation]
     end
 
     subgraph TerminalPresentationLayer [5. Dashboard Terminal & Operators]
@@ -486,11 +486,13 @@ Implemented in [`cryptoscope/execution/governor.py`](file:///c:/Users/Ekanth's%2
 
 ### The 5-Gate Live Trading Activation Protocol
 To transition the terminal from `PAPER` mode to `LIVE` order routing, all five gates must pass simultaneously:
-1. **Gate 1 — Paper Trade History**: Minimum of $\ge 20$ completed paper trades.
-2. **Gate 2 — Profitability Gate**: Positive cumulative net paper PnL ($> \$0.00$).
-3. **Gate 3 — Cryptographic Re-Authentication**: Administrator scrypt password verified within the last 300 seconds.
-4. **Gate 4 — Explicit Confirmation**: Operator must supply exact confirmation phrase: `"CONFIRM_LIVE_TRADING_BINANCE_SPOT"`.
-5. **Gate 5 — Kill Switch Disengaged**: The global emergency kill switch must be clear.
+1. **Gate 1 — Explicit environment flag**: `LIVE_TRADING` must be `1`, `true`, or `yes`.
+2. **Gate 2 — Settings present**: Legacy `EXCHANGE_API_KEY` and `EXCHANGE_API_SECRET` must be configured. This function does not independently verify withdrawal permissions; that claim in its historical docstring is not implemented here.
+3. **Gate 3 — Forward paper record**: Defaults are 28 forward days, 100 trades, positive net PnL, maximum drawdown at most 15%, and DSR at least 0.95. Environment overrides are `GATE3_MIN_FORWARD_DAYS`, `GATE3_MIN_PAPER_TRADES`, `GATE3_MAX_DRAWDOWN_LIMIT`, and `GATE3_MIN_DSR`. When trades and engine-start timestamps are supplied, older trades fail. Aggregate-only calls can omit that evidence, and omitted DSR defaults to the threshold: existing limitations, not proof of validated performance. The source docstring's 0.80 DSR is stale; executable default is 0.95.
+4. **Gate 4 — Administrator reauthentication**: Successful reauthentication within 300 seconds.
+5. **Gate 5 — Confirmation**: Exact phrase `ENABLE LIVE TRADING`, after stripping surrounding whitespace.
+
+The durable emergency latch and deterministic pre-trade risk controls are additional execution checks, not replacement definitions of these five activation gates. The protected governor source remains unchanged, and LIVE is never enabled in this development workflow. Dedicated Binance Testnet settings are separate from these legacy activation settings. User and session storage is `work/runtime/users.db`.
 
 ### Master Emergency Kill Switch
 - **Action `HALT`**: Immediately ceases all autonomous trade evaluation and cancels pending orders.
