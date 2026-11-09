@@ -1,0 +1,36 @@
+{
+  "status": "completed",
+  "model": "gemma4-quant:12b",
+  "requested_tag": "gemma4:12b",
+  "substitution_explicitly_approved": true,
+  "protocol": "phase2-scored-committee-v1",
+  "runs": [
+    {
+      "run": 1,
+      "scenarios": 30,
+      "p50_seconds": 9.381703200007905,
+      "p95_seconds": 10.105324764996475,
+      "valid_json_rate": 1.0,
+      "valid_schema_rate": 1.0,
+      "timeout_rate": 0.0,
+      "tokens_per_second": 6.855411925480886
+    },
+    {
+      "run": 2,
+      "scenarios": 30,
+      "p50_seconds": 9.262810050000553,
+      "p95_seconds": 10.172263254995778,
+      "valid_json_rate": 1.0,
+      "valid_schema_rate": 1.0,
+      "timeout_rate": 0.0,
+      "tokens_per_second": 6.934234836141653
+    }
+  ],
+  "difference": {
+    "p50_seconds": -0.11889315000735223,
+    "p95_seconds": 0.06693848999930374,
+    "valid_json_rate": 0.0,
+    "timeout_rate": 0.0
+  },
+  "note": "Scored committee protocol used in Phase 2; not a claim about the longer production consensus prompt. Host also runs isolated load testing."
+}

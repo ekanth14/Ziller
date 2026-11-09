@@ -1,0 +1,57 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.2.0, pluggy-1.7.0
+rootdir: C:\Users\EKANTH~1\AppData\Local\Temp\zillers-phase-audit-ig2c1rvl
+configfile: pytest.ini
+collected 390 items
+
+cryptoscope\tests\test_auth.py ..............                            [  3%]
+cryptoscope\tests\test_autotrader.py ..................                  [  8%]
+cryptoscope\tests\test_backtest_costs.py ......                          [  9%]
+cryptoscope\tests\test_binance_testnet.py ssss....                       [ 11%]
+cryptoscope\tests\test_dashboard.py .........                            [ 14%]
+cryptoscope\tests\test_dashboard_startup.py .                            [ 14%]
+cryptoscope\tests\test_exchange_isolation.py ..                          [ 14%]
+cryptoscope\tests\test_feature_integration.py ..ssss                     [ 16%]
+cryptoscope\tests\test_fx.py ....                                        [ 17%]
+cryptoscope\tests\test_governor.py .........                             [ 19%]
+cryptoscope\tests\test_graceful_shutdown.py .                            [ 20%]
+cryptoscope\tests\test_journal_and_notifier.py ..                        [ 20%]
+cryptoscope\tests\test_live_terminal_e2e.py ........s..                  [ 23%]
+cryptoscope\tests\test_local_model_cache.py ...............              [ 27%]
+cryptoscope\tests\test_market_data.py .................                  [ 31%]
+cryptoscope\tests\test_multi_agent_debate.py ....                        [ 32%]
+cryptoscope\tests\test_multi_bot_e2e.py .........                        [ 34%]
+cryptoscope\tests\test_new_strategies.py .....                           [ 36%]
+cryptoscope\tests\test_onchain_guard.py .......                          [ 37%]
+cryptoscope\tests\test_orchestrator_bus.py ....                          [ 38%]
+cryptoscope\tests\test_orchestrator_execution.py ...                     [ 39%]
+cryptoscope\tests\test_orchestrator_risk.py ....                         [ 40%]
+cryptoscope\tests\test_orchestrator_supervisor.py ..                     [ 41%]
+cryptoscope\tests\test_phase1_security.py .............................. [ 48%]
+                                                                         [ 48%]
+cryptoscope\tests\test_phase2_backtest_integrity.py .................... [ 54%]
+....................                                                     [ 59%]
+cryptoscope\tests\test_phase2_repairs.py .......................         [ 65%]
+cryptoscope\tests\test_phase3_followup.py ............                   [ 68%]
+cryptoscope\tests\test_phase3_operations.py .................            [ 72%]
+cryptoscope\tests\test_pipeline_bots.py ...                              [ 73%]
+cryptoscope\tests\test_quant_analysis.py ............                    [ 76%]
+cryptoscope\tests\test_repository_extensions.py ......sss                [ 78%]
+cryptoscope\tests\test_research_backend.py ....................          [ 83%]
+cryptoscope\tests\test_secret_leak_prevention.py ..................      [ 88%]
+cryptoscope\tests\test_server_endpoints.py ......................        [ 94%]
+cryptoscope\tests\test_simulation.py ....                                [ 95%]
+cryptoscope\tests\test_sizing.py .......                                 [ 96%]
+cryptoscope\tests\test_telegram_gateway.py ............                  [100%]
+
+=========================== short test summary info ===========================
+SKIPPED [4] cryptoscope\tests\test_binance_testnet.py: NOT RUN: external service not authorized
+SKIPPED [1] cryptoscope\tests\test_feature_integration.py:81: Requires optional 'quantjourney-bt' backtesting engine (git-pinned in requirements-backtest.txt); standard runtime uses stdlib-only backtesting
+SKIPPED [1] cryptoscope\tests\test_feature_integration.py:93: Requires optional 'quantjourney-bt' backtesting engine (git-pinned in requirements-backtest.txt); standard runtime uses stdlib-only backtesting
+SKIPPED [1] cryptoscope\tests\test_feature_integration.py:105: Requires optional 'quantjourney-bt' backtesting engine (git-pinned in requirements-backtest.txt); standard runtime uses stdlib-only backtesting
+SKIPPED [1] cryptoscope\tests\test_feature_integration.py:70: Requires optional 'quantjourney-bt' backtesting engine (git-pinned in requirements-backtest.txt); standard runtime uses stdlib-only backtesting
+SKIPPED [1] cryptoscope\tests\test_live_terminal_e2e.py: NOT RUN: external service not authorized
+SKIPPED [1] cryptoscope\tests\test_repository_extensions.py:153: Requires optional 'quantjourney-bt' backtesting engine (git-pinned in requirements-backtest.txt); standard runtime uses stdlib-only backtesting
+SKIPPED [1] cryptoscope\tests\test_repository_extensions.py:161: Requires optional 'quantjourney-bt' backtesting engine (git-pinned in requirements-backtest.txt); standard runtime uses stdlib-only backtesting
+SKIPPED [1] cryptoscope\tests\test_repository_extensions.py:134: Requires optional 'quantjourney-bt' backtesting engine (git-pinned in requirements-backtest.txt); standard runtime uses stdlib-only backtesting
+================= 378 passed, 12 skipped in 68.26s (0:01:08) ==================

@@ -1,0 +1,65 @@
+{
+  "duration_seconds": 1800.0,
+  "target_clients": 50,
+  "memory_protocol": "phase3-private-memory-v2",
+  "memory_rule": "Second-half private absolute slope <=0.1 MiB/min, private range <=10 MiB, RSS growth slope <=0.1 MiB/min; RSS declines are reported, not classified as leaks",
+  "private_slope_mb_per_minute": 0.012887705712386443,
+  "private_tail_slope_mb_per_minute": 0.007019008502074931,
+  "private_tail_range_mb": 0.2421875,
+  "private_plateau": true,
+  "memory_accepted": true,
+  "metrics": "real server process metrics; sockets are owned TCP rows, not client count",
+  "sample_count": 61,
+  "sampling_interval_seconds": 30,
+  "slope_mb_per_minute": 0.019310946019890963,
+  "tail_slope_mb_per_minute": 0.006924443851244047,
+  "plateau": true,
+  "plateau_rule": "second-half absolute slope <=0.1 MB/min and range <=10 MB",
+  "throughput": [
+    {
+      "mode": "close",
+      "requests": 100,
+      "successful": 100,
+      "tcp_connections_opened": 100,
+      "http_versions": [
+        11
+      ],
+      "seconds": 1.1343335000128718,
+      "successful_requests_per_second": 88.15749512719606
+    },
+    {
+      "mode": "keep_alive",
+      "requests": 100,
+      "successful": 100,
+      "tcp_connections_opened": 1,
+      "http_versions": [
+        11
+      ],
+      "seconds": 0.06458480001310818,
+      "successful_requests_per_second": 1548.3519338869814
+    }
+  ],
+  "graceful_shutdown": true,
+  "shutdown_seconds": 1.735000000000582,
+  "server_exit": 0,
+  "counters": {
+    "active_sse": 50,
+    "sse_connects": 1500,
+    "sse_frames": 89857,
+    "sse_failures": 0,
+    "api_ok": 8724,
+    "api_failed": 0
+  },
+  "error_types": {},
+  "shutdown_counters": {
+    "active_sse": 0,
+    "sse_connects": 1500,
+    "sse_frames": 89936,
+    "sse_failures": 50,
+    "api_ok": 8732,
+    "api_failed": 1
+  },
+  "minimum_sampled_active_sse": 46,
+  "maximum_sampling_gap_seconds": 30.047000000000025,
+  "status": "PASS"
+}

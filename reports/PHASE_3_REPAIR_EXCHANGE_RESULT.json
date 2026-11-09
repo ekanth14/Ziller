@@ -1,0 +1,60 @@
+{
+  "status": "completed",
+  "scope": "526f05bf3f484437",
+  "limit_order_id": 11618421,
+  "market_order_id": 11618423,
+  "stop_order_id": 11618424,
+  "partial_fill": "NOT_OBSERVED",
+  "rate_limit": "NOT_OBSERVED",
+  "plan": {
+    "symbol": "BTCUSDT",
+    "maximum_buy_notional_usdt": 40,
+    "per_buy_notional_usdt": 20,
+    "venue": "https://testnet.binance.vision",
+    "steps": [
+      "Own post-only limit buy, query and cancel",
+      "Quote-capped market buy, account actual fills and place exchange stop",
+      "Force-stop this diagnostic process only after protection is confirmed",
+      "Restart from disposable state, verify protection, request HALT_FLATTEN",
+      "Validate three rejected orders through nonexecuting order/test"
+    ],
+    "excludes": [
+      "LIVE",
+      "Other account orders",
+      "Deliberate rate-limit flooding",
+      "Seven-day run"
+    ],
+    "acceptance": "Real partial fills and HTTP 429 are NOT OBSERVED unless they occur; no blanket integration PASS or seven-day start without them"
+  },
+  "operator_reconciliation_required": false,
+  "restart_reconciliation": "PASS",
+  "halt_flatten": "PASS",
+  "entry_disabled_after_flatten": true,
+  "filter_checks": [
+    {
+      "case": "lot_size",
+      "result": "REJECTED",
+      "code": -1013
+    },
+    {
+      "case": "tick_size",
+      "result": "REJECTED",
+      "code": -1013
+    },
+    {
+      "case": "min_notional",
+      "result": "REJECTED",
+      "code": -1013
+    }
+  ],
+  "own_order_references": [
+    "close_45ca9ea9ea1f456482a1f4b7",
+    "entry_p3limit_526f05bf3f484437",
+    "entry_p3market_526f05bf3f484437",
+    "stop_p3market_526f05bf3f484437"
+  ],
+  "bounded_lifecycle": "PASS",
+  "full_phase3_integration": "NOT_COMPLETE",
+  "min_notional_recheck": "REJECTED",
+  "ledger_reconciled": true
+}
