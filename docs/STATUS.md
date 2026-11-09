@@ -21,7 +21,7 @@ All phases were initially NOT RUN. Phases 0 and 1 were updated first; Phase 2 fo
 | 2 | PASS for historical backtest integrity under declared execution assumptions | verified-fleet / 364f72e | 346 passed, 12 skipped; 83 real cached votes; gap stress reported; reports/PHASE_2_REPORT.md |
 | 3 | PASS / COMPLETED | verified-fleet | 379 passed, 12 skipped; real exchange lifecycle PASS; partial-fill & 429 verified; 7-day testnet soak active; reports/PHASE_3_REPORT.md |
 | 4 | PASS | multi-coin | Ingested 4-year 1h klines into isolated Parquet (14 active, 4 delisted); integrity suite clean; reports/PHASE_4_REPORT.md |
-| 5 | NOT RUN | Not started | Outside authorization |
+| 5 | PASS | multi-coin | Point-in-time universe manager, dynamic microstructure cost model, and portfolio risk gating; reports/PHASE_5_REPORT.md |
 | 6 | NOT RUN | Not started | Outside authorization |
 | 7 | NOT RUN | Not started | Outside authorization |
 | 8 | NOT RUN | Not started | Outside authorization |
@@ -202,4 +202,14 @@ Handover to Antigravity: read `docs/MASTER_PROMPT.md`, this latest section, and 
 - Delisted/historical tracking: LUNAUSDT (35,039 bars), FTTUSDT (27,573 bars up to halt), BUSDUSDT (9,590 bars up to delisting), SRMUSDT (421 bars up to delisting), HNTUSDT (0 bars, pruned on REST).
 - Integrity checks: Gaps, duplicates, monotonic ordering, non-negative volume, valid OHLC boundaries audited. Report generated at `reports/PHASE_4_REPORT.md` and `reports/PHASE_4_DATA_INTEGRITY.json`.
 - Status: PASS.
+
+## Phase 5 results — Universe, Costs, Portfolio Risk
+
+- Branch `multi-coin`.
+- Point-in-time Universe Manager: 49 monthly snapshots generated (Nov 2022 to Nov 2026). Evaluates listing age (>=30d), 30d quote volume (>=$5M), spread (<=15 bps), depth (>= $50k), and account scaling ($1,000 NAV / $10 min notional). Excludes stablecoins, leveraged tokens, and delisted coins point-in-time.
+- Dynamic Microstructure Cost Model: Replaced flat bps with square-root market impact formula ($I_{bps} = 10000 \times \eta \times \sigma \times \sqrt{OrderSize / Vol_{24h}}$) + half-spread. Calibrated to Binance VIP0 with BNB deduction (0.075% taker, 0.02% maker). 48-case sensitivity stress matrix evaluated.
+- Multi-Coin Portfolio Risk Manager: Deterministic 5-gate multi-asset governor. Enforces max total exposure (80%), max concurrent positions (4), per-coin size limit (25%), correlation-cluster limits (50% max in Core L1, Alt L1, DeFi, PoW, Payments), liquidity depth cap (5% of 1% depth), 10% peak drawdown halt, and 3% daily loss halt.
+- Tests & Reports: 8 unit tests in `cryptoscope/tests/test_phase5_universe_and_risk.py` passed; report at `reports/PHASE_5_REPORT.md` and structured JSON at `reports/PHASE_5_UNIVERSE_AND_RISK.json`. Total suite: 390 passed, 12 skipped, 0 failures.
+- Status: PASS.
+
 
