@@ -13,14 +13,11 @@ from cryptoscope.backtesting.pair_audit import gap_sensitivity
 
 
 def generate(body):
-    response=MagicMock()
-    response.__enter__.return_value=response
-    response.read.return_value=json.dumps(body).encode()
     request=dict(symbol='BTCUSDT',direction='BUY',entry=100,stop=98,target=104,
                  indicators={'strategy':'ema_trend'},model='fixture',timeout_sec=35)
-    with patch('cryptoscope.backtesting.compact_debate.urllib.request.urlopen',return_value=response) as opened:
+    with patch('cryptoscope.backtesting.compact_debate.post_json_deadline',return_value=body) as opened:
         result=CompactDebateEngine().deliberate_combined(**request)
-        payload=json.loads(opened.call_args.args[0].data)
+        payload=opened.call_args.args[1]
     assert payload['raw'] is True and payload['think'] is False
     assert payload['options']['num_predict']==40
     return result
@@ -46,7 +43,7 @@ def test_incomplete_invalid_or_extra_model_fields_fail_closed_with_category(body
 
 
 def test_timeout_has_safe_typed_failure_record():
-    with patch('cryptoscope.backtesting.compact_debate.urllib.request.urlopen',side_effect=TimeoutError('private text')):
+    with patch('cryptoscope.backtesting.compact_debate.post_json_deadline',side_effect=TimeoutError('private text')):
         result=CompactDebateEngine().deliberate_combined(symbol='BTCUSDT',direction='BUY',entry=100,
             stop=98,target=104,indicators={},model='fixture',timeout_sec=35)
     assert result['failure_category']=='timeout' and result['verdict']=='REJECT'

@@ -144,12 +144,17 @@ class ServerEndpointTests(unittest.TestCase):
             self.assertEqual(headers.get("X-Frame-Options"), "DENY")
             self.assertEqual(headers.get("X-Content-Type-Options"), "nosniff")
 
-        with urlopen(f"{self.base_url}/ready") as resp:
-            self.assertEqual(resp.status, 200)
-            data = json.load(resp)
-            self.assertEqual(data["status"], "ready")
-            self.assertIn("exchanges", data)
-            self.assertIn("fx", data)
+        from unittest.mock import patch
+        with patch.object(self.market_agg,'get_connection_status',return_value={}), self.assertRaises(HTTPError) as failure:
+            urlopen(f"{self.base_url}/ready")
+        self.assertEqual(failure.exception.code,503)
+        connected={name:dict(state='connected',last_heartbeat_age=0) for name in ('binance','coinbase','kraken')}
+        with patch.object(self.market_agg,'get_connection_status',return_value=connected), patch.object(self.market_agg,'get_ticker',return_value={'status':'verified'}):
+            with urlopen(f"{self.base_url}/ready") as resp:
+                self.assertEqual(resp.status,200)
+                data=json.load(resp)
+                self.assertEqual(data['status'],'ready')
+                self.assertFalse(data['trading_authorized'])
 
     def test_login_success_sets_session_cookie(self):
         login_data = json.dumps({"email": "admin@zillers.local", "password": "AdminSuperSecurePass2026!#"}).encode()

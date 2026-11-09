@@ -8,6 +8,7 @@ from cryptoscope.agents.researchers.bull_researcher import BullResearcher
 from cryptoscope.agents.researchers.bear_researcher import BearResearcher
 from cryptoscope.agents.risk.tri_debate import run_tri_risk_debate
 from cryptoscope.simulation.time_machine import simulate_trade_odds
+from cryptoscope.providers.deadline_http import post_json_deadline
 
 
 class DeliberationConsensusEngine:
@@ -77,13 +78,9 @@ class DeliberationConsensusEngine:
         }
 
         try:
-            req = urllib.request.Request(
-                f"{host}/api/generate",
-                data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"}
-            )
-            with urllib.request.urlopen(req, timeout=deadline) as resp:
-                raw_json = json.loads(resp.read().decode("utf-8"))
+            raw_json=post_json_deadline(f'{host}/api/generate',payload,min(deadline,35.0))
+            if raw_json.get('done') is not True or raw_json.get('done_reason')!='stop':
+                raise ValueError('Model generation incomplete')
 
             elapsed_ms = (time.perf_counter() - t0) * 1000.0
             response_text = raw_json.get("response", "")
@@ -94,6 +91,9 @@ class DeliberationConsensusEngine:
                 raise ValueError(f"Incomplete JSON keys from model: {list(parsed.keys())}")
 
             conv = float(parsed["conviction"])
+            import math
+            if type(parsed['conviction']) is not int or not math.isfinite(conv) or not 1<=conv<=10:
+                raise ValueError('Invalid model conviction')
             action = str(parsed["consensus_action"]).upper()
             risk_v = str(parsed["risk_verdict"]).upper()
 
@@ -103,7 +103,7 @@ class DeliberationConsensusEngine:
             if risk_v not in {"APPROVE", "VETO"}:
                 risk_v = "VETO"
 
-            is_approved = (risk_v == "APPROVE" and action in {"BUY", "SELL"} and conv >= 6.0)
+            is_approved = (math.isfinite(conv) and 6<=conv<=10 and risk_v == "APPROVE" and action==direction)
 
             return {
                 "symbol": symbol,
@@ -121,7 +121,7 @@ class DeliberationConsensusEngine:
 
         except Exception as exc:
             elapsed_ms = (time.perf_counter() - t0) * 1000.0
-            log.warning("Debate LLM failed/timed out (%s). Failing closed to STAND_ASIDE.", exc)
+            log.warning("Debate inference failed (%s). Failing closed to STAND_ASIDE.", type(exc).__name__)
             return {
                 "symbol": symbol,
                 "action": "STAND_ASIDE",
@@ -129,8 +129,8 @@ class DeliberationConsensusEngine:
                 "risk_verdict": "VETO",
                 "conviction_score": 0.0,
                 "bull_thesis": "Inference unavailable/timed out",
-                "bear_thesis": str(exc),
-                "reason": f"Fail-closed fallback: {exc}",
+                "bear_thesis": "Inference unavailable",
+                "reason": "Fail-closed inference fallback",
                 "latency_ms": round(elapsed_ms, 2),
                 "fallback_used": True,
                 "model": model_name,

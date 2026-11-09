@@ -14,6 +14,8 @@ import time
 import urllib.request
 
 from run_isolated_tests import prepare
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from cryptoscope.ops.soak_analysis import memory_assessment,PROTOCOL,RULE
 
 WRAPPER = '''import signal,threading,time
 from pathlib import Path
@@ -54,6 +56,7 @@ def main():
     args=parser.parse_args()
     if args.duration<5 or not 1<=args.clients<=100 or args.interval<1:parser.error('Invalid limits')
     root,environment=prepare()
+    (root/'soak-protocol.json').write_text(json.dumps(dict(protocol=PROTOCOL,rule=RULE,duration=args.duration,clients=args.clients,interval=args.interval)),encoding='utf-8')
     (root/'soak_server.py').write_text(WRAPPER,encoding='utf-8')
     with socket.socket() as s:s.bind(('127.0.0.1',0));port=s.getsockname()[1]
     log=(root/'server-output.txt').open('w',encoding='utf-8')
@@ -113,15 +116,15 @@ def main():
         t=threading.Thread(target=sse_worker,daemon=True);t.start();workers.append(t);time.sleep(.03)
     traffic=threading.Thread(target=api_worker,daemon=True);traffic.start()
     started=time.monotonic();samples=[]
-    columns=['utc','elapsed_seconds','rss_mb','threads','sockets',*counters]
+    columns=['utc','elapsed_seconds','rss_mb','private_mb','threads','sockets',*counters]
     with (root/'soak-metrics.csv').open('w',newline='',encoding='utf-8') as file:
         writer=csv.DictWriter(file,fieldnames=columns);writer.writeheader()
         while True:
             elapsed=time.monotonic()-started
             try:metrics=get('/api/market/status')['server']
-            except (OSError,http.client.HTTPException):metrics=dict(rss_mb=None,threads=None,sockets=None)
+            except (OSError,http.client.HTTPException):metrics=dict(rss_mb=None,private_mb=None,threads=None,sockets=None)
             with lock:counts=dict(counters)
-            row=dict(utc=datetime.now(timezone.utc).isoformat(),elapsed_seconds=round(elapsed,3),**{k:metrics[k] for k in ['rss_mb','threads','sockets']},**counts)
+            row=dict(utc=datetime.now(timezone.utc).isoformat(),elapsed_seconds=round(elapsed,3),**{k:metrics[k] for k in ['rss_mb','private_mb','threads','sockets']},**counts)
             writer.writerow(row);file.flush();samples.append(row)
             print(json.dumps(row),flush=True)
             if elapsed>=args.duration:break
@@ -147,7 +150,8 @@ def main():
     tail_slope=slope(tail)
     plateau=(tail_slope is not None and all(r['rss_mb'] is not None for r in tail) and abs(tail_slope)<=0.1 and
              max(r['rss_mb'] for r in tail)-min(r['rss_mb'] for r in tail)<=10)
-    result=dict(duration_seconds=samples[-1]['elapsed_seconds'],target_clients=args.clients,
+    committed=memory_assessment(samples)
+    result=dict(duration_seconds=samples[-1]['elapsed_seconds'],target_clients=args.clients,**committed,
         metrics='real server process metrics; sockets are owned TCP rows, not client count',
         sample_count=len(samples),sampling_interval_seconds=args.interval,
         slope_mb_per_minute=slope(samples),tail_slope_mb_per_minute=tail_slope,
@@ -156,7 +160,7 @@ def main():
         server_exit=server.returncode,counters=load_counters,error_types=load_errors,
         shutdown_counters=dict(counters),minimum_sampled_active_sse=min(r['active_sse'] for r in samples),
         maximum_sampling_gap_seconds=max(b['elapsed_seconds']-a['elapsed_seconds'] for a,b in zip(samples,samples[1:])),
-        status='PASS' if args.duration>=1800 and args.clients>=50 and plateau and graceful and
+        status='PASS' if args.duration>=1800 and args.clients>=50 and committed['memory_accepted'] and graceful and
             all(r['rss_mb'] is not None and r['sockets'] is not None for r in samples) and
             load_counters['api_failed']==0 and load_counters['sse_failures']==0 and
             max(b['elapsed_seconds']-a['elapsed_seconds'] for a,b in zip(samples,samples[1:]))<=args.interval+5 else 'REVIEW')

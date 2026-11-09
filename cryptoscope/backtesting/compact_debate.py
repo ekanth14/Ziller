@@ -6,6 +6,7 @@ import socket
 import time
 import urllib.error
 import urllib.request
+from cryptoscope.providers.deadline_http import post_json_deadline
 
 PROTOCOL = 'phase2-scored-committee-v1'
 SCHEMA = {'type':'object','properties':{
@@ -33,10 +34,7 @@ class CompactDebateEngine:
         json_valid = None
         timing = {}
         try:
-            request = urllib.request.Request('http://127.0.0.1:11434/api/generate',
-                data=json.dumps(payload).encode(),headers={'Content-Type':'application/json'})
-            with urllib.request.urlopen(request,timeout=timeout_sec) as response:
-                body = json.load(response)
+            body=post_json_deadline('http://127.0.0.1:11434/api/generate',payload,timeout_sec)
             elapsed = (time.perf_counter()-started)*1000
             if elapsed > timeout_sec*1000:
                 raise TimeoutError()

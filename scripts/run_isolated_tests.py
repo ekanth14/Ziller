@@ -114,6 +114,7 @@ def prepare():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--stream', action='store_true', help='Stream isolated pytest progress')
     parser.add_argument('tests', nargs='*', default=['cryptoscope/tests'])
     args = parser.parse_args()
     destination, environment = prepare()
@@ -122,13 +123,26 @@ def main():
                '--tb=short', '--log-file', str(destination / 'pytest.log')]
     print('DISPOSABLE_COPY=' + str(destination), flush=True)
     print('COMMAND=' + json.dumps(command), flush=True)
-    result = subprocess.run(command, cwd=destination, env=environment,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                            text=True, encoding='utf-8')
-    (destination / 'test-output.txt').write_text(result.stdout, encoding='utf-8')
-    print(result.stdout, flush=True)
-    print('EXIT_CODE=' + str(result.returncode), flush=True)
-    return result.returncode
+    if args.stream:
+        command[5:5] = ['-vv', '-s']
+        with (destination / 'test-output.txt').open('w', encoding='utf-8') as output:
+            process = subprocess.Popen(command, cwd=destination, env=environment,
+                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                       text=True, encoding='utf-8', bufsize=1)
+            for line in process.stdout:
+                output.write(line)
+                output.flush()
+                print(line, end='', flush=True)
+            result_code = process.wait()
+    else:
+        result = subprocess.run(command, cwd=destination, env=environment,
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                text=True, encoding='utf-8')
+        (destination / 'test-output.txt').write_text(result.stdout, encoding='utf-8')
+        print(result.stdout, flush=True)
+        result_code = result.returncode
+    print('EXIT_CODE=' + str(result_code), flush=True)
+    return result_code
 
 
 if __name__ == '__main__':

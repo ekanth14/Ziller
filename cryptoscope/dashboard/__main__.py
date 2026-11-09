@@ -175,10 +175,17 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
             if url.path == "/health":
                 return self.json(200, {"status": "healthy", "timestamp": time.time(), "terminal": "ZILLERS"})
             if url.path == "/ready":
-                return self.json(200, {
-                    "status": "ready",
-                    "exchanges": connection_status(),
-                    "fx": fx_service.get_rate(),
+                connections=connection_status()
+                missing=[source for source in ('binance','coinbase','kraken') if connections.get(source,{}).get('state')!='connected'
+                    or connections.get(source,{}).get('last_heartbeat_age') is None or connections[source]['last_heartbeat_age']>5]
+                unavailable=[symbol for symbol in ('BTCUSDT','ETHUSDT','SOLUSDT') if market_aggregator.get_ticker(symbol).get('status')!='verified']
+                return self.json(503 if missing or unavailable else 200, {
+                    "status": "degraded" if missing or unavailable else "ready",
+                    "exchanges": connections,
+                    "unavailable_required_feeds":missing,
+                    "unverified_required_symbols":unavailable,
+                    "trading_authorized":False,
+                    "fx": fx_service.get_rate(auto_fetch=False),
                 })
 
             # Static assets

@@ -36,9 +36,9 @@ class MarketDataAggregator:
         self._metadata: Dict[str, Dict[str, Any]] = {}
         # source_name -> ExchangeStatus
         self._exchanges: Dict[str, ExchangeStatus] = {
-            "binance": ExchangeStatus(name="binance", endpoint="stream.binance.com"),
-            "coinbase": ExchangeStatus(name="coinbase", endpoint="ws-feed.exchange.coinbase.com"),
-            "kraken": ExchangeStatus(name="kraken", endpoint="ws.kraken.com"),
+            "binance": ExchangeStatus(name="binance", endpoint="REST api.binance.com; data-api.binance.vision fallback"),
+            "coinbase": ExchangeStatus(name="coinbase", endpoint="REST api.exchange.coinbase.com"),
+            "kraken": ExchangeStatus(name="kraken", endpoint="REST api.kraken.com"),
             "coingecko": ExchangeStatus(name="coingecko", endpoint="api.coingecko.com"),
         }
         self.deviation_threshold = PRICE_DEVIATION_THRESHOLD

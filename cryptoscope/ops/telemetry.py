@@ -23,7 +23,7 @@ def _windows_types():
 
 
 def process_metrics():
-    result={'pid':os.getpid(),'threads':threading.active_count(),'rss_mb':None,'sockets':None}
+    result={'pid':os.getpid(),'threads':threading.active_count(),'rss_mb':None,'private_mb':None,'sockets':None}
     if os.name=='nt':
         import ctypes
         from ctypes import wintypes as w
@@ -35,6 +35,7 @@ def process_metrics():
         getter.argtypes=[w.HANDLE,ctypes.POINTER(Memory),w.DWORD]
         if getter(kernel.GetCurrentProcess(),ctypes.byref(memory),memory.cb):
             result['rss_mb']=memory.working/(1024*1024)
+            result['private_mb']=memory.private/(1024*1024)
         # GetExtendedTcpTable OWNER_PID rows include active TCP sockets owned
         # by this process, not the load generator's desired client count.
         total=0;measured=False
