@@ -25,6 +25,9 @@ import os
 from pathlib import Path
 import time
 from typing import Any, Dict, List, Optional, Tuple
+import numpy as np
+
+from cryptoscope.research.laya.serving import LayaInProcessServing
 
 logger = logging.getLogger("cryptoscope.decision")
 
@@ -280,18 +283,28 @@ class Tier1Engine:
 
 
 class LayaTier2Evaluator:
-    """Asynchronous Laya candidate evaluation using deterministic compact questions."""
+    """Asynchronous Laya candidate evaluation using deterministic compact questions and in-process serving."""
 
-    def __init__(self, model_path: Optional[str] = None, timeout_ms: Optional[float] = None, threads: Optional[int] = None):
-        self.model_path = model_path
+    def __init__(
+        self,
+        model_path: Optional[str] = None,
+        timeout_ms: Optional[float] = None,
+        threads: Optional[int] = None,
+        min_confidence: Optional[float] = None,
+    ):
+        self.model_path = model_path or os.environ.get("LAYA_MODEL_PATH", "checkpoints/laya_decision_classifier.joblib")
         self.max_timeout_ms = timeout_ms or float(os.environ.get("LAYA_TIMEOUT_MS", "200.0"))
         self.num_threads = threads or int(os.environ.get("LAYA_THREADS", "1"))
+        self.min_confidence = min_confidence if min_confidence is not None else float(os.environ.get("LAYA_MIN_CONFIDENCE", "0.55"))
         self.package_loaded = False
         self.checkpoint_loaded = False
         self.checkpoint_path: Optional[str] = None
         self.ollama_available = False
         self.ollama_model = os.environ.get("OLLAMA_MODEL", "gemma4:12b")
         self._measured_p95_ms = 0.0
+        self.total_evaluations = 0
+        self.agreed_count = 0
+        self.in_process_serving: Optional[LayaInProcessServing] = None
         self._init_runtime()
 
     def _init_runtime(self):
@@ -308,7 +321,22 @@ class LayaTier2Evaluator:
         except ImportError:
             pass
 
-        # 2. Package import check
+        # 2. In-Process Serving check (primary)
+        try:
+            self.in_process_serving = LayaInProcessServing(
+                model_path=self.model_path,
+                min_confidence=self.min_confidence,
+                timeout_ms=self.max_timeout_ms,
+            )
+            if self.in_process_serving.is_loaded:
+                self.checkpoint_loaded = True
+                self.checkpoint_path = str(self.in_process_serving.model_path)
+                logger.info("Laya in-process classifier loaded from %s", self.checkpoint_path)
+        except Exception as e:
+            logger.warning("Could not initialize LayaInProcessServing: %s", e)
+            self.in_process_serving = None
+
+        # 3. Package import check (fallback)
         try:
             import laya  # type: ignore
             self.package_loaded = True
@@ -317,26 +345,25 @@ class LayaTier2Evaluator:
         except ImportError:
             self.package_loaded = False
             self.laya_version = "UNAVAILABLE"
-            logger.debug("Laya native library (laya-ai.com) not installed in local environment")
 
-        # 3. Checkpoint scan in checkpoints/ and data/models/
-        self.checkpoint_path = "UNAVAILABLE"
-        check_dirs = [
-            Path(__file__).resolve().parents[2] / "checkpoints",
-            Path(__file__).resolve().parents[2] / "data/models",
-            Path(os.environ.get("USERPROFILE", "")) / ".ollama/models/blobs",
-        ]
-        for d in check_dirs:
-            if d.exists():
-                for f in d.glob("*.*"):
-                    if f.suffix in {".safetensors", ".pt", ".onnx", ".bin", ".gguf"}:
-                        self.checkpoint_loaded = True
-                        self.checkpoint_path = str(f)
-                        break
-            if self.checkpoint_loaded:
-                break
+        # 4. Checkpoint fallback scan if in-process serving wasn't loaded
+        if not self.checkpoint_loaded:
+            check_dirs = [
+                Path(__file__).resolve().parents[2] / "checkpoints",
+                Path(__file__).resolve().parents[2] / "data/models",
+                Path(os.environ.get("USERPROFILE", "")) / ".ollama/models/blobs",
+            ]
+            for d in check_dirs:
+                if d.exists():
+                    for f in d.glob("*.*"):
+                        if f.suffix in {".safetensors", ".pt", ".onnx", ".bin", ".gguf"}:
+                            self.checkpoint_loaded = True
+                            self.checkpoint_path = str(f)
+                            break
+                if self.checkpoint_loaded:
+                    break
 
-        # 4. Ollama backend availability check
+        # 5. Ollama backend availability check (advisory only)
         ollama_url = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
         try:
             import urllib.request
@@ -349,9 +376,10 @@ class LayaTier2Evaluator:
         except Exception:
             self.ollama_available = False
 
-        status_label = "ACTIVE" if (self.package_loaded or self.checkpoint_loaded) else ("OLLAMA_EXPLAIN_ONLY" if self.ollama_available else "NOT_LOADED")
+        status_label = "ACTIVE" if (self.checkpoint_loaded or self.package_loaded) else ("OLLAMA_EXPLAIN_ONLY" if self.ollama_available else "NOT_LOADED")
         backend_desc = (
-            f"Native Package ({self.laya_version})" if self.package_loaded
+            f"In-Process Laya Classifier ({Path(self.checkpoint_path).name})" if (self.in_process_serving and self.in_process_serving.is_loaded)
+            else f"Native Package ({self.laya_version})" if self.package_loaded
             else f"Local Checkpoint ({Path(self.checkpoint_path).name})" if (self.checkpoint_loaded and self.checkpoint_path != "UNAVAILABLE")
             else f"Ollama ({self.ollama_model})" if self.ollama_available
             else "UNAVAILABLE"
@@ -359,32 +387,80 @@ class LayaTier2Evaluator:
         startup_msg = f"[LAYA STARTUP] Version: {self.laya_version} | Checkpoint: {self.checkpoint_path} | Backend: {backend_desc}"
         print(startup_msg)
         logger.info(
-            "[LAYA INIT] Status: %s | Package: %s | Checkpoint: %s | Ollama: %s (%s) | Threads: %d | Timeout: %.1fms",
+            "[LAYA INIT] Status: %s | Backend: %s | Threads: %d | Timeout: %.1fms | MinConf: %.2f",
             status_label,
-            self.laya_version,
-            self.checkpoint_path,
-            "Available" if self.ollama_available else "Unreachable",
-            self.ollama_model,
+            backend_desc,
             self.num_threads,
             self.max_timeout_ms,
+            self.min_confidence,
         )
 
     def get_status(self) -> Dict[str, Any]:
         """Expose operational diagnostics for API and UI status indicators."""
         return {
-            "status": "ACTIVE" if (self.package_loaded or (self.checkpoint_loaded and self.checkpoint_path != "UNAVAILABLE")) else ("OLLAMA_EXPLAIN_ONLY" if self.ollama_available else "NOT_LOADED"),
+            "status": "ACTIVE" if (self.checkpoint_loaded or self.package_loaded) else ("OLLAMA_EXPLAIN_ONLY" if self.ollama_available else "NOT_LOADED"),
             "laya_version": self.laya_version,
             "package_loaded": self.package_loaded,
             "checkpoint_loaded": self.checkpoint_loaded and self.checkpoint_path != "UNAVAILABLE",
             "checkpoint_path": self.checkpoint_path,
+            "in_process_serving_loaded": bool(self.in_process_serving and self.in_process_serving.is_loaded),
             "ollama_available": self.ollama_available,
             "ollama_model": self.ollama_model,
             "pinned_threads": self.num_threads,
             "max_timeout_ms": self.max_timeout_ms,
+            "min_confidence": self.min_confidence,
             "measured_p95_ms": self._measured_p95_ms,
+            "total_evaluations": self.total_evaluations,
+            "agreed_count": self.agreed_count,
         }
 
-    def evaluate(self, tier1_result: Dict[str, Any], simulate_delay_ms: float = 0.0) -> Dict[str, Any]:
+    def _extract_vector_from_context(
+        self,
+        tier1_result: Dict[str, Any],
+        candles: Optional[List[Dict[str, Any]]] = None,
+        symbol: str = "BTCUSDT",
+    ) -> np.ndarray:
+        """Extracts 12-dim numeric vector from candles or Tier 1 features."""
+        if candles and len(candles) >= 55:
+            import pandas as pd
+            from cryptoscope.research.laya.label_generator import extract_features_at_bar
+            df = pd.DataFrame(candles)
+            vec, _ = extract_features_at_bar(df, len(df) - 1, symbol=symbol)
+            return vec
+
+        # Fallback from tier1_result features
+        f = tier1_result.get("features", {})
+        c = float(f.get("close", 1.0))
+        ema20 = float(f.get("ema20", c))
+        ema50 = float(f.get("ema50", c))
+        rsi14 = float(f.get("rsi14", 50.0))
+        vol_ratio = float(f.get("vol_ratio", 1.0))
+
+        ema20_r = (c - ema20) / max(ema20, 1e-6)
+        ema50_r = (c - ema50) / max(ema50, 1e-6)
+
+        return np.array([
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            rsi14 / 100.0,
+            ema20_r,
+            ema50_r,
+            0.01,
+            0.015,
+            min(vol_ratio, 10.0) / 10.0,
+            1.0 if tier1_result.get("action") == "LONG" else -1.0,
+            0.0,
+        ], dtype=np.float32)
+
+    def evaluate(
+        self,
+        tier1_result: Dict[str, Any],
+        simulate_delay_ms: float = 0.0,
+        candles: Optional[List[Dict[str, Any]]] = None,
+        symbol: str = "BTCUSDT",
+    ) -> Dict[str, Any]:
         """Tier 2 candidate evaluation. Runs strictly on closed candle boundaries, never inside 1s ticker loop."""
         t0 = time.perf_counter()
         action = tier1_result.get("action", "STAND_ASIDE")
@@ -392,6 +468,7 @@ class LayaTier2Evaluator:
             return {
                 "status": "SKIPPED",
                 "agreed": False,
+                "label": "rule-based",
                 "latency_ms": 0.0,
                 "questions": [],
                 "answers": {},
@@ -399,7 +476,6 @@ class LayaTier2Evaluator:
             }
 
         encoding = tier1_result.get("discrete_encoding", "")
-        # Compact, factual questions (maximum 2)
         q1 = f"Given {encoding}, did price sweep liquidity before this closed candle? Answer YES or NO."
         q2 = f"Given {encoding}, is this an institutional absorption candle? Answer YES or NO."
         questions = [q1, q2]
@@ -413,64 +489,125 @@ class LayaTier2Evaluator:
             return {
                 "status": "TIMEOUT_EXCEEDED",
                 "agreed": False,
+                "label": "Laya classifier" if (self.in_process_serving and self.in_process_serving.is_loaded) else "rule-based",
                 "latency_ms": round(elapsed_ms, 2),
                 "questions": questions,
                 "answers": {},
                 "reason": f"Laya evaluation exceeded {self.max_timeout_ms:.1f}ms budget (actual: {elapsed_ms:.1f}ms)",
             }
 
-        # Check if real model is available (native package or local checkpoint)
-        # Never stub or fake outputs when unavailable
-        if not self.package_loaded:
-            latency = round((time.perf_counter() - t0) * 1000, 2)
-            return {
-                "status": "UNAVAILABLE",
-                "agreed": False,
-                "latency_ms": latency,
-                "questions": questions,
-                "answers": {},
-                "reason": "Laya model unavailable in runtime. Never stubbing or faking outputs; failing safe to STAND_ASIDE.",
-            }
-
-        try:
-            # Real native laya package execution
-            import laya  # type: ignore
-            # Evaluate using native package API
-            ans1 = laya.eval_question(q1) if hasattr(laya, "eval_question") else "NO"
-            ans2 = laya.eval_question(q2) if hasattr(laya, "eval_question") else "NO"
-            answers = {"q1": ans1, "q2": ans2}
-            agreed = (ans1.strip().upper() == "YES" and ans2.strip().upper() == "YES")
+        # 1. In-Process Laya Decision Classifier (Primary fast serving path)
+        if self.in_process_serving and self.in_process_serving.is_loaded:
+            self.total_evaluations += 1
+            vec = self._extract_vector_from_context(tier1_result, candles, symbol)
+            pred = self.in_process_serving.predict(vec)
 
             elapsed_ms = (time.perf_counter() - t0) * 1000.0
             if elapsed_ms > self.max_timeout_ms:
-                logger.warning("[LAYA TIMEOUT EXCEEDED] Evaluation took %.2fms exceeding %.1fms budget!", elapsed_ms, self.max_timeout_ms)
+                logger.warning("[LAYA TIMEOUT EXCEEDED] In-process inference took %.2fms exceeding %.1fms budget!", elapsed_ms, self.max_timeout_ms)
                 return {
                     "status": "TIMEOUT_EXCEEDED",
                     "agreed": False,
+                    "label": "Laya classifier",
                     "latency_ms": round(elapsed_ms, 2),
                     "questions": questions,
-                    "answers": answers,
-                    "reason": f"Laya evaluation exceeded {self.max_timeout_ms:.1f}ms budget (actual: {elapsed_ms:.1f}ms)",
+                    "answers": {},
+                    "reason": f"Laya in-process inference exceeded {self.max_timeout_ms:.1f}ms budget (actual: {elapsed_ms:.1f}ms)",
                 }
+
+            if pred.get("status") != "OK":
+                return {
+                    "status": pred.get("status", "ERROR"),
+                    "agreed": False,
+                    "label": "Laya classifier",
+                    "latency_ms": round(elapsed_ms, 2),
+                    "questions": questions,
+                    "answers": {},
+                    "reason": pred.get("reason", "In-process prediction failed"),
+                }
+
+            laya_action = pred["raw_action"]  # BUY, SELL, or HOLD
+            conf = pred["confidence"]
+
+            agreed = False
+            if action == "LONG" and laya_action == "BUY" and conf >= self.min_confidence:
+                agreed = True
+            elif action == "SHORT" and laya_action == "SELL" and conf >= self.min_confidence:
+                agreed = True
+
+            if agreed:
+                self.agreed_count += 1
+                reason = f"Laya classifier agreed on {action} (predicted {laya_action}, conf={conf:.2f} >= {self.min_confidence:.2f})"
+            else:
+                reason = f"Laya classifier did not confirm: proposed {action} vs Laya {laya_action} (conf={conf:.2f})"
 
             return {
                 "status": "EVALUATED",
                 "agreed": agreed,
+                "label": "Laya classifier",
+                "prediction": laya_action,
+                "confidence": conf,
+                "probabilities": pred.get("probabilities", {}),
                 "latency_ms": round(elapsed_ms, 2),
                 "questions": questions,
-                "answers": answers,
-                "reason": "Laya confirmed setup validity" if agreed else "Laya rejected setup validity",
+                "answers": {"laya_pred": laya_action, "confidence": conf},
+                "reason": reason,
             }
-        except Exception as e:
-            elapsed_ms = (time.perf_counter() - t0) * 1000.0
-            return {
-                "status": "ERROR",
-                "agreed": False,
-                "latency_ms": round(elapsed_ms, 2),
-                "questions": questions,
-                "answers": {},
-                "reason": f"Laya execution failed: {e}. Fail-safe to STAND_ASIDE.",
-            }
+
+        # 2. Native package fallback
+        if self.package_loaded:
+            try:
+                import laya  # type: ignore
+                ans1 = laya.eval_question(q1) if hasattr(laya, "eval_question") else "NO"
+                ans2 = laya.eval_question(q2) if hasattr(laya, "eval_question") else "NO"
+                answers = {"q1": ans1, "q2": ans2}
+                agreed = (ans1.strip().upper() == "YES" and ans2.strip().upper() == "YES")
+
+                elapsed_ms = (time.perf_counter() - t0) * 1000.0
+                if elapsed_ms > self.max_timeout_ms:
+                    logger.warning("[LAYA TIMEOUT EXCEEDED] Evaluation took %.2fms exceeding %.1fms budget!", elapsed_ms, self.max_timeout_ms)
+                    return {
+                        "status": "TIMEOUT_EXCEEDED",
+                        "agreed": False,
+                        "label": "rule-based",
+                        "latency_ms": round(elapsed_ms, 2),
+                        "questions": questions,
+                        "answers": answers,
+                        "reason": f"Laya evaluation exceeded {self.max_timeout_ms:.1f}ms budget (actual: {elapsed_ms:.1f}ms)",
+                    }
+
+                return {
+                    "status": "EVALUATED",
+                    "agreed": agreed,
+                    "label": "rule-based",
+                    "latency_ms": round(elapsed_ms, 2),
+                    "questions": questions,
+                    "answers": answers,
+                    "reason": "Laya confirmed setup validity" if agreed else "Laya rejected setup validity",
+                }
+            except Exception as e:
+                elapsed_ms = (time.perf_counter() - t0) * 1000.0
+                return {
+                    "status": "ERROR",
+                    "agreed": False,
+                    "label": "rule-based",
+                    "latency_ms": round(elapsed_ms, 2),
+                    "questions": questions,
+                    "answers": {},
+                    "reason": f"Laya execution failed: {e}. Fail-safe to STAND_ASIDE.",
+                }
+
+        # 3. Default: Fail closed when model is unavailable
+        latency = round((time.perf_counter() - t0) * 1000, 2)
+        return {
+            "status": "UNAVAILABLE",
+            "agreed": False,
+            "label": "rule-based",
+            "latency_ms": latency,
+            "questions": questions,
+            "answers": {},
+            "reason": "Laya model unavailable in runtime. Never stubbing or faking outputs; failing safe to STAND_ASIDE.",
+        }
 
 
 class FastDecisionLayer:
@@ -488,14 +625,14 @@ class FastDecisionLayer:
         # Decision rule: if Tier 1 says STAND_ASIDE, immediately stand aside
         if tier1_res["action"] == "STAND_ASIDE":
             final_decision = "STAND_ASIDE"
-            tier2_res = self.tier2.evaluate(tier1_res)
+            tier2_res = self.tier2.evaluate(tier1_res, candles=candles, symbol=symbol)
             decision_thesis = f"Tier 1 rules filtered out trade ({tier1_res['setup_type']})"
         else:
             # Tier 1 proposed LONG or SHORT: run Tier 2 Laya
-            tier2_res = self.tier2.evaluate(tier1_res)
+            tier2_res = self.tier2.evaluate(tier1_res, candles=candles, symbol=symbol)
             if tier2_res["agreed"]:
                 final_decision = tier1_res["action"]
-                decision_thesis = f"Tier 1 and Tier 2 agreed on {final_decision} ({tier1_res['setup_type']})"
+                decision_thesis = f"Tier 1 and Tier 2 agreed on {final_decision} ({tier1_res['setup_type']}) [{tier2_res.get('label', 'rule-based')}]"
             else:
                 final_decision = "STAND_ASIDE"
                 decision_thesis = f"Tier 2 did not confirm Tier 1 setup: {tier2_res.get('reason', 'disagreement')}"
