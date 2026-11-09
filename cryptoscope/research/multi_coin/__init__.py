@@ -26,6 +26,20 @@ from cryptoscope.research.multi_coin.portfolio_risk import (
     PortfolioRiskConfig,
     RiskCheckResult,
 )
+from cryptoscope.research.multi_coin.strategy_engine import (
+    MultiCoinResearchEngine,
+    TradeRecord,
+)
+from cryptoscope.research.multi_coin.drift_monitor import (
+    LiveDriftMonitor,
+    DriftBaseline,
+    DriftThresholds,
+    DriftReport,
+)
+from cryptoscope.research.multi_coin.trade_ledger import (
+    AccountantTradeLedger,
+    ACCOUNTANT_DISCLAIMER,
+)
 
 __all__ = [
     "build_candidate_universe",
@@ -42,4 +56,12 @@ __all__ = [
     "MultiCoinPortfolioRiskManager",
     "PortfolioRiskConfig",
     "RiskCheckResult",
+    "MultiCoinResearchEngine",
+    "TradeRecord",
+    "LiveDriftMonitor",
+    "DriftBaseline",
+    "DriftThresholds",
+    "DriftReport",
+    "AccountantTradeLedger",
+    "ACCOUNTANT_DISCLAIMER",
 ]

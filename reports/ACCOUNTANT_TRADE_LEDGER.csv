@@ -1,0 +1,4 @@
+# DISCLAIMER: Prepared for accountant review under Virtual Digital Asset (VDA) transaction accounting. No tax advice is provided in this export.
+timestamp_utc,symbol,side,quantity,price_usdt,fee_usdt,realized_pnl_usdt,usd_inr_rate,realized_pnl_inr,fee_inr,order_id,execution_type
+[REDACTED]-11-09 17:35:10 UTC,BTCUSDT,BUY,0.00026,80000.0,0.0156,0.0,84.5,0.0,1.32,11618423,MARKET
+[REDACTED]-11-09 17:42:30 UTC,BTCUSDT,SELL,0.00026,80000.0,0.0156,-0.0312,84.5,-2.64,1.32,11620699,MARKET
