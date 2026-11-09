@@ -141,6 +141,8 @@ class Fill(BaseEvent):
     fee_asset: str = "USDT"
     mode: str = "PAPER"
     stop_order_id: Optional[str] = None
+    commission_by_asset: Dict[str,float] = field(default_factory=dict)
+    fee_valuation_complete: bool = True
 
 
 @dataclass
@@ -156,6 +158,8 @@ class PositionClosed(BaseEvent):
     pnl_pct: float = 0.0
     duration_seconds: float = 0.0
     exit_reason: str = "TAKE_PROFIT"  # 'STOP_LOSS', 'TAKE_PROFIT', 'TIMEOUT', 'MANUAL_FLATTEN'
+    commission_by_asset: Dict[str,float] = field(default_factory=dict)
+    fee_valuation_complete: bool = True
 
 
 @dataclass

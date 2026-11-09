@@ -23,13 +23,16 @@ def test_only_execution_bot_imports_exchange_clients():
         Path("cryptoscope/security"),
         Path("cryptoscope/backtesting"),
         Path("cryptoscope/ops"),
+        Path("cryptoscope/execution/accounting.py"),
+        Path("cryptoscope/execution/lifecycle.py"),
+        Path("cryptoscope/providers/deadline_http.py"),
     ]
 
     violations = []
 
     for d in check_dirs:
         assert d.exists(), f"Directory {d} must exist"
-        for py_file in d.rglob("*.py"):
+        for py_file in ([d] if d.is_file() else d.rglob("*.py")):
             if py_file.name in {"__init__.py", "execution_bot.py"}:
                 continue  # ExecutionBot is permitted; __init__ is package manifest
 

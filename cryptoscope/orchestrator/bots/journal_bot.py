@@ -1,6 +1,7 @@
 """JournalBot: Complete chronological audit logging and quantitative performance metrics."""
 
 import logging
+import json
 from pathlib import Path
 import sqlite3
 from cryptoscope.storage.sqlite import connect_database
@@ -58,6 +59,7 @@ class JournalBot(BaseBot):
         try:
             conn.execute("PRAGMA journal_mode = WAL")
             conn.execute("PRAGMA busy_timeout = 5000")
+            conn.execute('CREATE TABLE IF NOT EXISTS event_details(event_id TEXT PRIMARY KEY,payload TEXT NOT NULL)')
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS signals (
                     timestamp REAL NOT NULL,
@@ -190,6 +192,8 @@ class JournalBot(BaseBot):
                     (event.timestamp, event.symbol, event.side, event.entry_price,
                      event.exit_price, event.quantity, event.pnl_usd, event.pnl_pct, event.duration_seconds, event.exit_reason)
                 )
+            if isinstance(event,(Fill,PositionClosed)):
+                conn.execute('INSERT OR IGNORE INTO event_details VALUES (?,?)',(event.event_id,json.dumps(event.to_dict(),allow_nan=False)))
             conn.commit()
         except Exception as exc:
             logger.error("[%s] Database write error on event %s: %s", self.name, event.event_type, exc)

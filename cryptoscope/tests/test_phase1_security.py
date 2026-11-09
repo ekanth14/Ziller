@@ -211,7 +211,7 @@ def test_client_error_and_representation_do_not_echo_sensitive_server_text(monke
     payload = json.dumps({'code': -2015, 'msg': fixture}).encode()
     def reject(*_args, **_kwargs):
         raise HTTPError('https://testnet.binance.vision', 401, 'Unauthorized', {}, io.BytesIO(payload))
-    monkeypatch.setattr('urllib.request.urlopen', reject)
+    monkeypatch.setattr(client._opener,'open', reject)
     with pytest.raises(BinanceAuthError) as failure:
         client._request('GET', '/api/v3/ping')
     assert failure.value.code == -2015

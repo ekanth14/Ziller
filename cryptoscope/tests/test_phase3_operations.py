@@ -14,6 +14,7 @@ from cryptoscope.orchestrator.bots.execution_bot import ExecutionBot
 from cryptoscope.orchestrator.event_bus import EventBus
 from cryptoscope.orchestrator.events import MarketUpdate,TradeIntent,RiskDecision
 from cryptoscope.security.halt_state import GovernorState
+from cryptoscope.tests.exchange_fixtures import symbol_info,with_fees
 
 
 def test_backup_restore_preserves_source_and_old_backups(tmp_path):
@@ -66,13 +67,13 @@ def test_legacy_execution_migration_retains_rows_and_marks_unknown_provenance(tm
     assert bot.active_positions['BTCUSDT']['mode']=='UNKNOWN'
     assert bot.halt_state.snapshot()['halted']
     with closing(connect_database(path,readonly=True)) as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0]==1
+        assert db.execute('PRAGMA user_version').fetchone()[0]==2
         assert db.execute('SELECT count(*) FROM positions').fetchone()[0]==1
 
 
 def test_future_execution_schema_is_rejected(tmp_path):
     path=tmp_path/'future.db'
-    with closing(connect_database(path)) as db:db.execute('PRAGMA user_version=2')
+    with closing(connect_database(path)) as db:db.execute('PRAGMA user_version=3')
     with pytest.raises(RuntimeError,match='newer'):
         ExecutionBot(EventBus(),mode='TESTNET',db_path=str(path))
 
@@ -85,13 +86,14 @@ def position():
 def make_bot(tmp_path):
     bot=ExecutionBot(EventBus(),mode='TESTNET',db_path=str(tmp_path/'execution.db'))
     bot.binance_client=MagicMock()
+    bot.binance_client.get_symbol_info.side_effect=symbol_info
     return bot
 
 
 def test_failed_testnet_flatten_preserves_exposure_and_restart_reference(tmp_path):
     async def run():
         bot=make_bot(tmp_path);pos=position();bot.active_positions['BTCUSDT']=pos;bot._save_position_db(pos)
-        bot.binance_client.get_order.return_value=dict(status='NEW',executedQty='0')
+        bot.binance_client.get_order.return_value=dict(status='NEW',executedQty='0',orderId=11)
         bot.binance_client.cancel_order.return_value=dict(status='CANCELED',executedQty='0')
         bot.binance_client.create_order.side_effect=TimeoutError('fixture')
         assert await bot.flatten_all_positions()==0
@@ -104,9 +106,9 @@ def test_failed_testnet_flatten_preserves_exposure_and_restart_reference(tmp_pat
 def test_target_exit_uses_confirmed_exchange_fill(tmp_path):
     async def run():
         bot=make_bot(tmp_path);pos=position();bot.active_positions['BTCUSDT']=pos;bot._save_position_db(pos)
-        bot.binance_client.get_order.return_value=dict(status='NEW',executedQty='0')
+        bot.binance_client.get_order.return_value=dict(status='NEW',executedQty='0',orderId=11)
         bot.binance_client.cancel_order.return_value=dict(status='CANCELED',executedQty='0')
-        bot.binance_client.create_order.return_value=dict(status='FILLED',executedQty='.01',cummulativeQuoteQty='1.1')
+        bot.binance_client.create_order.return_value=with_fees(dict(status='FILLED',executedQty='.01',cummulativeQuoteQty='1.1'))
         await bot._check_position_exits(MarketUpdate(symbol='BTCUSDT',price=110))
         assert 'BTCUSDT' not in bot.active_positions
         assert bot.binance_client.create_order.call_args.kwargs['side']=='SELL'
@@ -115,7 +117,7 @@ def test_target_exit_uses_confirmed_exchange_fill(tmp_path):
 
 def test_already_filled_stop_never_sends_second_sell(tmp_path):
     bot=make_bot(tmp_path)
-    bot.binance_client.get_order.return_value=dict(status='FILLED',executedQty='.01',cummulativeQuoteQty='.95')
+    bot.binance_client.get_order.return_value=with_fees(dict(status='FILLED',executedQty='.01',cummulativeQuoteQty='.95'))
     assert bot._confirmed_testnet_close('BTCUSDT',position())==95
     bot.binance_client.create_order.assert_not_called()
 
@@ -123,7 +125,7 @@ def test_already_filled_stop_never_sends_second_sell(tmp_path):
 def test_stop_rejection_halts_and_tracks_actual_entry_without_fake_stop(tmp_path):
     async def run():
         bot=make_bot(tmp_path)
-        bot.binance_client.create_order.side_effect=[dict(status='FILLED',executedQty='.01',cummulativeQuoteQty='1',orderId=10),RuntimeError('fixture stop rejection')]
+        bot.binance_client.create_order.side_effect=[with_fees(dict(status='FILLED',executedQty='.01',cummulativeQuoteQty='1',orderId=10)),RuntimeError('fixture stop rejection')]
         intent=TradeIntent(intent_id='fixture',symbol='BTCUSDT',entry_price=100,stop_loss=95,take_profit=110)
         bot.cached_intents[intent.intent_id]=intent
         await bot._execute_approved_trade(RiskDecision(intent_id='fixture',symbol='BTCUSDT',decision='APPROVED',approved_quantity=.01))
@@ -135,7 +137,8 @@ def test_stop_rejection_halts_and_tracks_actual_entry_without_fake_stop(tmp_path
 def test_partial_entry_is_retained_as_uncertain_and_halts(tmp_path):
     async def run():
         bot=make_bot(tmp_path)
-        bot.binance_client.create_order.return_value=dict(status='PARTIALLY_FILLED',executedQty='.005',cummulativeQuoteQty='.5',orderId=10)
+        bot.binance_client.create_order.return_value=with_fees(dict(status='PARTIALLY_FILLED',executedQty='.005',cummulativeQuoteQty='.5',orderId=10))
+        bot.binance_client.cancel_order.return_value=with_fees(dict(status='CANCELED',executedQty='.005',cummulativeQuoteQty='.5',orderId=10))
         intent=TradeIntent(intent_id='partial',symbol='BTCUSDT',entry_price=100,stop_loss=95,take_profit=110)
         bot.cached_intents[intent.intent_id]=intent
         await bot._execute_approved_trade(RiskDecision(intent_id='partial',symbol='BTCUSDT',decision='APPROVED',approved_quantity=.01))
@@ -174,9 +177,9 @@ def test_nonfinite_close_response_retains_position(tmp_path):
 def test_durable_master_flatten_reaches_execution_and_keeps_halt(tmp_path):
     async def run():
         bot=make_bot(tmp_path);pos=position();bot.active_positions['BTCUSDT']=pos;bot._save_position_db(pos)
-        bot.binance_client.get_order.return_value=dict(status='NEW',executedQty='0')
+        bot.binance_client.get_order.return_value=dict(status='NEW',executedQty='0',orderId=11)
         bot.binance_client.cancel_order.return_value=dict(status='CANCELED',executedQty='0')
-        bot.binance_client.create_order.return_value=dict(status='FILLED',executedQty='.01',cummulativeQuoteQty='1')
+        bot.binance_client.create_order.return_value=with_fees(dict(status='FILLED',executedQty='.01',cummulativeQuoteQty='1'))
         bot.halt_state.halt('fixture master request','test-admin','HALT_FLATTEN')
         assert await bot.apply_emergency_action()==1
         assert not bot.active_positions and bot.halt_state.snapshot()['halted']

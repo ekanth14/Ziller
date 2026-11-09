@@ -14,8 +14,13 @@ from typing import Any, Dict, List, Optional
 import urllib.error
 import urllib.parse
 import urllib.request
+from cryptoscope.execution.accounting import wire_amount
 
 logger = logging.getLogger("cryptoscope.execution.binance_testnet")
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self,*args,**kwargs):return None
 
 
 class BinanceClientError(Exception):
@@ -41,6 +46,11 @@ class BinanceInsufficientBalanceError(BinanceClientError):
     pass
 
 
+class BinanceRateLimitError(BinanceClientError):
+    """A cooldown must elapse; order POSTs are never retried automatically."""
+    pass
+
+
 class BinanceTestnetClient:
     """Official Binance Spot Testnet REST client for order execution and safety controls."""
 
@@ -59,6 +69,8 @@ class BinanceTestnetClient:
         from cryptoscope.security.config import validate_testnet_url
         self.base_url = validate_testnet_url(self.base_url)
         self.timeout = timeout
+        self.retry_after_monotonic=0.0
+        self._opener=urllib.request.build_opener(_NoRedirect())
 
     @property
     def masked_api_key(self) -> str:
@@ -88,6 +100,8 @@ class BinanceTestnetClient:
     ) -> Dict[str, Any]:
         """Execute HTTP request against Binance Testnet."""
         params = params.copy() if params else {}
+        if time.monotonic()<self.retry_after_monotonic:
+            raise BinanceRateLimitError('Exchange cooldown active',http_status=429)
 
         if signed:
             if not self.api_key or not self.api_secret:
@@ -120,7 +134,7 @@ class BinanceTestnetClient:
         req = urllib.request.Request(url, data=data, headers=headers, method=method.upper())
 
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as response:
+            with self._opener.open(req, timeout=self.timeout) as response:
                 body = response.read().decode("utf-8")
                 return json.loads(body) if body else {}
         except urllib.error.HTTPError as exc:
@@ -138,6 +152,11 @@ class BinanceTestnetClient:
                 exc.code, err_code
             )
 
+            if exc.code in {418,429}:
+                try:delay=max(1.,min(86400.,float((exc.headers or {}).get('Retry-After','60'))))
+                except (ValueError,TypeError):delay=60.
+                self.retry_after_monotonic=time.monotonic()+delay
+                raise BinanceRateLimitError('Exchange cooldown active',code=err_code,http_status=exc.code) from None
             if exc.code == 401 or err_code in (-2014, -2015):
                 raise BinanceAuthError('Authentication failed', code=err_code, http_status=exc.code) from None
             elif err_code == -1013:
@@ -191,31 +210,36 @@ class BinanceTestnetClient:
         stop_price: Optional[float] = None,
         time_in_force: str = "GTC",
         client_order_id: Optional[str] = None,
+        quote_order_qty: Optional[float] = None,
     ) -> Dict[str, Any]:
         """Place an order (MARKET, LIMIT, STOP_LOSS_LIMIT) on Binance Spot Testnet."""
         params: Dict[str, Any] = {
             "symbol": symbol.upper(),
             "side": side.upper(),
             "type": order_type.upper(),
-            "quantity": f"{quantity:.6f}".rstrip("0").rstrip("."),
+            "quantity": wire_amount(quantity),
+            "newOrderRespType": "FULL",
         }
 
         if client_order_id:
             params["newClientOrderId"] = client_order_id
+        if quote_order_qty is not None:
+            if side.upper()!='BUY' or order_type.upper()!='MARKET':raise ValueError('Quote budget is supported only for a Spot market buy')
+            params.pop('quantity');params['quoteOrderQty']=wire_amount(quote_order_qty)
 
-        if order_type.upper() == "LIMIT":
+        if order_type.upper() in {"LIMIT","LIMIT_MAKER"}:
             if price is None:
                 raise ValueError("Price is required for LIMIT orders")
-            params["price"] = f"{price:.2f}"
-            params["timeInForce"] = time_in_force
+            params["price"] = wire_amount(price)
+            if order_type.upper()=='LIMIT':params["timeInForce"] = time_in_force
 
         elif order_type.upper() in {"STOP_LOSS_LIMIT", "STOP_LOSS"}:
             if stop_price is None:
                 raise ValueError("stop_price is required for STOP_LOSS orders")
-            params["stopPrice"] = f"{stop_price:.2f}"
+            params["stopPrice"] = wire_amount(stop_price)
             if order_type.upper() == 'STOP_LOSS_LIMIT':
                 if price is None:raise ValueError('Limit price required for stop-limit order')
-                params["price"] = f"{price:.2f}"
+                params["price"] = wire_amount(price)
                 params["timeInForce"] = time_in_force
 
         return self._request("POST", "/api/v3/order", params=params, signed=True)
@@ -260,4 +284,11 @@ class BinanceTestnetClient:
         if symbol:
             params["symbol"] = symbol.upper()
         res = self._request("GET", "/api/v3/openOrders", params=params, signed=True)
-        return res if isinstance(res, list) else []
+        if not isinstance(res,list):raise BinanceClientError('Invalid exchange open-orders response')
+        return res
+
+    def get_my_trades(self,symbol,order_id):
+        if not str(order_id).isdigit():raise BinanceClientError('Fill query requires an exact order identity')
+        result=self._request('GET','/api/v3/myTrades',params=dict(symbol=symbol,orderId=order_id,limit=1000),signed=True)
+        if not isinstance(result,list):raise BinanceClientError('Invalid exchange fill response')
+        return result
