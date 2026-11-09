@@ -1,3 +1,4 @@
+import math
 import signal
 import sqlite3
 """Serve the institutional ZILLERS crypto terminal: python -m cryptoscope.dashboard --port 8900."""
@@ -48,6 +49,17 @@ from cryptoscope.quant import (
 
 logger = logging.getLogger("cryptoscope.server")
 
+
+def _sanitize_floats(obj):
+    if isinstance(obj, float):
+        if math.isinf(obj) or math.isnan(obj):
+            return None
+        return obj
+    elif isinstance(obj, dict):
+        return {k: _sanitize_floats(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_sanitize_floats(v) for v in obj]
+    return obj
 
 class PayloadTooLargeError(Exception):
     pass
@@ -134,10 +146,16 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 for c in cookies:
                     self.send_header("Set-Cookie", c)
             self.end_headers()
-            self.wfile.write(content)
+            try:
+                self.wfile.write(content)
+            except (ConnectionError, BrokenPipeError, TimeoutError, OSError):
+                pass
+
+
 
         def json(self, status, body, download=None, cookies=None):
-            self.send(status, json.dumps(body, allow_nan=False).encode(), "application/json; charset=utf-8", download, cookies)
+            safe_body = _sanitize_floats(body)
+            self.send(status, json.dumps(safe_body, allow_nan=False).encode(), "application/json; charset=utf-8", download, cookies)
 
         def _get_session(self):
             raw_cookies = self.headers.get("Cookie", "")

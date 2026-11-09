@@ -83,6 +83,11 @@ def prepare():
         target = destination / 'work/runtime/crypto_candles.db'
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(archive, target)
+    parquet_src = ROOT / 'data/parquet_klines'
+    if parquet_src.is_dir():
+        target = destination / 'data/parquet_klines'
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(parquet_src, target)
     (destination / 'tmp').mkdir()
     (destination / 'sitecustomize.py').write_text(GUARD, encoding='utf-8')
     plugin = (

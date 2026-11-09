@@ -577,6 +577,125 @@ function renderChart() {
   // Default HUD values
   updateHudValues(last);
 
+  // -------------------------------------------------------------
+  // Lightweight Charts Integration (Task 9.4)
+  // -------------------------------------------------------------
+  if (window.LightweightCharts && $('lwc-chart')) {
+    const lwcContainer = $('lwc-chart');
+    lwcContainer.style.display = 'block';
+    if ($('chart')) $('chart').style.display = 'none';
+
+    if (!state.lwcChart) {
+      try {
+        state.lwcChart = window.LightweightCharts.createChart(lwcContainer, {
+          width: lwcContainer.clientWidth || 800,
+          height: 230,
+          layout: {
+            background: { color: 'transparent' },
+            textColor: '#94a3b8',
+            fontSize: 10,
+            fontFamily: 'JetBrains Mono, monospace',
+          },
+          grid: {
+            vertLines: { color: 'rgba(255, 255, 255, 0.04)' },
+            horzLines: { color: 'rgba(255, 255, 255, 0.04)' },
+          },
+          crosshair: {
+            mode: window.LightweightCharts.CrosshairMode.Normal,
+          },
+          timeScale: {
+            borderColor: 'rgba(255, 255, 255, 0.08)',
+            timeVisible: true,
+            secondsVisible: false,
+          },
+          rightPriceScale: {
+            borderColor: 'rgba(255, 255, 255, 0.08)',
+          },
+        });
+        state.lwcCandles = state.lwcChart.addCandlestickSeries({
+          upColor: '#10b981',
+          downColor: '#f43f5e',
+          borderDownColor: '#f43f5e',
+          borderUpColor: '#10b981',
+          wickDownColor: '#f43f5e',
+          wickUpColor: '#10b981',
+        });
+        state.lwcEma = state.lwcChart.addLineSeries({
+          color: '#00F2FE',
+          lineWidth: 2,
+          crosshairMarkerVisible: false,
+        });
+
+        state.lwcChart.subscribeCrosshairMove(param => {
+          if (!param.time || !param.seriesPrices) return;
+          const p = param.seriesPrices.get(state.lwcCandles);
+          if (p) {
+            updateHudValues({
+              open: p.open,
+              high: p.high,
+              low: p.low,
+              close: p.close,
+              close_time: typeof param.time === 'number' ? param.time : Math.floor(new Date(param.time).getTime() / 1000),
+              volume: 0,
+            });
+          }
+        });
+
+        if (window.ResizeObserver) {
+          new ResizeObserver(entries => {
+            if (entries.length && state.lwcChart && entries[0].contentRect.width > 0) {
+              state.lwcChart.applyOptions({ width: entries[0].contentRect.width });
+            }
+          }).observe(lwcContainer);
+        }
+      } catch (err) {
+        console.warn('LightweightCharts init failed, using SVG fallback:', err);
+        state.lwcChart = null;
+      }
+    }
+
+    if (state.lwcChart && state.lwcCandles) {
+      const formattedCandles = visible.map(c => {
+        let t = Number(c.close_time || c.open_time || c.time);
+        if (t > 1e11) t = Math.floor(t / 1000);
+        return {
+          time: t,
+          open: Number(c.open || c.close),
+          high: Number(c.high || c.close),
+          low: Number(c.low || c.close),
+          close: Number(c.close),
+        };
+      }).sort((a, b) => a.time - b.time);
+
+      const uniqueCandles = [];
+      const seenTimes = new Set();
+      for (const c of formattedCandles) {
+        if (Number.isFinite(c.time) && !seenTimes.has(c.time)) {
+          seenTimes.add(c.time);
+          uniqueCandles.push(c);
+        }
+      }
+      state.lwcCandles.setData(uniqueCandles);
+
+      if (state.lwcEma) {
+        const emaData = [];
+        for (let i = 0; i < uniqueCandles.length; i++) {
+          const emaVal = visibleEma[i];
+          if (Number.isFinite(emaVal)) {
+            emaData.push({ time: uniqueCandles[i].time, value: emaVal });
+          }
+        }
+        state.lwcEma.setData(emaData);
+      }
+      state.lwcChart.timeScale().fitContent();
+      return;
+    }
+  }
+
+  // Fallback: Show SVG chart if Lightweight Charts not available
+  if ($('chart')) $('chart').style.display = 'block';
+  if ($('lwc-chart')) $('lwc-chart').style.display = 'none';
+
   // Price grid lines (horizontal)
   const gridLevels = [0.0, 0.25, 0.5, 0.75, 1.0];
   const gridSvg = gridLevels.map(f => {

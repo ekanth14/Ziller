@@ -1,4 +1,6 @@
-"""Enforce architectural isolation: ONLY ExecutionBot may import exchange or broker execution clients."""
+"""Enforce architectural isolation: ONLY ExecutionBot may import exchange or broker execution clients.
+Extended for Phase 9: Ensures all new evaluation modules maintain strict AST isolation and do not read keys.
+"""
 
 import ast
 import os
@@ -26,12 +28,15 @@ def test_only_execution_bot_imports_exchange_clients():
         Path("cryptoscope/execution/accounting.py"),
         Path("cryptoscope/execution/lifecycle.py"),
         Path("cryptoscope/providers/deadline_http.py"),
+        Path("cryptoscope/research/eval"),
+        Path("cryptoscope/research/laya"),
+        Path("cryptoscope/research/multi_coin"),
     ]
 
     violations = []
 
     for d in check_dirs:
-        assert d.exists(), f"Directory {d} must exist"
+        assert d.exists(), f"Directory or file {d} must exist"
         for py_file in ([d] if d.is_file() else d.rglob("*.py")):
             if py_file.name in {"__init__.py", "execution_bot.py"}:
                 continue  # ExecutionBot is permitted; __init__ is package manifest
@@ -65,3 +70,29 @@ def test_execution_bot_does_import_broker_client():
     assert "PaperBroker" in content
     assert "LiveMultiGateGovernor" in content
     assert "BinanceTestnetClient" in content
+
+
+def test_evaluation_modules_do_not_access_env_secrets():
+    """Verify that none of the Phase 9 evaluation modules read sensitive environment keys."""
+    eval_dir = Path("cryptoscope/research/eval")
+    assert eval_dir.exists()
+
+    forbidden_strings = [
+        "BINANCE_TESTNET_API_SECRET",
+        "BINANCE_API_SECRET",
+        "BINANCE_TESTNET_API_KEY",
+        "BINANCE_API_KEY",
+        "ADMIN_PASSWORD",
+        "COLLAB_DESK_PASSCODE",
+    ]
+
+    violations = []
+    for py_file in eval_dir.glob("*.py"):
+        if py_file.name == "__init__.py":
+            continue
+        code = py_file.read_text(encoding="utf-8")
+        for forbidden in forbidden_strings:
+            if forbidden in code:
+                violations.append(f"{py_file.name} contains reference to secret '{forbidden}'")
+
+    assert len(violations) == 0, f"Secrets violation in evaluation modules:\n" + "\n".join(violations)
