@@ -21,6 +21,9 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%H:%M:%S",
 )
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("telegram").setLevel(logging.WARNING)
 logger = logging.getLogger("cryptoscope.orchestrator")
 
 
@@ -48,7 +51,7 @@ async def run_orchestrator(mode: str, symbols: list[str]):
     env_mode = validate_startup(mode)
 
     print(f"============================================================", flush=True)
-    print(f"  ZILLERS AUTONOMOUS MULTI-BOT TRADING FLEET", flush=True)
+    print(f"  QUANT AUTONOMOUS MULTI-BOT TRADING FLEET", flush=True)
     print(f"  Execution Mode: {env_mode}", flush=True)
     print(f"  Active Universe: {', '.join(symbols)}", flush=True)
     print(f"  Telegram Alerts: {'CONFIGURED' if telegram_token and telegram_owner_chat_id else 'OFFLINE SPOOL'}", flush=True)
@@ -64,7 +67,7 @@ async def run_orchestrator(mode: str, symbols: list[str]):
     stop_event = asyncio.Event()
 
     def _signal_handler():
-        print("\n[ZILLERS] Shutdown signal received. Stopping fleet...", flush=True)
+        print("\n[FLEET] Shutdown signal received. Stopping fleet...", flush=True)
         stop_event.set()
 
     loop = asyncio.get_running_loop()
@@ -74,7 +77,7 @@ async def run_orchestrator(mode: str, symbols: list[str]):
 
     try:
         await engine.start()
-        print(f"[ZILLERS] Autonomous fleet online. Press Ctrl+C to stop.", flush=True)
+        print(f"[FLEET] Autonomous fleet online. Press Ctrl+C to stop.", flush=True)
         while not stop_event.is_set():
             try:
                 await asyncio.wait_for(stop_event.wait(), timeout=5.0)
@@ -84,7 +87,7 @@ async def run_orchestrator(mode: str, symbols: list[str]):
         pass
     finally:
         await engine.stop()
-        print("[ZILLERS] Orchestrator shutdown complete.", flush=True)
+        print("[FLEET] Orchestrator shutdown complete.", flush=True)
 
 
 def main():

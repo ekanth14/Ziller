@@ -122,6 +122,8 @@ class TelegramGateway:
         if not self.owner_chat_id or self.owner_user_id is None:
             raise ValueError('Both Telegram owner settings are required')
 
+        logging.getLogger("httpx").setLevel(logging.WARNING)
+        logging.getLogger("httpcore").setLevel(logging.WARNING)
         app = Application.builder().token(self.token).build()
 
         app.add_handler(CommandHandler("start", self.cmd_start))
