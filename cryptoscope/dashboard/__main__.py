@@ -855,6 +855,9 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
             # 6c. Multi-Agent Deliberation & Consensus (TradingAgents integration)
             # 6c. AI Berkshire Committee Qualitative Audit
             if url.path == "/api/berkshire/audit":
+                if not rate_limiter.is_allowed(client_ip, "/api/berkshire/audit", limit=20):
+                    retry = rate_limiter.retry_after(client_ip, "/api/berkshire/audit")
+                    return self.json(429, {"error": f"Rate limit exceeded. Retry in {retry} seconds."})
                 symbol = str(body.get("symbol", "BTCUSDT")).strip().upper()
                 from core.quant.berkshire_committee import BerkshireCommittee
 

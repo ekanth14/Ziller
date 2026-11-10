@@ -19,8 +19,11 @@ def test_microprice():
     p_micro = compute_microprice(bid_price=100.0, bid_qty=900.0, ask_price=100.10, ask_qty=300.0)
     assert pytest.approx(p_micro, 1e-4) == 100.075
 
-    # Zero liquidity fallback
+    # Zero liquidity fallback to mid price when last_price not provided
     assert compute_microprice(100.0, 0.0, 100.1, 0.0) == 100.05
+
+    # Zero liquidity fallback to last_price when provided
+    assert compute_microprice(100.0, 0.0, 100.1, 0.0, last_price=100.02) == 100.02
 
 def test_square_root_impact():
     # sigma 2%, order size 1% of daily volume: impact ≈ 0.02 * sqrt(0.01) = 0.02 * 0.1 = 0.002 (0.2%)

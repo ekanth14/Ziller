@@ -2,7 +2,7 @@ import pytest
 from core.quant.pipeline import QuantPipeline, PortfolioCoordinator, run_offline_validation
 
 def test_pipeline_streaming_bar():
-    pipeline = QuantPipeline(symbol="BTCUSDT")
+    pipeline = QuantPipeline(symbol="BTCUSDT", initial_equity=10000.0)
     metrics = {}
     for i in range(30):
         metrics = pipeline.on_bar(
@@ -15,6 +15,7 @@ def test_pipeline_streaming_bar():
             bid_q=50.0,
             ask_p=102.1,
             ask_q=40.0,
+            equity=10000.0 + (i * 50.0),
         )
     assert "log_return" in metrics
     assert "ewma_vol" in metrics
@@ -24,6 +25,8 @@ def test_pipeline_streaming_bar():
     assert "is_high_vol" in metrics
     assert "var_95" in metrics
     assert metrics["symbol"] == "BTCUSDT"
+    assert pipeline.equity == 10000.0 + (29 * 50.0)
+    assert len(pipeline.equity_curve) == 31  # initial + 30 bars
 
 def test_portfolio_coordinator():
     coord = PortfolioCoordinator(symbols=["BTCUSDT", "ETHUSDT"])

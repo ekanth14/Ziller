@@ -28,13 +28,18 @@ def compute_microprice(
     bid_qty: float,
     ask_price: float,
     ask_qty: float,
+    last_price: float | None = None,
 ) -> float:
     """Calculate volume-weighted microprice: P_micro = (P_b * Q_a + P_a * Q_b) / (Q_a + Q_b).
 
     Leans towards the heavier side of the order book.
+    If order book is empty (total_qty <= 1e-12), falls back to last_price if provided and > 0,
+    otherwise mid price (bid + ask) / 2.0.
     """
     total_qty = bid_qty + ask_qty
     if total_qty <= 1e-12:
+        if last_price is not None and last_price > 0.0:
+            return float(last_price)
         return (bid_price + ask_price) / 2.0
     # Note weights: bid price is weighted by ask quantity, ask price by bid quantity
     return ((bid_price * ask_qty) + (ask_price * bid_qty)) / total_qty

@@ -91,8 +91,15 @@ class QuantPipeline:
         ask_q: float,
         funding_rate_8h: float = 0.0001,
         daily_volume: float = 1000000.0,
+        equity: float | None = None,
     ) -> dict[str, Any]:
         """Process incoming closed bar and live book tick."""
+        if equity is not None:
+            self.equity = equity
+            if equity > self.peak_equity:
+                self.peak_equity = equity
+            self.equity_curve.append(equity)
+
         self.closes.append(close_p)
         self.highs.append(high_p)
         self.lows.append(low_p)
@@ -129,12 +136,12 @@ class QuantPipeline:
         # Stage 5: Size
         stop_price = close_p - 2.0 * cur_atr if cur_atr > 0 else close_p * 0.98
         risk_size = compute_risk_based_size(self.equity, risk_pct=0.01, entry=close_p, stop=stop_price)
-        vol_scalar = compute_volatility_target_weight(target_vol=0.15, realized_vol=ann_vol, max_leverage=3.0) if ann_vol > 0 else 1.0
+        vol_scalar = compute_volatility_target_weight(target_vol=0.15, realized_vol=ann_vol, max_leverage=3.0) if ann_vol > 0 else 0.0
         liq_price = compute_liquidation_price(entry=close_p, leverage=10.0, mmr=0.005, is_long=True)
 
         # Stage 6: Execute
         spread, half_spread = compute_spread_cost(bid_p, ask_p)
-        microprice = compute_microprice(bid_p, bid_q, ask_p, ask_q)
+        microprice = compute_microprice(bid_p, bid_q, ask_p, ask_q, last_price=close_p)
         impact = compute_square_root_impact(volatility=ann_vol, order_qty=risk_size, daily_volume=daily_volume)
 
         # Stage 7: Risk
