@@ -417,6 +417,87 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 vol_report["interval"] = interval
                 return self.json(200, vol_report)
 
+            # 8-Stage 48-Formula Quant Pipeline Live Telemetry
+            if url.path == "/api/quant/metrics":
+                symbol = query.get("symbol", ["BTCUSDT"])[0].upper()
+                from cryptoscope.market_data.candle_store import CandleStore
+                from core.quant.pipeline import QuantPipeline
+
+                cs = CandleStore()
+                candles = cs.get_fresh_candles(symbol, "15m", limit=60)
+                ticker = market_aggregator.get_ticker(symbol)
+                bid_p = float(ticker.get("bid")) if ticker and ticker.get("bid") else 100.0
+                ask_p = float(ticker.get("ask")) if ticker and ticker.get("ask") else 100.1
+                bid_q = float(ticker.get("bid_qty")) if ticker and ticker.get("bid_qty") else 50.0
+                ask_q = float(ticker.get("ask_qty")) if ticker and ticker.get("ask_qty") else 50.0
+
+                pipeline = QuantPipeline(symbol=symbol)
+                metrics = {}
+                if candles:
+                    for c in candles:
+                        if isinstance(c, dict):
+                            metrics = pipeline.on_bar(
+                                open_p=float(c.get("open", 100)),
+                                high_p=float(c.get("high", 105)),
+                                low_p=float(c.get("low", 95)),
+                                close_p=float(c.get("close", 100)),
+                                volume=float(c.get("volume", 1000)),
+                                bid_p=bid_p, bid_q=bid_q, ask_p=ask_p, ask_q=ask_q
+                            )
+                        elif isinstance(c, (list, tuple)) and len(c) >= 5:
+                            metrics = pipeline.on_bar(
+                                open_p=float(c[0]), high_p=float(c[1]), low_p=float(c[2]),
+                                close_p=float(c[3]), volume=float(c[4]),
+                                bid_p=bid_p, bid_q=bid_q, ask_p=ask_p, ask_q=ask_q
+                            )
+                else:
+                    metrics = pipeline.on_bar(
+                        open_p=bid_p, high_p=ask_p * 1.01, low_p=bid_p * 0.99,
+                        close_p=(bid_p + ask_p) / 2.0, volume=1000.0,
+                        bid_p=bid_p, bid_q=bid_q, ask_p=ask_p, ask_q=ask_q
+                    )
+
+                res = {
+                    "symbol": symbol,
+                    "timestamp": time.time(),
+                    "stage1_data": {
+                        "log_return": metrics.get("log_return"),
+                        "annualized_vol": metrics.get("annualized_vol"),
+                        "ewma_vol": metrics.get("ewma_vol"),
+                        "atr": metrics.get("atr"),
+                        "is_bad_tick": metrics.get("is_bad_tick"),
+                    },
+                    "stage2_signal": {
+                        "z_score": metrics.get("z_score"),
+                        "ema_20": metrics.get("ema_20"),
+                        "rsi_14": metrics.get("rsi_14"),
+                        "order_book_imbalance": metrics.get("order_book_imbalance"),
+                        "funding_apr": metrics.get("funding_apr"),
+                    },
+                    "stage3_filter": {
+                        "t_stat": metrics.get("t_stat"),
+                        "half_life": metrics.get("half_life"),
+                        "hurst_exponent": metrics.get("hurst_exponent"),
+                        "is_high_vol": metrics.get("is_high_vol"),
+                    },
+                    "stage5_size": {
+                        "suggested_size": metrics.get("suggested_size"),
+                        "volatility_target_scalar": metrics.get("volatility_target_scalar"),
+                        "liquidation_price": metrics.get("liquidation_price"),
+                    },
+                    "stage6_execute": {
+                        "spread": metrics.get("spread"),
+                        "microprice": metrics.get("microprice"),
+                        "estimated_impact": metrics.get("estimated_impact"),
+                    },
+                    "stage7_risk": {
+                        "var_95": metrics.get("var_95"),
+                        "max_drawdown": metrics.get("max_drawdown"),
+                        "kill_switch_triggered": metrics.get("kill_switch_triggered"),
+                    },
+                }
+                return self.json(200, res)
+
             if url.path == "/api/quant/orderflow":
                 symbol = query.get("symbol", ["BTCUSDT"])[0].upper()
                 lookback = min(100, max(10, int(query.get("lookback", [40])[0])))
@@ -772,6 +853,55 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     return self.json(500, {"error": f"Simulation failure: {sim_err}"})
 
             # 6c. Multi-Agent Deliberation & Consensus (TradingAgents integration)
+            # 6c. AI Berkshire Committee Qualitative Audit
+            if url.path == "/api/berkshire/audit":
+                symbol = str(body.get("symbol", "BTCUSDT")).strip().upper()
+                from core.quant.berkshire_committee import BerkshireCommittee
+
+                committee = BerkshireCommittee()
+                ticker = market_aggregator.get_ticker(symbol)
+                price = float(ticker.get("price", 60000.0) or 60000.0)
+
+                if "BTC" in symbol:
+                    mcap = price * 19700000.0
+                    vol = float(ticker.get("volume_24h", 35000000000.0) or 35000000000.0) * price
+                    annual_fees = 800000000.0
+                    active_users = 950000.0
+                    staking_yield = 0.0
+                    top_share = 0.12
+                elif "ETH" in symbol:
+                    mcap = price * 120000000.0
+                    vol = float(ticker.get("volume_24h", 15000000000.0) or 15000000000.0) * price
+                    annual_fees = 1500000000.0
+                    active_users = 600000.0
+                    staking_yield = 3.2
+                    top_share = 0.22
+                elif "SOL" in symbol:
+                    mcap = price * 460000000.0
+                    vol = float(ticker.get("volume_24h", 5000000000.0) or 5000000000.0) * price
+                    annual_fees = 350000000.0
+                    active_users = 850000.0
+                    staking_yield = 6.8
+                    top_share = 0.31
+                else:
+                    mcap = price * 100000000.0
+                    vol = price * 1000000.0
+                    annual_fees = 10000000.0
+                    active_users = 50000.0
+                    staking_yield = 0.0
+                    top_share = 0.25
+
+                audit_input = {
+                    "market_cap": body.get("market_cap", mcap),
+                    "daily_volume": body.get("daily_volume", vol),
+                    "annual_network_fees": body.get("annual_network_fees", annual_fees),
+                    "active_addresses": body.get("active_addresses", active_users),
+                    "staking_yield_pct": body.get("staking_yield_pct", staking_yield),
+                    "top_holders_share_pct": body.get("top_holders_share_pct", top_share),
+                }
+                report = committee.audit_asset(symbol, audit_input)
+                return self.json(200, report)
+
             if url.path == "/api/agents/deliberate":
                 if not rate_limiter.is_allowed(client_ip, "/api/agents/deliberate", limit=12):
                     retry = rate_limiter.retry_after(client_ip, "/api/agents/deliberate")

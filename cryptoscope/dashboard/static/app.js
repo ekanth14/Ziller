@@ -2576,3 +2576,126 @@ if ($('live-mode-toggle-btn')) {
     }
   });
 }
+
+
+/* =========================================================================
+   BLOOMBERG WORKSTATION (8 STAGES, 48 FORMULAS) & AI BERKSHIRE CONTROLLERS
+   ========================================================================= */
+
+async function fetchQuantMetrics(symbol = null) {
+  const sym = symbol || ($('bb-symbol-select')?.value) || 'BTCUSDT';
+  try {
+    const res = await request(`/api/quant/metrics?symbol=${sym}`);
+    if (!res) return;
+
+    // Microstructure cards
+    const s6 = res.stage6_execute || {};
+    const s2 = res.stage2_signal || {};
+    const s7 = res.stage7_risk || {};
+    const s1 = res.stage1_data || {};
+    const s3 = res.stage3_filter || {};
+    const s5 = res.stage5_size || {};
+
+    if ($('bb-microprice')) $('bb-microprice').textContent = s6.microprice != null ? '$' + Number(s6.microprice).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '—';
+    if ($('bb-imbalance')) {
+      const imb = s2.order_book_imbalance;
+      $('bb-imbalance').textContent = imb != null ? (imb >= 0 ? '+' : '') + (imb * 100).toFixed(1) + '%' : '—';
+    }
+    if ($('bb-impact')) $('bb-impact').textContent = s6.estimated_impact != null ? (s6.estimated_impact * 100).toFixed(3) + '%' : '—';
+    if ($('bb-var')) $('bb-var').textContent = s7.var_95 != null ? '$' + Number(s7.var_95).toFixed(2) : '—';
+
+    // Telemetry Table
+    if ($('bb-val-log-return')) $('bb-val-log-return').textContent = s1.log_return != null ? (s1.log_return * 100).toFixed(4) + '%' : '—';
+    if ($('bb-val-ann-vol')) $('bb-val-ann-vol').textContent = s1.annualized_vol != null ? (s1.annualized_vol * 100).toFixed(2) + '%' : '—';
+    if ($('bb-val-ewma-vol')) $('bb-val-ewma-vol').textContent = s1.ewma_vol != null ? (s1.ewma_vol * 100).toFixed(2) + '%' : '—';
+    if ($('bb-val-atr')) $('bb-val-atr').textContent = s1.atr != null ? '$' + Number(s1.atr).toFixed(2) : '—';
+    if ($('bb-val-zscore')) $('bb-val-zscore').textContent = s2.z_score != null ? Number(s2.z_score).toFixed(2) + ' σ' : '—';
+    if ($('bb-val-rsi')) $('bb-val-rsi').textContent = s2.rsi_14 != null ? Number(s2.rsi_14).toFixed(1) : '—';
+    if ($('bb-val-funding')) $('bb-val-funding').textContent = s2.funding_apr != null ? (s2.funding_apr * 100).toFixed(2) + '%' : '—';
+    if ($('bb-val-tstat')) $('bb-val-tstat').textContent = s3.t_stat != null ? Number(s3.t_stat).toFixed(2) : '—';
+    if ($('bb-val-hurst')) $('bb-val-hurst').textContent = s3.hurst_exponent != null ? Number(s3.hurst_exponent).toFixed(3) : '—';
+    if ($('bb-val-regime')) $('bb-val-regime').textContent = s3.is_high_vol ? 'HIGH-VOL' : 'NORMAL';
+    if ($('bb-val-size')) $('bb-val-size').textContent = s5.suggested_size != null ? Number(s5.suggested_size).toFixed(4) + ' units' : '—';
+    if ($('bb-val-liq')) $('bb-val-liq').textContent = s5.liquidation_price != null ? '$' + Number(s5.liquidation_price).toFixed(2) : '—';
+    if ($('bb-val-kill')) {
+      const trip = s7.kill_switch_triggered;
+      $('bb-val-kill').textContent = trip ? 'HALT ENGAGED' : 'DISENGAGED';
+      $('bb-val-kill').style.color = trip ? '#ef4444' : 'var(--secondary-emerald)';
+    }
+  } catch (err) {
+    console.warn('Failed to refresh quant metrics:', err);
+  }
+}
+
+async function runBerkshireAudit(symbol = null) {
+  const sym = symbol || ($('berk-symbol-select')?.value) || 'BTCUSDT';
+  const btn = $('btn-run-berkshire');
+  if (btn) btn.textContent = '⏳ AUDITING...';
+  try {
+    const res = await postJson('/api/berkshire/audit', { symbol: sym });
+    if (!res) return;
+
+    if ($('berk-score')) $('berk-score').textContent = `${res.composite_conviction_score || 0} / 100`;
+    if ($('berk-rigor-pill')) {
+      $('berk-rigor-pill').textContent = res.rigor_passed ? 'VERIFIED (DECIMAL)' : 'FAILED';
+      $('berk-rigor-pill').className = res.rigor_passed ? 'sidebar-badge green' : 'sidebar-badge red';
+    }
+
+    // Duan Moat
+    const dm = res.duan_moat || {};
+    if ($('berk-duan-grade')) {
+      $('berk-duan-grade').textContent = dm.grade || 'NONE';
+      $('berk-duan-grade').className = dm.grade === 'WIDE' ? 'sidebar-badge green' : dm.grade === 'NARROW' ? 'sidebar-badge' : 'sidebar-badge red';
+    }
+    if ($('berk-duan-ps')) $('berk-duan-ps').textContent = dm.price_to_fee_ratio != null ? `${dm.price_to_fee_ratio}x` : '—';
+    if ($('berk-duan-thesis')) $('berk-duan-thesis').textContent = dm.thesis || '—';
+
+    // Buffett
+    const bv = res.buffett_valuation || {};
+    if ($('berk-buffett-verdict')) {
+      $('berk-buffett-verdict').textContent = bv.verdict || 'FAIR';
+      $('berk-buffett-verdict').className = bv.verdict === 'ATTRACTIVE' ? 'sidebar-badge green' : bv.verdict === 'FAIR' ? 'sidebar-badge' : 'sidebar-badge red';
+    }
+    if ($('berk-buffett-mos')) $('berk-buffett-mos').textContent = bv.margin_of_safety_pct != null ? `${bv.margin_of_safety_pct}%` : '—';
+    if ($('berk-buffett-thesis')) $('berk-buffett-thesis').textContent = bv.thesis || '—';
+
+    // Munger
+    const mi = res.munger_inversion || {};
+    if ($('berk-munger-verdict')) {
+      $('berk-munger-verdict').textContent = mi.inversion_verdict || 'ACCEPTABLE';
+      $('berk-munger-verdict').className = mi.inversion_verdict === 'ACCEPTABLE' ? 'sidebar-badge green' : 'sidebar-badge red';
+    }
+    if ($('berk-munger-score')) $('berk-munger-score').textContent = mi.score != null ? `${mi.score}/100` : '—';
+    if ($('berk-munger-thesis')) $('berk-munger-thesis').textContent = (mi.failure_modes || []).join(' ') || 'No critical failure modes.';
+
+    // Li Lu
+    const li = res.lilu_integrity || {};
+    if ($('berk-lilu-verdict')) {
+      $('berk-lilu-verdict').textContent = li.governance_status || 'MODERATE';
+      $('berk-lilu-verdict').className = li.governance_status === 'DECENTRALIZED' ? 'sidebar-badge green' : 'sidebar-badge red';
+    }
+    if ($('berk-lilu-share')) $('berk-lilu-share').textContent = li.top_holders_share_pct != null ? `${li.top_holders_share_pct.toFixed(1)}%` : '—';
+    if ($('berk-lilu-thesis')) $('berk-lilu-thesis').textContent = li.thesis || '—';
+
+    notice(`AI Berkshire audit complete for ${sym}!`);
+  } catch (err) {
+    alert(`Berkshire audit error: ${err.message}`);
+  } finally {
+    if (btn) btn.textContent = '▶ RUN COMMITTEE AUDIT';
+  }
+}
+
+// Event Listeners
+if ($('btn-refresh-quant')) {
+  $('btn-refresh-quant').addEventListener('click', () => fetchQuantMetrics());
+}
+if ($('bb-symbol-select')) {
+  $('bb-symbol-select').addEventListener('change', e => fetchQuantMetrics(e.target.value));
+}
+if ($('btn-run-berkshire')) {
+  $('btn-run-berkshire').addEventListener('click', () => runBerkshireAudit());
+}
+
+// Auto-fetch quant metrics on init and periodic poll
+fetchQuantMetrics();
+setInterval(fetchQuantMetrics, 30000);
