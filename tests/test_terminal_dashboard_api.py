@@ -74,3 +74,33 @@ def test_agents_committee_endpoint():
             assert len(data["persona_votes"]) >= 4
     except (urllib.error.URLError, ConnectionError, OSError) as e:
         pytest.skip(f"Dashboard server not reachable at http://127.0.0.1:8900 ({e}); skipping integration test.")
+
+def test_thx02_deliberate_endpoint():
+    try:
+        url = "http://127.0.0.1:8900/api/agents/thx02/deliberate"
+        payload = json.dumps({
+            "symbol": "BTC/USDT",
+            "market_state": {
+                "zscore": 1.5,
+                "ROC5": 0.04,
+                "ROC20": 0.10,
+                "volatility": 0.02,
+                "cvd": 5000.0,
+            }
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=payload,
+            headers={"Host": "localhost:8900", "Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            assert resp.status == 200
+            data = json.loads(resp.read().decode())
+            assert data["symbol"] == "BTC/USDT"
+            assert "action" in data
+            assert "regime" in data
+            assert "conviction" in data
+            assert "thought" in data
+            assert "<think>" in data["thought"]
+    except (urllib.error.URLError, ConnectionError, OSError) as e:
+        pytest.skip(f"Dashboard server not reachable at http://127.0.0.1:8900 ({e}); skipping integration test.")

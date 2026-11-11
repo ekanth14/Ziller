@@ -1101,6 +1101,32 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 }
                 return self.json(200, res)
 
+            # THX-02 Thinking Decision Model Deliberation
+            if url.path == "/api/agents/thx02/deliberate":
+                if not rate_limiter.is_allowed(client_ip, "/api/agents/thx02/deliberate", limit=15):
+                    retry = rate_limiter.retry_after(client_ip, "/api/agents/thx02/deliberate")
+                    return self.json(429, {"error": f"Rate limit exceeded. Retry in {retry} seconds."})
+                symbol = str(body.get("symbol", "BTC/USDT")).strip()
+                market_state = body.get("market_state", {})
+                if not isinstance(market_state, dict):
+                    market_state = {}
+                from core.agents.thx02_decision_engine import THX02DecisionEngine
+                engine = THX02DecisionEngine()
+                decision = engine.deliberate_regime_and_trade(market_state)
+                res = {
+                    "symbol": symbol,
+                    "action": decision.action,
+                    "regime": decision.regime,
+                    "conviction": decision.conviction,
+                    "risk_cleared": decision.risk_cleared,
+                    "suggested_leverage": decision.suggested_leverage,
+                    "suggested_sizing_pct": decision.suggested_sizing_pct,
+                    "thought": decision.thought,
+                    "probabilities": decision.probabilities,
+                    "metadata": decision.metadata,
+                }
+                return self.json(200, res)
+
             if url.path == "/api/agents/deliberate":
                 if not rate_limiter.is_allowed(client_ip, "/api/agents/deliberate", limit=12):
                     retry = rate_limiter.retry_after(client_ip, "/api/agents/deliberate")

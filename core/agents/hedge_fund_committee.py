@@ -42,6 +42,7 @@ class CommitteeDecision:
     persona_votes: list[PersonaVote]
     synthesis_memo: str
     timestamp: float
+    thx02_decision: Any | None = None
 
 
 class HedgeFundCommittee:
@@ -54,12 +55,14 @@ class HedgeFundCommittee:
         min_liquidation_distance: float = 0.10,
         cache_ttl_seconds: float = 30.0,
         berkshire_committee: BerkshireCommittee | None = None,
+        decision_engine: Any | None = None,
     ) -> None:
         self.max_var_limit = max_var_limit
         self.max_drawdown_limit = max_drawdown_limit
         self.min_liquidation_distance = min_liquidation_distance
         self.cache_ttl_seconds = cache_ttl_seconds
         self.berkshire_committee = berkshire_committee or BerkshireCommittee()
+        self.decision_engine = decision_engine
         self._cache: dict[str, tuple[float, CommitteeDecision]] = {}
 
     def _get_cache_key(self, symbol: str, context: Mapping[str, Any]) -> str:
@@ -94,6 +97,13 @@ class HedgeFundCommittee:
 
         all_votes = [simons_vote, wood_vote, buffett_vote, risk_vote]
 
+        thx02_decision = None
+        if self.decision_engine is not None:
+            try:
+                thx02_decision = self.decision_engine.deliberate_regime_and_trade(market_context)
+            except Exception as e:
+                pass
+
         decision = self._arbitrate(
             symbol=symbol,
             votes=all_votes,
@@ -101,6 +111,7 @@ class HedgeFundCommittee:
             risk_veto_reason=veto_reason,
             risk_metrics=risk_metrics,
             now=now,
+            thx02_decision=thx02_decision,
         )
 
         self._cache[cache_key] = (now, decision)
@@ -297,6 +308,7 @@ class HedgeFundCommittee:
         risk_veto_reason: str | None,
         risk_metrics: Mapping[str, Any],
         now: float,
+        thx02_decision: Any | None = None,
     ) -> CommitteeDecision:
         """Consensus Arbiter synthesizing persona recommendations."""
         if risk_veto:
@@ -308,6 +320,12 @@ class HedgeFundCommittee:
             )
             for v in votes:
                 memo += f"- **{v.persona}**: {v.action} (Confidence: {v.confidence*100:.1f}%) — {v.thesis}\n"
+            if thx02_decision:
+                memo += (
+                    f"\n**THX-02 Thinking Reasoning (Regime: {thx02_decision.regime}, "
+                    f"Conviction: {thx02_decision.conviction*100:.1f}%):** "
+                    f"(Advisory only; overruled by Risk Officer Veto)\n{thx02_decision.thought}\n"
+                )
             memo += "\n**Capital Allocation:** 0.0% (Trading locked by Risk Officer)."
 
             return CommitteeDecision(
@@ -320,6 +338,7 @@ class HedgeFundCommittee:
                 persona_votes=votes,
                 synthesis_memo=memo,
                 timestamp=now,
+                thx02_decision=thx02_decision,
             )
 
         # Calculate voting score among non-risk members
@@ -359,6 +378,13 @@ class HedgeFundCommittee:
         for v in votes:
             memo += f"- **{v.persona}**: {v.action} (Confidence: {v.confidence*100:.1f}%) — {v.thesis}\n"
 
+        if thx02_decision:
+            memo += (
+                f"\n**THX-02 Thinking Reasoning (Regime: {thx02_decision.regime}, "
+                f"Conviction: {thx02_decision.conviction*100:.1f}%):**\n"
+                f"{thx02_decision.thought}\n"
+            )
+
         return CommitteeDecision(
             symbol=symbol,
             action=final_action,
@@ -369,4 +395,5 @@ class HedgeFundCommittee:
             persona_votes=votes,
             synthesis_memo=memo,
             timestamp=now,
+            thx02_decision=thx02_decision,
         )
