@@ -32,7 +32,8 @@ const state = {
   listingsSearch: '',
   listingsSort: 'market_cap_desc',
   candlesBySymbol: {},
-  activeSymbol: 'ETHUSDT'
+  activeSymbol: 'ETHUSDT',
+  activeInterval: '1m'
 };
 
 function isFreshTicker(ticker, now = Date.now()) {
@@ -471,26 +472,32 @@ function updateSymbolDropdown(customSymbols = []) {
 async function loadCandlesForSymbol(symbol, force = false) {
   if (!symbol) return;
   state.activeSymbol = symbol;
-  if (!force && state.candlesBySymbol[symbol] && state.candlesBySymbol[symbol].length >= 10) {
+  const interval = state.activeInterval || '1m';
+  const cacheKey = `${symbol}_${interval}`;
+  if (!force && state.candlesBySymbol[cacheKey] && state.candlesBySymbol[cacheKey].length >= 10) {
+    state.candlesBySymbol[symbol] = state.candlesBySymbol[cacheKey];
     renderChart();
     return;
   }
   try {
-    const res = await request(`/api/market/candles?symbol=${encodeURIComponent(symbol)}&interval=5m&limit=200`);
+    const res = await request(`/api/market/candles?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}&limit=200`);
     if (res && Array.isArray(res.candles) && res.candles.length) {
+      state.candlesBySymbol[cacheKey] = res.candles;
       state.candlesBySymbol[symbol] = res.candles;
+      const intSec = interval === '1s' ? 1 : interval === '30s' ? 30 : interval === '1m' ? 60 : interval === '2m' ? 120 : 300;
       if (!state.data) state.data = { snapshots: {} };
       if (!state.data.snapshots) state.data.snapshots = {};
       state.data.snapshots[symbol] = {
         symbol: symbol,
-        interval_seconds: 300,
+        interval_seconds: intSec,
+        interval: interval,
         as_of: res.as_of || (Date.now() / 1000),
         candles: res.candles,
         source: res.source || 'binance_spot'
       };
     }
   } catch (err) {
-    console.warn(`Could not load candles for ${symbol}:`, err.message);
+    console.warn(`Could not load candles for ${symbol} (${interval}):`, err.message);
   } finally {
     renderChart();
     renderOrderBook();
@@ -525,7 +532,7 @@ function renderChart() {
     }
     if ($('market-price')) $('market-price').textContent = '—';
     if ($('market-change')) $('market-change').textContent = '—';
-    if ($('chart-interval')) $('chart-interval').textContent = '5m candles';
+    if ($('chart-interval')) $('chart-interval').textContent = `${state.activeInterval || '1m'} candles`;
     if ($('snapshot-time')) $('snapshot-time').textContent = 'Fetching market history…';
     loadCandlesForSymbol(symbol);
     return;
@@ -583,7 +590,7 @@ function renderChart() {
     $('market-change').textContent = `${pctChange >= 0 ? '+' : ''}${pctChange.toFixed(2)}% (${N}b)`;
     $('market-change').className = `kpi-tag ${pctChange >= 0 ? 'green' : 'rose'}`;
   }
-  if ($('chart-interval')) $('chart-interval').textContent = `5m · ${N} Candlestick Bars`;
+  if ($('chart-interval')) $('chart-interval').textContent = `${state.activeInterval || '1m'} · ${N} Candlestick Bars`;
   if ($('snapshot-time')) $('snapshot-time').textContent = `Last closed bar · ${new Date(last.close_time * 1000).toLocaleTimeString()}`;
 
   // Default HUD values
@@ -1215,6 +1222,14 @@ if ($('run-dialog')) {
 document.querySelectorAll('[data-tab]').forEach(button=>button.addEventListener('click',()=>{
   state.tab=button.dataset.tab;
   renderDetail();
+}));
+
+document.querySelectorAll('[data-interval]').forEach(button => button.addEventListener('click', () => {
+  const intv = button.dataset.interval;
+  state.activeInterval = intv;
+  document.querySelectorAll('[data-interval]').forEach(b => b.classList.toggle('selected', b === button));
+  const sym = $('symbol')?.value || state.activeSymbol || 'ETHUSDT';
+  loadCandlesForSymbol(sym, true);
 }));
 
 document.querySelectorAll('[data-window]').forEach(button=>button.addEventListener('click',()=>{
@@ -2000,11 +2015,12 @@ function initSseStream() {
               $('market-change').className = `kpi-tag ${chg >= 0 ? 'green' : 'rose'}`;
             }
 
-            // Keep closed exchange candles immutable. Refresh the actual OHLC
-            // series once the next five-minute candle has closed.
+            // Refresh OHLC series once the current candle period has closed
             const candles = state.candlesBySymbol[curSymbol];
             const lastCandle = candles?.[candles.length - 1];
-            if (lastCandle && Date.now() / 1000 - lastCandle.close_time > 300 && !state.candleRefreshPending) {
+            const activeIntv = state.activeInterval || '1m';
+            const intSec = activeIntv === '1s' ? 1 : activeIntv === '30s' ? 30 : activeIntv === '1m' ? 60 : activeIntv === '2m' ? 120 : 300;
+            if (lastCandle && Date.now() / 1000 - lastCandle.close_time > intSec && !state.candleRefreshPending) {
               state.candleRefreshPending = true;
               loadCandlesForSymbol(curSymbol, true).finally(() => { state.candleRefreshPending = false; });
             }

@@ -348,7 +348,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
 
             if url.path == "/api/market/candles":
                 symbol = query.get("symbol", ["BTCUSDT"])[0].upper()
-                interval = query.get("interval", ["5m"])[0]
+                interval = query.get("interval", ["1m"])[0]
                 limit = min(500, max(10, int(query.get("limit", [100])[0])))
                 candles = []
                 try:

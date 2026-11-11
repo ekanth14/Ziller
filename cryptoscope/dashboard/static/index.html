@@ -332,6 +332,14 @@
               <option value="NEARUSDT">NEARUSDT · Near</option>
               <option value="PEPEUSDT">PEPEUSDT · Pepe</option>
             </select>
+            <!-- Time Interval Selector (1s, 30s, 1m [default], 2m, 5m) -->
+            <div class="segmented" id="chart-interval-picker" aria-label="Chart time interval" style="margin-right: 6px;">
+              <button data-interval="1s" class="interval-btn" title="1-second ultra high frequency view">1s</button>
+              <button data-interval="30s" class="interval-btn" title="30-second scalping view">30s</button>
+              <button data-interval="1m" class="interval-btn selected" title="1-minute standard view (Default)">1m</button>
+              <button data-interval="2m" class="interval-btn" title="2-minute momentum view">2m</button>
+              <button data-interval="5m" class="interval-btn" title="5-minute macro view">5m</button>
+            </div>
             <div class="segmented" aria-label="Chart candle window">
               <button data-window="50" class="selected">50 BARS</button>
               <button data-window="100">100</button>

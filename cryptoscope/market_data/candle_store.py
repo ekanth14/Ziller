@@ -156,13 +156,13 @@ class CandleStore:
             try:
                 from cryptoscope.providers.binance import BinanceProvider
                 provider = BinanceProvider()
-                snap = provider.snapshot(symbol, interval)
-                if snap and snap.candles:
-                    self.save_candles(symbol, interval, snap.candles, source="binance")
+                fetched = provider.fetch_klines(symbol, interval, limit=max(limit, 50))
+                if fetched:
+                    self.save_candles(symbol, interval, fetched, source="binance")
                     fresh = self.load_candles(symbol, interval, limit=limit)
                     if fresh:
                         return fresh
-                    return [c if isinstance(c, dict) else c.__dict__ for c in snap.candles[-limit:]]
+                    return [c if isinstance(c, dict) else c.__dict__ for c in fetched[-limit:]]
             except Exception as e:
                 logger.debug("Live snapshot fetch for %s (%s) skipped: %s", symbol, interval, e)
 
