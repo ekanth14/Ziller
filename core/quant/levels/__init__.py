@@ -1,10 +1,16 @@
-"""10-Level Quantitative Finance Theory Modules.
+"""10-Level Quantitative Finance Theory Module.
 
-Levels 1-4: Math Core
-- Level 1: Probability (Bayes, Linearity of Exp, Variance, Total Exp, Distributions)
-- Level 2: Statistics (Standard Error, Sharpe t-stat, OLS, Correlation/R^2, Multiple Testing)
-- Level 3: Linear Algebra (Covariance, Portfolio Variance, PCA, Matrix Conditioning, Ledoit-Wolf)
-- Level 4: Calculus & Optimization (Taylor Expansion, Gradient Descent, Lagrange Multipliers, Markowitz, Jensen's Vol Drag)
+Levels 1-10 covering 50 institutional formulas:
+Level 1: Probability (1.1 - 1.5)
+Level 2: Statistics (2.1 - 2.5)
+Level 3: Linear Algebra (3.1 - 3.5)
+Level 4: Calculus & Optimization (4.1 - 4.5)
+Level 5: Time Series (5.1 - 5.5)
+Level 6: Stochastic Calculus (6.1 - 6.5)
+Level 7: Derivatives & Greeks (7.1 - 7.5)
+Level 8: Portfolio & Risk (8.1 - 8.5)
+Level 9: Microstructure & Execution (9.1 - 9.5)
+Level 10: Research & Machine Learning (10.1 - 10.5)
 """
 
 from core.quant.levels.level1_prob import (
@@ -50,6 +56,44 @@ from core.quant.levels.level4_opt import (
     compute_volatility_drag,
     check_jensen_inequality,
 )
+from core.quant.levels.level5_timeseries import (
+    compute_log_returns,
+    compute_annualized_volatility,
+    compute_autocorrelation,
+    classify_autocorrelation_regime,
+    compute_adf_stationarity,
+    compute_cointegration_hedge_ratio,
+    compute_half_life,
+    compute_garch11_filter,
+    forecast_garch11_next,
+    estimate_garch11_parameters,
+)
+from core.quant.levels.level6_stoch import (
+    simulate_random_walk,
+    compute_random_walk_variance,
+    compute_diffusion_scaling,
+    simulate_brownian_motion,
+    simulate_gbm_path,
+    gbm_expected_value,
+    gbm_variance,
+    compute_ito_drift,
+    compute_ito_diffusion,
+    ito_log_price_drift,
+    compute_gamblers_ruin,
+    compute_infinite_horizon_ruin,
+    is_martingale_property,
+)
+from core.quant.levels.level7_derivatives import (
+    black_scholes_call,
+    black_scholes_put,
+    black_scholes_price,
+    verify_put_call_parity,
+    compute_synthetic_price,
+    compute_option_greeks,
+    compute_implied_volatility,
+    compute_gamma_pnl,
+    compute_gamma_vol_arbitrage_pnl,
+)
 
 __all__ = [
     # Level 1
@@ -91,4 +135,39 @@ __all__ = [
     "compute_markowitz_weights",
     "compute_volatility_drag",
     "check_jensen_inequality",
+    # Level 5
+    "compute_log_returns",
+    "compute_annualized_volatility",
+    "compute_autocorrelation",
+    "classify_autocorrelation_regime",
+    "compute_adf_stationarity",
+    "compute_cointegration_hedge_ratio",
+    "compute_half_life",
+    "compute_garch11_filter",
+    "forecast_garch11_next",
+    "estimate_garch11_parameters",
+    # Level 6
+    "simulate_random_walk",
+    "compute_random_walk_variance",
+    "compute_diffusion_scaling",
+    "simulate_brownian_motion",
+    "simulate_gbm_path",
+    "gbm_expected_value",
+    "gbm_variance",
+    "compute_ito_drift",
+    "compute_ito_diffusion",
+    "ito_log_price_drift",
+    "compute_gamblers_ruin",
+    "compute_infinite_horizon_ruin",
+    "is_martingale_property",
+    # Level 7
+    "black_scholes_call",
+    "black_scholes_put",
+    "black_scholes_price",
+    "verify_put_call_parity",
+    "compute_synthetic_price",
+    "compute_option_greeks",
+    "compute_implied_volatility",
+    "compute_gamma_pnl",
+    "compute_gamma_vol_arbitrage_pnl",
 ]
