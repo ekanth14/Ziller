@@ -498,6 +498,147 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 }
                 return self.json(200, res)
 
+            # 10-Level 50-Formula Quant Matrix Telemetry
+            if url.path == "/api/quant/levels":
+                symbol = query.get("symbol", ["BTCUSDT"])[0].upper()
+                from cryptoscope.market_data.candle_store import CandleStore
+                from core.quant.levels import (
+                    compute_bayes_update,
+                    compute_linear_expectation,
+                    compute_sample_variance,
+                    compute_total_expectation,
+                    evaluate_distribution_density,
+                    compute_standard_error,
+                    compute_sharpe_t_stat,
+                    compute_ols_regression,
+                    compute_correlation,
+                    compute_family_wise_error_rate,
+                    compute_portfolio_variance,
+                    compute_condition_number,
+                    ledoit_wolf_shrinkage,
+                    taylor_pnl_approximation,
+                    compute_markowitz_weights,
+                    compute_volatility_drag,
+                    compute_log_returns,
+                    compute_annualized_volatility,
+                    compute_autocorrelation,
+                    compute_adf_stationarity,
+                    compute_garch11_filter,
+                    simulate_random_walk,
+                    ito_log_price_drift,
+                    compute_gamblers_ruin,
+                    black_scholes_call,
+                    black_scholes_put,
+                    compute_option_greeks,
+                    compute_gamma_pnl,
+                    compute_capm_beta,
+                    compute_sharpe_ratio,
+                    compute_discrete_kelly,
+                    compute_continuous_kelly,
+                    compute_parametric_var,
+                    compute_expected_shortfall,
+                    compute_max_drawdown,
+                    compute_spreads,
+                    compute_microprice,
+                    compute_square_root_impact,
+                    compute_avellaneda_stoikov,
+                    compute_deflated_sharpe_ratio,
+                    detect_regimes_hmm,
+                )
+
+                cs = CandleStore()
+                candles = cs.get_fresh_candles(symbol, "15m", limit=60)
+                ticker = market_aggregator.get_ticker(symbol)
+                bid_p = float(ticker.get("bid")) if ticker and ticker.get("bid") else 60000.0
+                ask_p = float(ticker.get("ask")) if ticker and ticker.get("ask") else 60010.0
+                bid_q = float(ticker.get("bid_qty")) if ticker and ticker.get("bid_qty") else 5.0
+                ask_q = float(ticker.get("ask_qty")) if ticker and ticker.get("ask_qty") else 4.0
+
+                closes = [float(c["close"]) if isinstance(c, dict) else float(c[3]) for c in candles] if candles else [bid_p] * 20
+                if len(closes) < 10:
+                    closes = [bid_p + (i * 10.0) for i in range(20)]
+
+                rets = compute_log_returns(closes)
+                if not rets:
+                    rets = [0.001, -0.001, 0.002, -0.001, 0.001]
+                ann_vol = compute_annualized_volatility(rets, bars_per_year=365) if rets else 0.50
+                sr = compute_sharpe_ratio(rets, rf=0.0, bars_per_year=365) if rets else 1.2
+
+                # Level calculations
+                shrunk_cov, shrinkage_delta = ledoit_wolf_shrinkage([[0.01, 0.02], [-0.01, 0.01], [0.02, -0.01]])
+                greeks = compute_option_greeks("call", closes[-1], closes[-1], 30.0 / 365.0, 0.04, max(0.01, ann_vol))
+                garch_series = compute_garch11_filter(rets, 1e-6, 0.05, 0.90)
+
+                report = {
+                    "symbol": symbol,
+                    "timestamp": time.time(),
+                    "level1_prob": {
+                        "bayes_update": compute_bayes_update(0.1, 0.8, 0.2),
+                        "linear_expectation": compute_linear_expectation([0.05, 0.08]),
+                        "sample_variance": compute_sample_variance(closes[-10:]),
+                        "total_expectation": compute_total_expectation([0.10, -0.05], [0.6, 0.4]),
+                        "gaussian_density": evaluate_distribution_density("gaussian", 0.0),
+                    },
+                    "level2_stats": {
+                        "standard_error": compute_standard_error(ann_vol, max(2, len(rets))),
+                        "sharpe_t_stat": compute_sharpe_t_stat(sr, 1.0),
+                        "ols_slope": compute_ols_regression(closes[:-1], closes[1:])["beta"] if len(closes) > 2 else 1.0,
+                        "correlation": compute_correlation(closes[:-1], closes[1:]) if len(closes) > 2 else 0.99,
+                        "multiple_testing_fwer": compute_family_wise_error_rate(0.05, 10),
+                    },
+                    "level3_linalg": {
+                        "portfolio_variance": compute_portfolio_variance([0.5, 0.5], [[ann_vol**2, 0.0], [0.0, ann_vol**2]]),
+                        "condition_number": compute_condition_number([[1.0, 0.2], [0.2, 1.0]]),
+                        "ledoit_wolf_shrinkage_intensity": float(shrinkage_delta),
+                    },
+                    "level4_opt": {
+                        "taylor_pnl_approx": taylor_pnl_approximation(0.5, 0.02, -5.0, 10.0, 1.0 / 365.0),
+                        "markowitz_weight": [float(w) for w in compute_markowitz_weights([0.10, 0.12], [[0.04, 0.01], [0.01, 0.09]])],
+                        "volatility_drag": compute_volatility_drag(0.15, ann_vol)["drag"],
+                    },
+                    "level5_timeseries": {
+                        "log_return": rets[-1] if rets else 0.0,
+                        "annualized_vol": ann_vol,
+                        "autocorrelation_lag1": compute_autocorrelation(rets, 1) if len(rets) > 3 else 0.0,
+                        "adf_stat": compute_adf_stationarity(closes)[0] if len(closes) >= 10 else -2.5,
+                        "garch_vol": float(garch_series[-1]) if garch_series else ann_vol,
+                    },
+                    "level6_stoch": {
+                        "random_walk_sim": simulate_random_walk(5, seed=42),
+                        "ito_log_drift": ito_log_price_drift(0.10, ann_vol),
+                        "gamblers_ruin": compute_gamblers_ruin(20, 100, 0.55),
+                    },
+                    "level7_derivatives": {
+                        "black_scholes_call": black_scholes_call(closes[-1], closes[-1], 30.0 / 365.0, 0.04, ann_vol),
+                        "black_scholes_put": black_scholes_put(closes[-1], closes[-1], 30.0 / 365.0, 0.04, ann_vol),
+                        "delta": greeks.delta,
+                        "gamma": greeks.gamma,
+                        "vega": greeks.vega,
+                        "gamma_pnl": compute_gamma_pnl(0.002, -1.5, 20.0, 1.0 / 365.0),
+                    },
+                    "level8_risk": {
+                        "capm_beta": compute_capm_beta(rets, rets) if len(rets) > 2 else 1.0,
+                        "sharpe_ratio": sr,
+                        "discrete_kelly": compute_discrete_kelly(0.55, 1.8),
+                        "continuous_kelly": compute_continuous_kelly(0.10, max(0.01, ann_vol**2)),
+                        "parametric_var_95": compute_parametric_var(10000.0, ann_vol / (365**0.5)),
+                        "expected_shortfall_95": compute_expected_shortfall(10000.0, ann_vol / (365**0.5)),
+                        "max_drawdown": compute_max_drawdown(closes)[0],
+                    },
+                    "level9_microstructure": {
+                        "mid": (bid_p + ask_p) / 2.0,
+                        "spread_bps": compute_spreads(bid_p, ask_p)["rel_spread"] * 10000.0,
+                        "microprice": compute_microprice(bid_p, bid_q, ask_p, ask_q, closes[-1]),
+                        "square_root_impact": compute_square_root_impact(ann_vol, 1.0, 10000.0)["relative_impact"],
+                        "avellaneda_stoikov": compute_avellaneda_stoikov((bid_p + ask_p) / 2.0, 0.1, 0.1, ann_vol, 1.0 / 365.0, 1.5),
+                    },
+                    "level10_research": {
+                        "deflated_sharpe_ratio": compute_deflated_sharpe_ratio(sr, returns=rets, n_trials=10),
+                        "hmm_regimes": detect_regimes_hmm(rets, n_states=2),
+                    },
+                }
+                return self.json(200, report)
+
             if url.path == "/api/quant/orderflow":
                 symbol = query.get("symbol", ["BTCUSDT"])[0].upper()
                 lookback = min(100, max(10, int(query.get("lookback", [40])[0])))
@@ -904,6 +1045,61 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 }
                 report = committee.audit_asset(symbol, audit_input)
                 return self.json(200, report)
+
+            # Multi-Agent Hedge Fund Deliberation Committee
+            if url.path == "/api/agents/committee":
+                if not rate_limiter.is_allowed(client_ip, "/api/agents/committee", limit=15):
+                    retry = rate_limiter.retry_after(client_ip, "/api/agents/committee")
+                    return self.json(429, {"error": f"Rate limit exceeded. Retry in {retry} seconds."})
+                symbol = str(body.get("symbol", "BTCUSDT")).strip().upper()
+                from core.agents.hedge_fund_committee import HedgeFundCommittee
+                from cryptoscope.market_data.candle_store import CandleStore
+                cs = CandleStore()
+                candles = cs.get_fresh_candles(symbol, "15m", limit=60)
+                ticker = market_aggregator.get_ticker(symbol)
+                price = float(ticker.get("price", 60000.0) or 60000.0)
+
+                closes = [float(c["close"]) if isinstance(c, dict) else float(c[3]) for c in candles] if candles else [price] * 20
+                committee = HedgeFundCommittee()
+                market_payload = {
+                    "symbol": symbol,
+                    "price": price,
+                    "closes": closes,
+                    "market_data": {
+                        "price": price,
+                        "volume_24h": float(ticker.get("volume_24h", 35000000000.0) or 35000000000.0),
+                        "change_24h": float(ticker.get("change_24h", 1.5) or 1.5),
+                    },
+                    "risk_metrics": {
+                        "var_95": 0.02,
+                        "current_drawdown": 0.04,
+                        "liquidation_distance": 0.35,
+                        "kelly_fraction": 0.12,
+                    }
+                }
+                decision = committee.deliberate_sync(symbol, market_payload)
+                res = {
+                    "symbol": decision.symbol,
+                    "action": decision.action,
+                    "conviction_score": decision.conviction_score,
+                    "suggested_sizing_pct": decision.suggested_sizing_pct,
+                    "risk_veto": decision.risk_veto,
+                    "risk_veto_reason": decision.risk_veto_reason,
+                    "persona_votes": [
+                        {
+                            "persona": v.persona,
+                            "action": v.action,
+                            "confidence": v.confidence,
+                            "weight": v.weight,
+                            "thesis": v.thesis,
+                            "metrics": v.metrics,
+                        }
+                        for v in decision.persona_votes
+                    ],
+                    "synthesis_memo": decision.synthesis_memo,
+                    "timestamp": decision.timestamp,
+                }
+                return self.json(200, res)
 
             if url.path == "/api/agents/deliberate":
                 if not rate_limiter.is_allowed(client_ip, "/api/agents/deliberate", limit=12):
