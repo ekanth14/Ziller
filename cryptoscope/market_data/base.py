@@ -28,6 +28,7 @@ class NormalisedTicker:
     source: str = ""              # 'binance', 'coinbase', 'kraken', 'coingecko'
     exchange_timestamp: float = 0.0
     received_at: float = 0.0
+    latency_ms: Optional[float] = None
     is_heartbeat: bool = False
 
     def to_dict(self) -> Dict:
@@ -50,6 +51,8 @@ class NormalisedTicker:
             "source": self.source,
             "exchange_timestamp": self.exchange_timestamp,
             "received_at": self.received_at,
+            "latency_ms": self.latency_ms,
+            "is_heartbeat": self.is_heartbeat,
         }
 
 
@@ -62,3 +65,5 @@ class ExchangeStatus:
     circuit_broken: bool = False
     endpoint: str = ""
     error_message: Optional[str] = None
+    last_latency_ms: Optional[float] = None
+    feed_type: str = "rest"       # 'websocket' | 'rest'

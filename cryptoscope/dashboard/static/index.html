@@ -50,6 +50,10 @@
         <span class="pulse-dot" id="feed-status-dot"></span>
         <span class="val ok" id="feed-status-text">CONNECTED</span>
       </div>
+      <div class="telemetry-chip" id="feed-latency-chip" title="Real-Time Exchange Data Latency">
+        <span class="label">LATENCY:</span>
+        <span class="val ok" id="feed-latency-text">— ms</span>
+      </div>
       <button class="telemetry-chip" id="fx-toggle" type="button" style="cursor: pointer; display: none;" title="Toggle Display Currency (USD / INR)">
         <span class="label">FX:</span>
         <span class="val" id="fx-currency-label">USD</span>
@@ -344,6 +348,7 @@
             <div style="display: flex; align-items: baseline; gap: 10px;">
               <span id="market-price" style="font-family: var(--font-mono); font-size: 26px; font-weight: 700; color: #fff;">—</span>
               <span id="market-change" class="kpi-tag green" style="font-size: 11px;">—</span>
+              <span id="market-latency" class="kpi-tag" style="font-size: 11px; font-family: var(--font-mono); background: rgba(56,189,248,0.12); color: var(--primary-cyan); border: 1px solid rgba(56,189,248,0.25);" title="Real-Time Data Latency">⚡ — ms</span>
             </div>
             <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-sub);">
               <span id="chart-interval">5m · Closed bars</span> · <span id="snapshot-time">Loading…</span>

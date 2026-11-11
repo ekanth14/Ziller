@@ -70,6 +70,11 @@ class MarketDataAggregator:
             if ex:
                 ex.last_heartbeat = ticker.received_at or time.time()
                 ex.state = "connected"
+                if ticker.latency_ms is not None:
+                    ex.last_latency_ms = ticker.latency_ms
+                feed_type = getattr(ticker, "feed_type", None)
+                if feed_type:
+                    ex.feed_type = feed_type
 
     def record_metadata(self, symbol: str, data: Dict[str, Any]):
         """Record CoinGecko metadata (rank, market cap, 24h vol, sparkline)."""
@@ -95,6 +100,8 @@ class MarketDataAggregator:
                     "sources_reporting": [],
                     "sources_dropped_stale": [],
                     "age_seconds": None,
+                    "latency_ms": None,
+                    "source_latencies": {},
                     "metadata": self._get_metadata_locked(symbol, now),
                 }
 
@@ -121,6 +128,8 @@ class MarketDataAggregator:
                     "sources_reporting": list(sources_dict.keys()),
                     "sources_dropped_stale": list(sources_dict.keys()),
                     "age_seconds": age,
+                    "latency_ms": latest.latency_ms,
+                    "source_latencies": {latest.source: latest.latency_ms} if latest.latency_ms is not None else {},
                     "last_fresh_source": latest.source,
                     "metadata": self._get_metadata_locked(symbol, now),
                 }
@@ -143,6 +152,8 @@ class MarketDataAggregator:
                     "sources_reporting": [src],
                     "sources_dropped_stale": list(stale_sources.keys()),
                     "age_seconds": age,
+                    "latency_ms": t.latency_ms,
+                    "source_latencies": {src: t.latency_ms} if t.latency_ms is not None else {},
                     "median_price": t.price,
                     "max_deviation_pct": 0.0,
                     "metadata": self._get_metadata_locked(symbol, now),
@@ -162,6 +173,17 @@ class MarketDataAggregator:
             rep = min(fresh_sources.values(), key=lambda t: abs(t.price - median_price))
             age = round(now - rep.received_at, 2)
 
+            # Aggregate real-time latency across fresh reporting exchanges
+            fresh_lats = [t.latency_ms for t in fresh_sources.values() if t.latency_ms is not None]
+            med_latency = round(statistics.median(fresh_lats), 1) if fresh_lats else (rep.latency_ms or None)
+            source_lats = {src: t.latency_ms for src, t in fresh_sources.items() if t.latency_ms is not None}
+
+            # Pick 24h stats from any fresh ticker that reported non-null values
+            chg_24h = next((t.change_24h_pct for t in fresh_sources.values() if t.change_24h_pct is not None), rep.change_24h_pct)
+            vol_24h = next((t.volume_24h for t in fresh_sources.values() if t.volume_24h is not None), rep.volume_24h)
+            high_24h = next((t.high_24h for t in fresh_sources.values() if t.high_24h is not None), rep.high_24h)
+            low_24h = next((t.low_24h for t in fresh_sources.values() if t.low_24h is not None), rep.low_24h)
+
             is_verified = (max_dev <= self.deviation_threshold)
             status = "verified" if is_verified else "unverified"
 
@@ -179,14 +201,16 @@ class MarketDataAggregator:
                 "price": round(median_price, 4 if median_price < 10 else 2),
                 "bid": best_bid,
                 "ask": best_ask,
-                "change_24h_pct": rep.change_24h_pct,
-                "volume_24h": rep.volume_24h,
-                "high_24h": rep.high_24h,
-                "low_24h": rep.low_24h,
+                "change_24h_pct": chg_24h,
+                "volume_24h": vol_24h,
+                "high_24h": high_24h,
+                "low_24h": low_24h,
                 "source": "median(" + ",".join(sorted(fresh_sources.keys())) + ")",
                 "sources_reporting": sorted(list(fresh_sources.keys())),
                 "sources_dropped_stale": sorted(list(stale_sources.keys())),
                 "age_seconds": age,
+                "latency_ms": med_latency,
+                "source_latencies": source_lats,
                 "median_price": median_price,
                 "max_deviation_pct": round(max_dev * 100, 3),
                 "metadata": self._get_metadata_locked(symbol, now),
@@ -224,5 +248,7 @@ class MarketDataAggregator:
                     "last_heartbeat_age": round(heartbeat_age, 1) if heartbeat_age else None,
                     "consecutive_errors": ex.consecutive_errors,
                     "error": ex.error_message,
+                    "latency_ms": ex.last_latency_ms,
+                    "feed_type": getattr(ex, "feed_type", "rest"),
                 }
             return res

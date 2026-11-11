@@ -328,5 +328,71 @@ class CoinGeckoServiceTests(unittest.TestCase):
             self.assertEqual(cg.get_top_listings()['items'],[])
 
 
+class MarketDataLatencyTests(unittest.TestCase):
+    def test_latency_ms_tracking_and_aggregation(self):
+        agg = MarketDataAggregator(["BTCUSDT"])
+        now = time.time()
+        t1 = NormalisedTicker(
+            symbol="BTCUSDT",
+            base_asset="BTC",
+            quote_asset="USDT",
+            price=70000.0,
+            bid=69999.0,
+            ask=70001.0,
+            source="binance",
+            received_at=now,
+            latency_ms=22.5,
+            change_24h_pct=2.45,
+            volume_24h=15000.0,
+            high_24h=71000.0,
+            low_24h=69000.0,
+        )
+        t2 = NormalisedTicker(
+            symbol="BTCUSDT",
+            base_asset="BTC",
+            quote_asset="USDT",
+            price=70005.0,
+            bid=70004.0,
+            ask=70006.0,
+            source="coinbase",
+            received_at=now,
+            latency_ms=85.0,
+        )
+        agg.record_ticker(t1)
+        agg.record_ticker(t2)
+
+        ticker = agg.get_ticker("BTCUSDT")
+        self.assertEqual(ticker["status"], "verified")
+        self.assertIn("latency_ms", ticker)
+        self.assertAlmostEqual(ticker["latency_ms"], 53.75, delta=1.0)
+        self.assertEqual(ticker["source_latencies"]["binance"], 22.5)
+        self.assertEqual(ticker["source_latencies"]["coinbase"], 85.0)
+        self.assertEqual(ticker["change_24h_pct"], 2.45)
+        self.assertEqual(ticker["volume_24h"], 15000.0)
+
+    def test_connection_status_includes_latency_and_feed_type(self):
+        agg = MarketDataAggregator(["ETHUSDT"])
+        now = time.time()
+        t = NormalisedTicker(
+            symbol="ETHUSDT",
+            base_asset="ETH",
+            quote_asset="USDT",
+            price=2500.0,
+            bid=2499.0,
+            ask=2501.0,
+            source="binance",
+            received_at=now,
+            latency_ms=18.2,
+        )
+        t.feed_type = "websocket"
+        agg.record_ticker(t)
+
+        conn = agg.get_connection_status()
+        self.assertIn("binance", conn)
+        self.assertEqual(conn["binance"]["state"], "connected")
+        self.assertEqual(conn["binance"]["latency_ms"], 18.2)
+        self.assertEqual(conn["binance"]["feed_type"], "websocket")
+
+
 if __name__ == "__main__":
     unittest.main()

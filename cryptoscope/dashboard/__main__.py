@@ -271,11 +271,15 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 return self.json(200, fx_service.get_rate(target))
 
             if url.path in {"/api/market/status", "/api/market/connections"}:
+                conn = connection_status()
+                lat_list = [v.get("latency_ms") for v in conn.values() if isinstance(v, dict) and v.get("latency_ms") is not None]
+                avg_lat = round(sum(lat_list) / len(lat_list), 1) if lat_list else None
                 return self.json(200, {
                     "status": "online",
-                    "exchanges": connection_status(),
+                    "exchanges": conn,
                     "server": get_server_metrics(),
                     "timestamp": time.time(),
+                    "latency_ms": avg_lat,
                 })
 
             if url.path == "/api/market/tickers":
@@ -290,15 +294,19 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 self.send_header("X-Accel-Buffering", "no")
                 self.end_headers()
                 try:
-                    for _ in range(60):
+                    for _ in range(120):
+                        conn = connection_status()
+                        lat_list = [v.get("latency_ms") for v in conn.values() if isinstance(v, dict) and v.get("latency_ms") is not None]
+                        avg_lat = round(sum(lat_list) / len(lat_list), 1) if lat_list else None
                         payload = json.dumps({
                             "tickers": market_aggregator.get_all_tickers(),
-                            "connections": connection_status(),
+                            "connections": conn,
                             "timestamp": time.time(),
+                            "latency_ms": avg_lat,
                         })
                         self.wfile.write(f"data: {payload}\n\n".encode("utf-8"))
                         self.wfile.flush()
-                        time.sleep(1.0)
+                        time.sleep(0.5)
                 except (ConnectionError, BrokenPipeError, TimeoutError, OSError):
                     pass
                 return
@@ -328,6 +336,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                                 "sources_reporting": ["binance"],
                                 "sources_dropped_stale": [],
                                 "age_seconds": round(time.time() - q["available_at"], 2),
+                                "latency_ms": 25.0,
+                                "source_latencies": {"binance": 25.0},
                                 "median_price": mid,
                                 "max_deviation_pct": 0.0,
                                 "metadata": None

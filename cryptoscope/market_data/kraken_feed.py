@@ -20,12 +20,18 @@ class KrakenFeed:
         "BTCUSDT": "XBTUSDT",
         "ETHUSDT": "ETHUSDT",
         "SOLUSDT": "SOLUSDT",
+        "XRPUSDT": "XRPUSDT",
+        "DOGEUSDT": "XDGUSDT",
+        "ADAUSDT": "ADAUSDT",
     }
 
     REVERSE_MAP = {
         "XBTUSDT": "BTCUSDT",
         "ETHUSDT": "ETHUSDT",
         "SOLUSDT": "SOLUSDT",
+        "XRPUSDT": "XRPUSDT",
+        "XDGUSDT": "DOGEUSDT",
+        "ADAUSDT": "ADAUSDT",
     }
 
     def __init__(self, on_ticker: Callable[[NormalisedTicker], None], symbols: Optional[List[str]] = None):
@@ -64,11 +70,13 @@ class KrakenFeed:
     def fetch_tickers(self, pairs: List[str]) -> List[NormalisedTicker]:
         pair_str = ",".join(pairs)
         url = f"{self.REST_ENDPOINT}/Ticker?pair={pair_str}"
-        start_t = time.time()
+        t0 = time.perf_counter()
+        now_t = time.time()
         req = Request(url, headers={"User-Agent": "ZILLERS-Terminal/4.2"})
         try:
             with urlopen(req, timeout=4.0) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
+            latency_ms = round((time.perf_counter() - t0) * 1000.0, 1)
             if data.get("error"):
                 logger.warning("Kraken API error: %s", data["error"])
                 return []
@@ -114,8 +122,9 @@ class KrakenFeed:
                     volume_24h=vol_24h,
                     change_24h_pct=round(change_24h, 2),
                     source="kraken",
-                    exchange_timestamp=start_t,
+                    exchange_timestamp=now_t,
                     received_at=time.time(),
+                    latency_ms=latency_ms,
                 ))
             return tickers
         except (HTTPError, URLError, TimeoutError, ValueError, KeyError) as err:

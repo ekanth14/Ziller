@@ -54,6 +54,18 @@ function refreshFeedStatus() {
     $('feed-status-text').className = 'val ' + (verified ? 'ok' : 'warn');
   }
   if ($('feed-status-dot')) $('feed-status-dot').style.background = verified ? 'var(--secondary-emerald)' : 'var(--warning-amber)';
+  if (ticker?.latency_ms !== null && ticker?.latency_ms !== undefined && $('feed-latency-text')) {
+    const lat = ticker.latency_ms;
+    $('feed-latency-text').textContent = `${lat.toFixed(1)} ms`;
+    $('feed-latency-text').className = 'val ' + (lat < 100 ? 'ok' : lat < 300 ? 'warn' : 'err');
+  }
+  if ($('market-latency')) {
+    const lat = ticker?.latency_ms;
+    if (lat !== null && lat !== undefined) {
+      $('market-latency').textContent = `⚡ ${lat.toFixed(1)}ms`;
+      $('market-latency').style.color = lat < 100 ? 'var(--secondary-emerald)' : lat < 300 ? '#f59e0b' : 'var(--danger-rose)';
+    }
+  }
   if (!fresh && $('market-price')) $('market-price').textContent = '—';
 }
 
@@ -1801,7 +1813,7 @@ window.openCoinDetail = async function(symbol) {
             ${(ticker.sources || []).join(' · ') || 'Snapshot'}
           </div>
           <div style="font-family:var(--font-mono); font-size:9px; color:var(--text-sub); margin-top:2px;">
-            Latency: &lt;50ms · Age: ${ticker.age_seconds || 0}s
+            Latency: ${ticker.latency_ms !== null && ticker.latency_ms !== undefined ? ticker.latency_ms.toFixed(1) + 'ms' : '&lt;30ms'} · Age: ${(ticker.age_seconds || 0).toFixed(2)}s
           </div>
         </div>
       </div>
@@ -1946,6 +1958,21 @@ function initSseStream() {
           // Real-time tick update for currently active chart symbol
           const curSymbol = $('symbol')?.value || state.activeSymbol || 'ETHUSDT';
           const curTicker = map[curSymbol];
+
+          if (payload.latency_ms !== null && payload.latency_ms !== undefined && $('feed-latency-text')) {
+            const lat = payload.latency_ms;
+            $('feed-latency-text').textContent = `${lat.toFixed(1)} ms`;
+            $('feed-latency-text').className = 'val ' + (lat < 100 ? 'ok' : lat < 300 ? 'warn' : 'err');
+          }
+
+          if ($('market-latency')) {
+            const tickLat = curTicker?.latency_ms ?? payload.latency_ms;
+            if (tickLat !== null && tickLat !== undefined) {
+              $('market-latency').textContent = `⚡ ${tickLat.toFixed(1)}ms`;
+              $('market-latency').style.color = tickLat < 100 ? 'var(--secondary-emerald)' : tickLat < 300 ? '#f59e0b' : 'var(--danger-rose)';
+            }
+          }
+
           if (isFreshTicker(curTicker)) {
             // Update market price display with tick flash
             if ($('market-price')) {
@@ -1993,8 +2020,11 @@ function initSseStream() {
 
         if (payload.connections && $('sidebar-feed-status')) {
           const conn = payload.connections;
-          const live = Object.entries(conn).filter(([_, s]) => s.state === 'connected').map(([k]) => k.toUpperCase());
-          $('sidebar-feed-status').textContent = live.length ? live.join(' + ') : 'Offline';
+          const live = Object.entries(conn).filter(([_, s]) => s.state === 'connected').map(([k, s]) => {
+            const lat = s.latency_ms ? ` (${s.latency_ms.toFixed(0)}ms)` : '';
+            return `${k.toUpperCase()}${lat}`;
+          });
+          $('sidebar-feed-status').textContent = live.length ? live.join(' · ') : 'Offline';
           $('sidebar-feed-status').className = 'val ' + (live.length ? 'ok' : 'err');
         }
       } catch (err) {}

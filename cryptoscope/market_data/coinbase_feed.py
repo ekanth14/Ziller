@@ -20,6 +20,10 @@ class CoinbaseFeed:
         "BTCUSDT": "BTC-USDT",
         "ETHUSDT": "ETH-USDT",
         "SOLUSDT": "SOL-USDT",
+        "XRPUSDT": "XRP-USDT",
+        "DOGEUSDT": "DOGE-USDT",
+        "ADAUSDT": "ADA-USDT",
+        "AVAXUSDT": "AVAX-USDT",
     }
 
     def __init__(self, on_ticker: Callable[[NormalisedTicker], None], symbols: Optional[List[str]] = None):
@@ -44,17 +48,19 @@ class CoinbaseFeed:
                 ticker = self.fetch_ticker(symbol)
                 if ticker:
                     self.on_ticker(ticker)
-                time.sleep(0.3)
-            time.sleep(1.5)
+                time.sleep(0.1)
+            time.sleep(1.0)
 
     def fetch_ticker(self, symbol: str) -> Optional[NormalisedTicker]:
         cb_symbol = self.SYMBOL_MAP.get(symbol, symbol.replace("USDT", "-USDT"))
         url = f"{self.REST_ENDPOINT}/products/{cb_symbol}/ticker"
-        start_t = time.time()
+        t0 = time.perf_counter()
+        now_t = time.time()
         req = Request(url, headers={"User-Agent": "ZILLERS-Terminal/4.2"})
         try:
             with urlopen(req, timeout=4.0) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
+            latency_ms = round((time.perf_counter() - t0) * 1000.0, 1)
             price = float(data["price"])
             bid = float(data.get("bid", price))
             ask = float(data.get("ask", price))
@@ -68,8 +74,9 @@ class CoinbaseFeed:
                 ask=ask,
                 volume_24h=vol,
                 source="coinbase",
-                exchange_timestamp=start_t,
+                exchange_timestamp=now_t,
                 received_at=time.time(),
+                latency_ms=latency_ms,
             )
         except (URLError, TimeoutError, ValueError, KeyError) as err:
             logger.debug("Coinbase fetch failed for %s: %s", symbol, err)
