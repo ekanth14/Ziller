@@ -2677,11 +2677,30 @@ async function runBerkshireAudit(symbol = null) {
     if ($('berk-lilu-share')) $('berk-lilu-share').textContent = li.top_holders_share_pct != null ? `${li.top_holders_share_pct.toFixed(1)}%` : '—';
     if ($('berk-lilu-thesis')) $('berk-lilu-thesis').textContent = li.thesis || '—';
 
-    notice(`AI Berkshire audit complete for ${sym}!`);
+    // Also deliberate with Hedge Fund Committee
+    try {
+      const comm = await postJson('/api/agents/committee', { symbol: sym });
+      if (comm) {
+        if ($('committee-action-badge')) {
+          $('committee-action-badge').textContent = `ACTION: ${comm.action || 'HOLD'}`;
+          $('committee-action-badge').className = comm.action === 'BUY' ? 'sidebar-badge green' : comm.action === 'SELL' ? 'sidebar-badge red' : 'sidebar-badge';
+        }
+        if ($('committee-sizing-display')) {
+          $('committee-sizing-display').textContent = `${((comm.suggested_sizing_pct || 0) * 100).toFixed(1)}% Capital Allocation`;
+        }
+        if ($('committee-memo-content')) {
+          $('committee-memo-content').textContent = comm.synthesis_memo || 'Deliberation completed.';
+        }
+      }
+    } catch (e) {
+      console.warn('Committee deliberation request error:', e);
+    }
+
+    notice(`AI Berkshire & Multi-Agent audit complete for ${sym}!`);
   } catch (err) {
     alert(`Berkshire audit error: ${err.message}`);
   } finally {
-    if (btn) btn.textContent = '▶ RUN COMMITTEE AUDIT';
+    if (btn) btn.textContent = '▶ RUN COMMITTEE DELIBERATION';
   }
 }
 

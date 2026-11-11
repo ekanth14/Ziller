@@ -1157,6 +1157,156 @@
       </div>
     </section>
 
+    <!-- Bloomberg Institutional Workstation & 10-Level Quant Sheet -->
+    <section class="panel" id="bloomberg-terminal" style="margin-top: 16px;">
+      <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="panel-title">
+          <span class="icon">📈</span>
+          <span>Bloomberg Quant Workstation (10 Levels · 50 Formulas)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <select id="bb-symbol-select" style="background: var(--surface-low); color: #fff; border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-family: var(--font-mono); font-size: 11px;">
+            <option value="BTCUSDT" selected>BTCUSDT</option>
+            <option value="ETHUSDT">ETHUSDT</option>
+            <option value="SOLUSDT">SOLUSDT</option>
+          </select>
+          <button type="button" id="btn-refresh-quant" class="button" style="background: var(--surface-mid); color: #fff; border: 1px solid var(--border); padding: 4px 10px; font-size: 10px; font-family: var(--font-mono);">
+            ↻ REFRESH
+          </button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <!-- Top Metrics Strip -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 16px;">
+          <div style="background: var(--surface-low); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px;">
+            <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-sub); text-transform: uppercase;">MICROPRICE (P_MICRO)</div>
+            <div id="bb-microprice" style="font-size: 15px; font-weight: 700; color: #fff; margin: 4px 0;">—</div>
+            <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-muted);">Formula 9.2 Volume-Weighted</div>
+          </div>
+          <div style="background: var(--surface-low); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px;">
+            <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-sub); text-transform: uppercase;">BOOK IMBALANCE (I)</div>
+            <div id="bb-imbalance" style="font-size: 15px; font-weight: 700; color: var(--primary-cyan); margin: 4px 0;">—</div>
+            <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-muted);">Formula 9.2 (Qb - Qa)/(Qb + Qa)</div>
+          </div>
+          <div style="background: var(--surface-low); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px;">
+            <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-sub); text-transform: uppercase;">SQUARE-ROOT IMPACT</div>
+            <div id="bb-impact" style="font-size: 15px; font-weight: 700; color: var(--warning-amber); margin: 4px 0;">—</div>
+            <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-muted);">Formula 9.3 c * σ * sqrt(Q/V)</div>
+          </div>
+          <div style="background: var(--surface-low); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px;">
+            <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-sub); text-transform: uppercase;">VALUE AT RISK (VaR 95%)</div>
+            <div id="bb-var" style="font-size: 15px; font-weight: 700; color: var(--danger-rose); margin: 4px 0;">—</div>
+            <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-muted);">Formula 8.5 1.645 * σ * V</div>
+          </div>
+        </div>
+
+        <!-- 10-Level 50-Formula Grid Summary -->
+        <div class="table-scroll">
+          <table style="width: 100%; font-family: var(--font-mono); font-size: 11px;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border);">
+                <th>Level</th>
+                <th>Core Formula Group</th>
+                <th>Status / Key Value</th>
+                <th>Mathematical Rule</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>L1 Probability</strong></td><td>Bayes, Linearity of Exp, Variance</td><td id="bb-val-log-return">—</td><td>P(A|B) = P(B|A)P(A)/P(B)</td></tr>
+              <tr><td><strong>L2 Statistics</strong></td><td>Standard Error, Sharpe t-stat, OLS</td><td id="bb-val-tstat">—</td><td>t = mean / (σ / √n)</td></tr>
+              <tr><td><strong>L3 Linear Algebra</strong></td><td>Covariance, PCA, Ledoit-Wolf</td><td id="bb-val-ann-vol">—</td><td>σ_p² = wᵀ Σ w</td></tr>
+              <tr><td><strong>L4 Optimization</strong></td><td>Taylor PnL, Markowitz Weights</td><td id="bb-val-zscore">—</td><td>w* = (1/γ) Σ⁻¹ μ</td></tr>
+              <tr><td><strong>L5 Time Series</strong></td><td>Log Returns, ADF, GARCH(1,1)</td><td id="bb-val-regime">NORMAL</td><td>σ_t² = ω + α ε_{t-1}² + β σ_{t-1}²</td></tr>
+              <tr><td><strong>L6 Stochastic Calculus</strong></td><td>Random Walk, GBM, Itô's Lemma</td><td>Active</td><td>S_t = S_0 exp((μ - σ²/2)t + σ W_t)</td></tr>
+              <tr><td><strong>L7 Derivatives</strong></td><td>Black-Scholes, Greeks (Δ, Γ, ν)</td><td>Active</td><td>C = S N(d1) - K e^{-rT} N(d2)</td></tr>
+              <tr><td><strong>L8 Portfolio &amp; Risk</strong></td><td>CAPM, Sharpe, Kelly Criterion</td><td id="bb-val-size">—</td><td>f* = (b p - q) / b</td></tr>
+              <tr><td><strong>L9 Microstructure</strong></td><td>Avellaneda-Stoikov, Spreads, CVD</td><td id="bb-val-liq">—</td><td>r = s - q γ σ² (T-t)</td></tr>
+              <tr><td><strong>L10 Research &amp; ML</strong></td><td>Deflated Sharpe (DSR), HMM Regimes</td><td id="bb-val-kill" style="color: var(--secondary-emerald);">DISENGAGED</td><td>DSR = P(SR* > 0 | N trials)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Multi-Agent Hedge Fund Deliberation Committee -->
+    <section class="panel" id="berkshire-committee" style="margin-top: 16px;">
+      <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="panel-title">
+          <span class="icon">🏛️</span>
+          <span>Institutional Multi-Agent Hedge Fund Committee</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <select id="berk-symbol-select" style="background: var(--surface-low); color: #fff; border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-family: var(--font-mono); font-size: 11px;">
+            <option value="BTCUSDT" selected>BTCUSDT</option>
+            <option value="ETHUSDT">ETHUSDT</option>
+            <option value="SOLUSDT">SOLUSDT</option>
+          </select>
+          <button type="button" id="btn-run-berkshire" class="button" style="background: var(--primary-cyan); color: #000; font-weight: 700; padding: 5px 12px; font-size: 10px; font-family: var(--font-mono);">
+            ▶ RUN COMMITTEE DELIBERATION
+          </button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <!-- Committee Consensus Banner -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface-low); border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; margin-bottom: 16px;">
+          <div>
+            <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-sub); text-transform: uppercase;">COMMITTEE VERDICT &amp; CONVICTION</div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+              <span id="committee-action-badge" class="sidebar-badge green" style="font-size: 13px; font-weight: 700; padding: 4px 10px;">ACTION: BUY</span>
+              <span id="berk-score" style="font-size: 18px; font-weight: 800; color: #fff;">88 / 100</span>
+              <span id="berk-rigor-pill" class="sidebar-badge green">DECIMAL VERIFIED</span>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-sub); text-transform: uppercase;">SUGGESTED SIZING (HALF-KELLY)</div>
+            <div id="committee-sizing-display" style="font-size: 16px; font-weight: 700; color: var(--secondary-emerald); margin-top: 4px;">8.5% Capital Allocation</div>
+          </div>
+        </div>
+
+        <!-- 4 Agent Persona Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 16px;">
+          <!-- Simons Card -->
+          <div style="background: var(--surface-mid); border: 1px solid var(--border); border-radius: 6px; padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--primary-cyan);">JIM SIMONS</span>
+              <span class="sidebar-badge cyan">QUANT ARB</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">Statistical Arbitrage, factor z-scores, GARCH volatility clustering, and stationarity filter.</div>
+          </div>
+          <!-- Wood Card -->
+          <div style="background: var(--surface-mid); border: 1px solid var(--border); border-radius: 6px; padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--secondary-emerald);">CATHIE WOOD</span>
+              <span class="sidebar-badge green">GROWTH</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">Momentum acceleration, breakout strength, volume surges, and parabolic catalysts.</div>
+          </div>
+          <!-- Buffett & Li Lu Card -->
+          <div style="background: var(--surface-mid); border: 1px solid var(--border); border-radius: 6px; padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--warning-amber);">WARREN BUFFETT &amp; LI LU</span>
+              <span id="berk-duan-grade" class="sidebar-badge green">WIDE MOAT</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">Duan moat pricing power, fee generation, margin of safety, and Li Lu governance integrity.</div>
+          </div>
+          <!-- Risk Officer Card -->
+          <div style="background: var(--surface-mid); border: 1px solid var(--border); border-radius: 6px; padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--danger-rose);">RISK OFFICER</span>
+              <span class="sidebar-badge green">VETO: CLEAR</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">Deterministic VaR 95% ceiling, max drawdown guard, liquidation buffer, and hard stop verification.</div>
+          </div>
+        </div>
+
+        <!-- Investment Committee Memo -->
+        <div style="background: var(--surface-lowest); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">
+          <div style="font-weight: 700; color: #fff; margin-bottom: 6px; text-transform: uppercase;">INVESTMENT SYNTHESIS MEMO:</div>
+          <div id="committee-memo-content" style="white-space: pre-wrap; line-height: 1.5;">Committee standing by. Select an asset and click 'RUN COMMITTEE DELIBERATION' to generate multi-persona consensus.</div>
+        </div>
+      </div>
+    </section>
+
     <!-- Institutional Disclaimer Footer (Regulatory & Risk Notice) -->
     <footer style="margin-top: 32px; padding: 16px 0; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 9px; color: var(--text-sub); text-align: center; line-height: 1.6;">
       <div style="max-width: 900px; margin: 0 auto;">
