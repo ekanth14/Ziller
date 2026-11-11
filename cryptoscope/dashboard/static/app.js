@@ -2015,12 +2015,17 @@ function initSseStream() {
               $('market-change').className = `kpi-tag ${chg >= 0 ? 'green' : 'rose'}`;
             }
 
-            // Refresh OHLC series once the current candle period has closed
+            // Refresh or update OHLC series in real-time
             const candles = state.candlesBySymbol[curSymbol];
             const lastCandle = candles?.[candles.length - 1];
             const activeIntv = state.activeInterval || '1m';
             const intSec = activeIntv === '1s' ? 1 : activeIntv === '30s' ? 30 : activeIntv === '1m' ? 60 : activeIntv === '2m' ? 120 : 300;
-            if (lastCandle && Date.now() / 1000 - lastCandle.close_time > intSec && !state.candleRefreshPending) {
+            if (lastCandle && Date.now() / 1000 <= lastCandle.close_time) {
+              lastCandle.close = curTicker.price;
+              if (curTicker.price > lastCandle.high) lastCandle.high = curTicker.price;
+              if (curTicker.price < lastCandle.low) lastCandle.low = curTicker.price;
+              renderChart();
+            } else if (lastCandle && Date.now() / 1000 - lastCandle.close_time > intSec && !state.candleRefreshPending) {
               state.candleRefreshPending = true;
               loadCandlesForSymbol(curSymbol, true).finally(() => { state.candleRefreshPending = false; });
             }
@@ -2631,42 +2636,53 @@ if ($('live-mode-toggle-btn')) {
 async function fetchQuantMetrics(symbol = null) {
   const sym = symbol || ($('bb-symbol-select')?.value) || 'BTCUSDT';
   try {
-    const res = await request(`/api/quant/metrics?symbol=${sym}`);
-    if (!res) return;
+    // 1. Fetch 10 Levels & 50 Formulas Telemetry
+    const qLevels = await request(`/api/quant/levels?symbol=${encodeURIComponent(sym)}`);
+    if (qLevels) {
+      const l1 = qLevels.level1_prob || {};
+      const l2 = qLevels.level2_stats || {};
+      const l3 = qLevels.level3_linalg || {};
+      const l4 = qLevels.level4_opt || {};
+      const l5 = qLevels.level5_timeseries || {};
+      const l6 = qLevels.level6_stoch || {};
+      const l7 = qLevels.level7_derivatives || {};
+      const l8 = qLevels.level8_risk || {};
+      const l9 = qLevels.level9_microstructure || {};
+      const l10 = qLevels.level10_research || {};
 
-    // Microstructure cards
-    const s6 = res.stage6_execute || {};
-    const s2 = res.stage2_signal || {};
-    const s7 = res.stage7_risk || {};
-    const s1 = res.stage1_data || {};
-    const s3 = res.stage3_filter || {};
-    const s5 = res.stage5_size || {};
+      // Top Strip Metrics
+      if ($('bb-microprice')) $('bb-microprice').textContent = l9.microprice != null ? '$' + Number(l9.microprice).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '—';
+      if ($('bb-imbalance')) $('bb-imbalance').textContent = l9.spread_bps != null ? `${Number(l9.spread_bps).toFixed(1)} bps` : '—';
+      if ($('bb-impact')) $('bb-impact').textContent = l9.square_root_impact != null ? (l9.square_root_impact * 100).toFixed(3) + '%' : '—';
+      if ($('bb-var')) $('bb-var').textContent = l8.parametric_var_95 != null ? '$' + Number(l8.parametric_var_95).toFixed(0) : '—';
 
-    if ($('bb-microprice')) $('bb-microprice').textContent = s6.microprice != null ? '$' + Number(s6.microprice).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '—';
-    if ($('bb-imbalance')) {
-      const imb = s2.order_book_imbalance;
-      $('bb-imbalance').textContent = imb != null ? (imb >= 0 ? '+' : '') + (imb * 100).toFixed(1) + '%' : '—';
+      // 10-Level 50-Formula Table
+      if ($('bb-val-l1-prob')) $('bb-val-l1-prob').textContent = `Bayes: ${(l1.bayes_update * 100).toFixed(1)}% · E[X]: ${(l1.linear_expectation * 100).toFixed(2)}% · Var: ${Number(l1.sample_variance).toFixed(1)}`;
+      if ($('bb-val-l2-stats')) $('bb-val-l2-stats').textContent = `t-stat: ${Number(l2.sharpe_t_stat).toFixed(2)} · β: ${Number(l2.ols_slope).toFixed(2)} · Corr: ${Number(l2.correlation).toFixed(2)} · SE: ${(l2.standard_error * 100).toFixed(2)}%`;
+      if ($('bb-val-l3-linalg')) $('bb-val-l3-linalg').textContent = `Port σ²: ${(l3.portfolio_variance * 100).toFixed(2)}% · Cond #: ${Number(l3.condition_number).toFixed(2)} · Shrink: ${(l3.ledoit_wolf_shrinkage_intensity * 100).toFixed(1)}%`;
+      if ($('bb-val-l4-opt')) {
+        const mw = Array.isArray(l4.markowitz_weight) ? l4.markowitz_weight.map(w => Number(w).toFixed(2)).join(', ') : '—';
+        $('bb-val-l4-opt').textContent = `w*: [${mw}] · Drag: ${(l4.volatility_drag * 100).toFixed(2)}%`;
+      }
+      if ($('bb-val-l5-timeseries')) $('bb-val-l5-timeseries').textContent = `LogRet: ${(l5.log_return * 100).toFixed(2)}% · AnnVol: ${(l5.annualized_vol * 100).toFixed(1)}% · ADF: ${Number(l5.adf_stat).toFixed(2)} · GARCH: ${(l5.garch_vol * 100).toFixed(1)}%`;
+      if ($('bb-val-l6-stoch')) $('bb-val-l6-stoch').textContent = `Itô Drift: ${(l6.ito_log_drift * 100).toFixed(2)}% · Ruin Prob: ${(l6.gamblers_ruin * 100).toFixed(2)}%`;
+      if ($('bb-val-l7-derivatives')) $('bb-val-l7-derivatives').textContent = `BS Call: $${Number(l7.black_scholes_call).toFixed(1)} · Δ: ${Number(l7.delta).toFixed(2)} · Γ: ${Number(l7.gamma).toFixed(4)} · ν: ${Number(l7.vega).toFixed(1)}`;
+      if ($('bb-val-l8-risk')) $('bb-val-l8-risk').textContent = `SR: ${Number(l8.sharpe_ratio).toFixed(2)} · Kelly: ${(l8.discrete_kelly * 100).toFixed(1)}% · VaR95: $${Number(l8.parametric_var_95).toFixed(0)} · MDD: ${(l8.max_drawdown * 100).toFixed(1)}%`;
+      if ($('bb-val-l9-microstructure')) $('bb-val-l9-microstructure').textContent = `Mid: $${Number(l9.mid).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} · Spread: ${Number(l9.spread_bps).toFixed(1)} bps · Impact: ${(l9.square_root_impact * 100).toFixed(3)}%`;
+      if ($('bb-val-l10-research')) {
+        const dsrPct = (l10.deflated_sharpe_ratio * 100).toFixed(1);
+        const lastRegime = l10.hmm_regimes?.predicted_regimes ? l10.hmm_regimes.predicted_regimes[l10.hmm_regimes.predicted_regimes.length - 1] : 0;
+        $('bb-val-l10-research').textContent = `DSR: ${dsrPct}% · HMM: State ${lastRegime} (${lastRegime === 0 ? 'Low-Vol Trend' : 'High-Vol Chop'})`;
+      }
     }
-    if ($('bb-impact')) $('bb-impact').textContent = s6.estimated_impact != null ? (s6.estimated_impact * 100).toFixed(3) + '%' : '—';
-    if ($('bb-var')) $('bb-var').textContent = s7.var_95 != null ? '$' + Number(s7.var_95).toFixed(2) : '—';
 
-    // Telemetry Table
-    if ($('bb-val-log-return')) $('bb-val-log-return').textContent = s1.log_return != null ? (s1.log_return * 100).toFixed(4) + '%' : '—';
-    if ($('bb-val-ann-vol')) $('bb-val-ann-vol').textContent = s1.annualized_vol != null ? (s1.annualized_vol * 100).toFixed(2) + '%' : '—';
-    if ($('bb-val-ewma-vol')) $('bb-val-ewma-vol').textContent = s1.ewma_vol != null ? (s1.ewma_vol * 100).toFixed(2) + '%' : '—';
-    if ($('bb-val-atr')) $('bb-val-atr').textContent = s1.atr != null ? '$' + Number(s1.atr).toFixed(2) : '—';
-    if ($('bb-val-zscore')) $('bb-val-zscore').textContent = s2.z_score != null ? Number(s2.z_score).toFixed(2) + ' σ' : '—';
-    if ($('bb-val-rsi')) $('bb-val-rsi').textContent = s2.rsi_14 != null ? Number(s2.rsi_14).toFixed(1) : '—';
-    if ($('bb-val-funding')) $('bb-val-funding').textContent = s2.funding_apr != null ? (s2.funding_apr * 100).toFixed(2) + '%' : '—';
-    if ($('bb-val-tstat')) $('bb-val-tstat').textContent = s3.t_stat != null ? Number(s3.t_stat).toFixed(2) : '—';
-    if ($('bb-val-hurst')) $('bb-val-hurst').textContent = s3.hurst_exponent != null ? Number(s3.hurst_exponent).toFixed(3) : '—';
-    if ($('bb-val-regime')) $('bb-val-regime').textContent = s3.is_high_vol ? 'HIGH-VOL' : 'NORMAL';
-    if ($('bb-val-size')) $('bb-val-size').textContent = s5.suggested_size != null ? Number(s5.suggested_size).toFixed(4) + ' units' : '—';
-    if ($('bb-val-liq')) $('bb-val-liq').textContent = s5.liquidation_price != null ? '$' + Number(s5.liquidation_price).toFixed(2) : '—';
-    if ($('bb-val-kill')) {
-      const trip = s7.kill_switch_triggered;
-      $('bb-val-kill').textContent = trip ? 'HALT ENGAGED' : 'DISENGAGED';
-      $('bb-val-kill').style.color = trip ? '#ef4444' : 'var(--secondary-emerald)';
+    // 2. Backward-compatible stage metrics fallback
+    const res = await request(`/api/quant/metrics?symbol=${encodeURIComponent(sym)}`);
+    if (res && res.stage2_signal) {
+      const imb = res.stage2_signal.order_book_imbalance;
+      if ($('bb-imbalance') && imb != null) {
+        $('bb-imbalance').textContent = (imb >= 0 ? '+' : '') + (imb * 100).toFixed(1) + '%';
+      }
     }
   } catch (err) {
     console.warn('Failed to refresh quant metrics:', err);
@@ -2676,54 +2692,23 @@ async function fetchQuantMetrics(symbol = null) {
 async function runBerkshireAudit(symbol = null) {
   const sym = symbol || ($('berk-symbol-select')?.value) || 'BTCUSDT';
   const btn = $('btn-run-berkshire');
-  if (btn) btn.textContent = '⏳ AUDITING...';
+  if (btn) btn.textContent = '⏳ DELIBERATING (COMMITTEE & THX-02)...';
   try {
     const res = await postJson('/api/berkshire/audit', { symbol: sym });
-    if (!res) return;
-
-    if ($('berk-score')) $('berk-score').textContent = `${res.composite_conviction_score || 0} / 100`;
-    if ($('berk-rigor-pill')) {
-      $('berk-rigor-pill').textContent = res.rigor_passed ? 'VERIFIED (DECIMAL)' : 'FAILED';
-      $('berk-rigor-pill').className = res.rigor_passed ? 'sidebar-badge green' : 'sidebar-badge red';
+    if (res) {
+      if ($('berk-score')) $('berk-score').textContent = `${res.composite_conviction_score || 0} / 100`;
+      if ($('berk-rigor-pill')) {
+        $('berk-rigor-pill').textContent = res.rigor_passed ? 'VERIFIED (DECIMAL)' : 'FAILED';
+        $('berk-rigor-pill').className = res.rigor_passed ? 'sidebar-badge green' : 'sidebar-badge red';
+      }
+      const dm = res.duan_moat || {};
+      if ($('comm-buffett-badge')) {
+        $('comm-buffett-badge').textContent = dm.grade ? `${dm.grade} MOAT` : 'WIDE MOAT';
+        $('comm-buffett-badge').className = dm.grade === 'WIDE' ? 'sidebar-badge green' : dm.grade === 'NARROW' ? 'sidebar-badge cyan' : 'sidebar-badge red';
+      }
     }
 
-    // Duan Moat
-    const dm = res.duan_moat || {};
-    if ($('berk-duan-grade')) {
-      $('berk-duan-grade').textContent = dm.grade || 'NONE';
-      $('berk-duan-grade').className = dm.grade === 'WIDE' ? 'sidebar-badge green' : dm.grade === 'NARROW' ? 'sidebar-badge' : 'sidebar-badge red';
-    }
-    if ($('berk-duan-ps')) $('berk-duan-ps').textContent = dm.price_to_fee_ratio != null ? `${dm.price_to_fee_ratio}x` : '—';
-    if ($('berk-duan-thesis')) $('berk-duan-thesis').textContent = dm.thesis || '—';
-
-    // Buffett
-    const bv = res.buffett_valuation || {};
-    if ($('berk-buffett-verdict')) {
-      $('berk-buffett-verdict').textContent = bv.verdict || 'FAIR';
-      $('berk-buffett-verdict').className = bv.verdict === 'ATTRACTIVE' ? 'sidebar-badge green' : bv.verdict === 'FAIR' ? 'sidebar-badge' : 'sidebar-badge red';
-    }
-    if ($('berk-buffett-mos')) $('berk-buffett-mos').textContent = bv.margin_of_safety_pct != null ? `${bv.margin_of_safety_pct}%` : '—';
-    if ($('berk-buffett-thesis')) $('berk-buffett-thesis').textContent = bv.thesis || '—';
-
-    // Munger
-    const mi = res.munger_inversion || {};
-    if ($('berk-munger-verdict')) {
-      $('berk-munger-verdict').textContent = mi.inversion_verdict || 'ACCEPTABLE';
-      $('berk-munger-verdict').className = mi.inversion_verdict === 'ACCEPTABLE' ? 'sidebar-badge green' : 'sidebar-badge red';
-    }
-    if ($('berk-munger-score')) $('berk-munger-score').textContent = mi.score != null ? `${mi.score}/100` : '—';
-    if ($('berk-munger-thesis')) $('berk-munger-thesis').textContent = (mi.failure_modes || []).join(' ') || 'No critical failure modes.';
-
-    // Li Lu
-    const li = res.lilu_integrity || {};
-    if ($('berk-lilu-verdict')) {
-      $('berk-lilu-verdict').textContent = li.governance_status || 'MODERATE';
-      $('berk-lilu-verdict').className = li.governance_status === 'DECENTRALIZED' ? 'sidebar-badge green' : 'sidebar-badge red';
-    }
-    if ($('berk-lilu-share')) $('berk-lilu-share').textContent = li.top_holders_share_pct != null ? `${li.top_holders_share_pct.toFixed(1)}%` : '—';
-    if ($('berk-lilu-thesis')) $('berk-lilu-thesis').textContent = li.thesis || '—';
-
-    // Also deliberate with Hedge Fund Committee
+    // Deliberate with Multi-Agent Hedge Fund Committee & THX-02 Thinking Engine
     try {
       const comm = await postJson('/api/agents/committee', { symbol: sym });
       if (comm) {
@@ -2737,12 +2722,60 @@ async function runBerkshireAudit(symbol = null) {
         if ($('committee-memo-content')) {
           $('committee-memo-content').textContent = comm.synthesis_memo || 'Deliberation completed.';
         }
+
+        // Persona Vote Cards
+        if (Array.isArray(comm.persona_votes)) {
+          for (const v of comm.persona_votes) {
+            const actCls = v.action === 'BUY' ? 'sidebar-badge green' : v.action === 'SELL' ? 'sidebar-badge red' : 'sidebar-badge cyan';
+            if (v.persona === 'Jim Simons') {
+              if ($('comm-simons-badge')) { $('comm-simons-badge').textContent = v.action; $('comm-simons-badge').className = actCls; }
+              if ($('comm-simons-conf')) $('comm-simons-conf').textContent = `Confidence: ${(v.confidence * 100).toFixed(0)}%`;
+              if ($('comm-simons-thesis')) $('comm-simons-thesis').textContent = v.thesis;
+            } else if (v.persona === 'Cathie Wood') {
+              if ($('comm-wood-badge')) { $('comm-wood-badge').textContent = v.action; $('comm-wood-badge').className = actCls; }
+              if ($('comm-wood-conf')) $('comm-wood-conf').textContent = `Confidence: ${(v.confidence * 100).toFixed(0)}%`;
+              if ($('comm-wood-thesis')) $('comm-wood-thesis').textContent = v.thesis;
+            } else if (v.persona === 'Warren Buffett & Li Lu') {
+              if ($('comm-buffett-badge')) { $('comm-buffett-badge').textContent = v.action; $('comm-buffett-badge').className = actCls; }
+              if ($('comm-buffett-conf')) $('comm-buffett-conf').textContent = `Confidence: ${(v.confidence * 100).toFixed(0)}%`;
+              if ($('comm-buffett-thesis')) $('comm-buffett-thesis').textContent = v.thesis;
+            } else if (v.persona === 'Risk Officer') {
+              const riskCls = comm.risk_veto ? 'sidebar-badge red' : 'sidebar-badge green';
+              if ($('comm-risk-badge')) { $('comm-risk-badge').textContent = comm.risk_veto ? 'VETO: ACTIVE' : 'VETO: CLEAR'; $('comm-risk-badge').className = riskCls; }
+              if ($('comm-risk-conf')) $('comm-risk-conf').textContent = `Confidence: ${(v.confidence * 100).toFixed(0)}%`;
+              if ($('comm-risk-thesis')) $('comm-risk-thesis').textContent = v.thesis;
+            }
+          }
+        }
+
+        // THX-02 Thinking Layer
+        if (comm.thx02) {
+          const t = comm.thx02;
+          const regColor = t.regime.includes('BULL') ? 'green' : t.regime.includes('BEAR') ? 'red' : 'cyan';
+          if ($('comm-thx02-regime')) {
+            $('comm-thx02-regime').textContent = t.regime;
+            $('comm-thx02-regime').className = `sidebar-badge ${regColor}`;
+          }
+          if ($('comm-thx02-action')) {
+            $('comm-thx02-action').textContent = `Action: ${t.action} (${t.risk_cleared ? 'Risk OK' : 'Risk Block'})`;
+          }
+          if ($('comm-thx02-conf')) {
+            $('comm-thx02-conf').textContent = `Conviction: ${(t.conviction * 100).toFixed(1)}%`;
+          }
+          if ($('comm-thx02-thesis')) {
+            $('comm-thx02-thesis').textContent = `Sizing: ${(t.suggested_sizing_pct * 100).toFixed(1)}% · Leverage: ${t.suggested_leverage.toFixed(1)}x`;
+          }
+          if (t.thought && $('comm-thx02-thought-box') && $('comm-thx02-thought-content')) {
+            $('comm-thx02-thought-box').style.display = 'block';
+            $('comm-thx02-thought-content').textContent = t.thought;
+          }
+        }
       }
     } catch (e) {
       console.warn('Committee deliberation request error:', e);
     }
 
-    notice(`AI Berkshire & Multi-Agent audit complete for ${sym}!`);
+    notice(`Institutional Committee & THX-02 deliberation complete for ${sym}!`);
   } catch (err) {
     alert(`Berkshire audit error: ${err.message}`);
   } finally {

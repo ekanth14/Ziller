@@ -1063,6 +1063,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     return self.json(429, {"error": f"Rate limit exceeded. Retry in {retry} seconds."})
                 symbol = str(body.get("symbol", "BTCUSDT")).strip().upper()
                 from core.agents.hedge_fund_committee import HedgeFundCommittee
+                from core.agents.thx02_decision_engine import THX02DecisionEngine
+                from core.quant.factors.alpha158 import Alpha158FactorEngine
                 from cryptoscope.market_data.candle_store import CandleStore
                 cs = CandleStore()
                 candles = cs.get_fresh_candles(symbol, "15m", limit=60)
@@ -1070,20 +1072,29 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 price = float(ticker.get("price", 60000.0) or 60000.0)
 
                 closes = [float(c["close"]) if isinstance(c, dict) else float(c[3]) for c in candles] if candles else [price] * 20
-                committee = HedgeFundCommittee()
+                alpha_engine = Alpha158FactorEngine()
+                factors = alpha_engine.compute_latest_features(candles) if candles else {}
+
+                thx_engine = THX02DecisionEngine()
+                committee = HedgeFundCommittee(decision_engine=thx_engine)
                 market_payload = {
                     "symbol": symbol,
                     "price": price,
                     "closes": closes,
+                    "factors": factors,
+                    "order_flow": {
+                        "cvd": float(ticker.get("cvd", 0.0) or 0.0),
+                        "imbalance": float(ticker.get("order_book_imbalance", 0.0) or 0.0),
+                    },
                     "market_data": {
                         "price": price,
                         "volume_24h": float(ticker.get("volume_24h", 35000000000.0) or 35000000000.0),
-                        "change_24h": float(ticker.get("change_24h", 1.5) or 1.5),
+                        "change_24h": float(ticker.get("change_24h_pct", ticker.get("change_24h", 1.5)) or 1.5),
                     },
                     "risk_metrics": {
-                        "var_95": 0.02,
-                        "current_drawdown": 0.04,
-                        "liquidation_distance": 0.35,
+                        "var_95_pct": 0.02,
+                        "current_drawdown_pct": 0.04,
+                        "liquidation_distance_pct": 0.35,
                         "kelly_fraction": 0.12,
                     }
                 }
@@ -1106,6 +1117,16 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                         }
                         for v in decision.persona_votes
                     ],
+                    "thx02": {
+                        "action": decision.thx02_decision.action,
+                        "regime": decision.thx02_decision.regime,
+                        "conviction": decision.thx02_decision.conviction,
+                        "risk_cleared": decision.thx02_decision.risk_cleared,
+                        "suggested_leverage": decision.thx02_decision.suggested_leverage,
+                        "suggested_sizing_pct": decision.thx02_decision.suggested_sizing_pct,
+                        "thought": decision.thx02_decision.thought,
+                        "probabilities": decision.thx02_decision.probabilities,
+                    } if decision.thx02_decision else None,
                     "synthesis_memo": decision.synthesis_memo,
                     "timestamp": decision.timestamp,
                 }

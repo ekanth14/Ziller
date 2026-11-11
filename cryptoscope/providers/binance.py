@@ -56,7 +56,7 @@ class BinanceProvider:
         self.raw[path] = result
         return result
 
-    def fetch_klines(self, symbol, interval="1m", limit=100):
+    def fetch_klines(self, symbol, interval="1m", limit=200):
         server_time = self.get("/api/v3/time")["serverTime"] / 1000
         cutoff = min(server_time, time.time())
 
@@ -72,7 +72,7 @@ class BinanceProvider:
             candles = [c for c in _aggregate_klines(rows, 120) if c["close_time"] <= cutoff]
         else:
             binance_interval = interval if interval in {"1s", "1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d"} else "1m"
-            rows = self.get("/api/v3/klines", symbol=symbol, interval=binance_interval, limit=min(1000, max(limit, 50)))
+            rows = self.get("/api/v3/klines", symbol=symbol, interval=binance_interval, limit=min(1000, max(limit + 1, 50)))
             candles = [{"open_time": row[0] / 1000, "close_time": (row[6] + 1) / 1000,
                         "open": float(row[1]), "high": float(row[2]), "low": float(row[3]),
                         "close": float(row[4]), "volume": float(row[5]), "taker_buy_volume": float(row[9])}
@@ -81,7 +81,7 @@ class BinanceProvider:
 
     def snapshot(self, symbol, interval="1m"):
         seconds = INTERVALS.get(interval, 60)
-        candles = self.fetch_klines(symbol, interval=interval, limit=100)
+        candles = self.fetch_klines(symbol, interval=interval, limit=200)
         cutoff = candles[-1]["close_time"] if candles else time.time()
         # Ensure at least 50 candles for Snapshot.parse contract
         if len(candles) < 50 and candles:
