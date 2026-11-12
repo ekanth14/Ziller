@@ -80,7 +80,35 @@ const money = value => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: num < 10 ? 4 : 2 }).format(num);
 };
 const number = (value, digits=2) => Number.isFinite(Number(value)) ? new Intl.NumberFormat(undefined,{maximumFractionDigits:digits}).format(value) : '—';
-const date = seconds => seconds ? new Date(seconds*1000).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+const IST_TIMEZONE = 'Asia/Kolkata';
+const formatIST = (seconds, options = {}) => {
+  if (!seconds) return '—';
+  const d = seconds instanceof Date ? seconds : new Date(typeof seconds === 'number' && seconds < 1e11 ? seconds * 1000 : seconds);
+  if (isNaN(d.getTime())) return '—';
+  const defaultOpts = {
+    timeZone: IST_TIMEZONE,
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    ...options
+  };
+  return d.toLocaleString('en-IN', defaultOpts) + ' IST';
+};
+const formatTimeIST = (seconds, withSeconds = true) => {
+  if (!seconds) return '—';
+  const d = seconds instanceof Date ? seconds : new Date(typeof seconds === 'number' && seconds < 1e11 ? seconds * 1000 : seconds);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleTimeString('en-IN', {
+    timeZone: IST_TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: withSeconds ? '2-digit' : undefined,
+    hour12: false
+  }) + ' IST';
+};
+const date = seconds => formatIST(seconds);
 const age = seconds => {if (!seconds) return '—'; const minutes=Math.max(0,Math.floor((Date.now()/1000-seconds)/60));return minutes<1?'Just now':minutes<60?`${minutes}m ago`:minutes<1440?`${Math.floor(minutes/60)}h ago`:`${Math.floor(minutes/1440)}d ago`;};
 const title = value => String(value || '—').replaceAll('_',' ').replace(/\b\w/g, c=>c.toUpperCase());
 const executionLabel = value => ({not_requested:'No order placed',research_only:'Research only',filled:'Paper order filled',rejected:'Rejected by risk checks',rejected_by_laya:'Declined by Laya',blocked:'Awaiting valid quote'})[value] || title(value);
@@ -128,7 +156,7 @@ async function refresh() {
     state.data=data;
     notice([data.errors.join(' '), data.controls?.halted?'Operator emergency halt active: New paper entries are paused. Position exits remain available.':''].filter(Boolean).join(' '));
     renderOverview();
-    if($('sync-status')) $('sync-status').textContent=`Updated ${new Date().toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
+    if($('sync-status')) $('sync-status').textContent=`Updated ${formatTimeIST(new Date())}`;
     if($('sync-dot')) $('sync-dot').style.background='var(--secondary-emerald)';
     const latest=data.runs.find(r=>r.status==='completed' && r.action);
     if(latest && latest.run_id!==state.latest?.run_id) {
@@ -591,7 +619,7 @@ function renderChart() {
     $('market-change').className = `kpi-tag ${pctChange >= 0 ? 'green' : 'rose'}`;
   }
   if ($('chart-interval')) $('chart-interval').textContent = `${state.activeInterval || '1m'} · ${N} Candlestick Bars`;
-  if ($('snapshot-time')) $('snapshot-time').textContent = `Last closed bar · ${new Date(last.close_time * 1000).toLocaleTimeString()}`;
+  if ($('snapshot-time')) $('snapshot-time').textContent = `Last closed bar · ${formatTimeIST(last.close_time)}`;
 
   // Default HUD values
   updateHudValues(last);
@@ -615,6 +643,20 @@ function renderChart() {
             fontSize: 10,
             fontFamily: 'JetBrains Mono, monospace',
           },
+          localization: {
+            locale: 'en-IN',
+            dateFormat: 'dd MMM yyyy',
+            timeFormatter: timestamp => {
+              const d = new Date(timestamp * 1000);
+              return d.toLocaleTimeString('en-IN', {
+                timeZone: IST_TIMEZONE,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+              }) + ' IST';
+            },
+          },
           grid: {
             vertLines: { color: 'rgba(255, 255, 255, 0.04)' },
             horzLines: { color: 'rgba(255, 255, 255, 0.04)' },
@@ -625,7 +667,7 @@ function renderChart() {
           timeScale: {
             borderColor: 'rgba(255, 255, 255, 0.08)',
             timeVisible: true,
-            secondsVisible: false,
+            secondsVisible: true,
           },
           rightPriceScale: {
             borderColor: 'rgba(255, 255, 255, 0.08)',
@@ -725,12 +767,17 @@ function renderChart() {
             <text x="732" y="${(py + 3).toFixed(1)}" fill="#64748b" font-size="9" font-family="JetBrains Mono">${escapeHtml(label)}</text>`;
   }).join('');
 
-  // Time grid labels (bottom X-axis)
+  // Time grid labels (bottom X-axis) in Indian Standard Time (IST)
   const timeIndices = [0, Math.floor(N * 0.25), Math.floor(N * 0.5), Math.floor(N * 0.75), N - 1];
   const timeLabels = timeIndices.map((idx, k) => {
     const c = visible[idx];
     if (!c) return '';
-    const tStr = new Date(c.close_time * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    const tStr = new Date(c.close_time * 1000).toLocaleTimeString('en-IN', {
+      timeZone: IST_TIMEZONE,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
     const anchor = k === 0 ? 'start' : k === timeIndices.length - 1 ? 'end' : 'middle';
     return `<text x="${x(idx).toFixed(1)}" y="222" text-anchor="${anchor}" fill="#64748b" font-size="9" font-family="JetBrains Mono">${escapeHtml(tStr)}</text>`;
   }).join('');
@@ -822,7 +869,18 @@ function updateHudValues(c) {
   if (!c) return;
   const isBull = c.close >= c.open;
   const chg = c.open ? (((c.close / c.open) - 1) * 100) : 0;
-  if ($('hud-date')) $('hud-date').textContent = new Date(c.close_time * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if ($('hud-date')) {
+    const d = new Date(c.close_time * 1000);
+    $('hud-date').textContent = d.toLocaleString('en-IN', {
+      timeZone: IST_TIMEZONE,
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }) + ' IST';
+  }
   if ($('hud-open')) $('hud-open').textContent = number(c.open, c.open > 1000 ? 2 : 4);
   if ($('hud-high')) $('hud-high').textContent = number(c.high, c.high > 1000 ? 2 : 4);
   if ($('hud-low')) $('hud-low').textContent = number(c.low, c.low > 1000 ? 2 : 4);
@@ -1988,8 +2046,62 @@ if ($('refresh-listings-btn')) {
   $('refresh-listings-btn').addEventListener('click', fetchListings);
 }
 
+function getMarketSessionIST(now = new Date()) {
+  const istStr = now.toLocaleTimeString('en-IN', {
+    timeZone: IST_TIMEZONE,
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  const [hh, mm] = istStr.split(':').map(Number);
+  const timeDec = hh + mm / 60;
+
+  let sessionName = 'Asian Session (Tokyo/HK/Mumbai)';
+  let sessionBadge = 'ASIAN';
+  let badgeColor = 'var(--primary-cyan)';
+
+  if (timeDec >= 19.0 && timeDec <= 22.5) {
+    sessionName = 'US / European Overlap (Peak Volume)';
+    sessionBadge = 'OVERLAP (US/LON)';
+    badgeColor = 'var(--secondary-emerald)';
+  } else if (timeDec >= 19.0 || timeDec < 3.5) {
+    sessionName = 'New York / US Trading Session';
+    sessionBadge = 'NEW YORK / US';
+    badgeColor = 'var(--secondary-emerald)';
+  } else if (timeDec >= 13.5 && timeDec < 19.0) {
+    sessionName = 'London / European Trading Session';
+    sessionBadge = 'LONDON / EU';
+    badgeColor = 'var(--primary-cyan)';
+  } else if (timeDec >= 5.5 && timeDec < 13.5) {
+    sessionName = 'Asian Trading Session (Tokyo/HK/Mumbai)';
+    sessionBadge = 'ASIAN';
+    badgeColor = 'var(--primary-cyan)';
+  } else {
+    sessionName = 'Pacific / Pre-Asia Window';
+    sessionBadge = 'PACIFIC';
+    badgeColor = '#c084fc';
+  }
+
+  return { name: sessionName, badge: sessionBadge, color: badgeColor, timeStr: istStr };
+}
+
 function clock(){ 
-  if ($('clock')) $('clock').textContent=new Date().toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit',second:'2-digit'}); 
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-IN', {
+    timeZone: IST_TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  if ($('clock')) $('clock').textContent = `${timeStr} IST`;
+
+  const session = getMarketSessionIST(now);
+  if ($('sidebar-ist-session')) {
+    $('sidebar-ist-session').textContent = session.badge;
+    $('sidebar-ist-session').style.color = session.color;
+    $('sidebar-ist-session').title = `${session.name} · Indian Standard Time (IST)`;
+  }
 }
 clock(); setInterval(clock, 1000);
 setInterval(() => { refreshFeedStatus(); renderOrderBook(); }, 1000);
