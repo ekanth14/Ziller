@@ -91,7 +91,7 @@ const formatIST = (seconds, options = {}) => {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false,
+    hour12: true,
     ...options
   };
   return d.toLocaleString('en-IN', defaultOpts) + ' IST';
@@ -105,7 +105,7 @@ const formatTimeIST = (seconds, withSeconds = true) => {
     hour: '2-digit',
     minute: '2-digit',
     second: withSeconds ? '2-digit' : undefined,
-    hour12: false
+    hour12: true
   }) + ' IST';
 };
 const date = seconds => formatIST(seconds);
@@ -632,6 +632,51 @@ function renderChart() {
     lwcContainer.style.display = 'block';
     if ($('chart')) $('chart').style.display = 'none';
 
+    const lwcLocalizationOptions = {
+      locale: 'en-IN',
+      dateFormat: "dd MMM 'yy",
+      timeFormatter: timestamp => {
+        const d = new Date((typeof timestamp === 'number' && timestamp < 1e11 ? timestamp * 1000 : timestamp));
+        if (isNaN(d.getTime())) return '';
+        const dateStr = d.toLocaleDateString('en-IN', {
+          timeZone: IST_TIMEZONE,
+          day: '2-digit',
+          month: 'short',
+          year: '2-digit',
+        });
+        const timeStr = d.toLocaleTimeString('en-IN', {
+          timeZone: IST_TIMEZONE,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true,
+        });
+        return `${dateStr}  ${timeStr}`;
+      },
+    };
+
+    const lwcTimeScaleOptions = {
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+      timeVisible: true,
+      secondsVisible: false,
+      tickMarkFormatter: (time, tickMarkType) => {
+        const d = new Date((typeof time === 'number' && time < 1e11 ? time * 1000 : time));
+        if (isNaN(d.getTime())) return '';
+        if (tickMarkType === 0) {
+          return d.toLocaleDateString('en-IN', { timeZone: IST_TIMEZONE, year: 'numeric' });
+        } else if (tickMarkType === 1) {
+          return d.toLocaleDateString('en-IN', { timeZone: IST_TIMEZONE, month: 'short' });
+        } else if (tickMarkType === 2) {
+          return d.toLocaleDateString('en-IN', { timeZone: IST_TIMEZONE, day: 'numeric', month: 'short' });
+        } else if (tickMarkType === 3) {
+          return d.toLocaleTimeString('en-IN', { timeZone: IST_TIMEZONE, hour: '2-digit', minute: '2-digit', hour12: false });
+        } else if (tickMarkType === 4) {
+          return d.toLocaleTimeString('en-IN', { timeZone: IST_TIMEZONE, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+        }
+        return d.toLocaleTimeString('en-IN', { timeZone: IST_TIMEZONE, hour: '2-digit', minute: '2-digit', hour12: false });
+      },
+    };
+
     if (!state.lwcChart) {
       try {
         state.lwcChart = window.LightweightCharts.createChart(lwcContainer, {
@@ -643,20 +688,7 @@ function renderChart() {
             fontSize: 10,
             fontFamily: 'JetBrains Mono, monospace',
           },
-          localization: {
-            locale: 'en-IN',
-            dateFormat: 'dd MMM yyyy',
-            timeFormatter: timestamp => {
-              const d = new Date(timestamp * 1000);
-              return d.toLocaleTimeString('en-IN', {
-                timeZone: IST_TIMEZONE,
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
-              }) + ' IST';
-            },
-          },
+          localization: lwcLocalizationOptions,
           grid: {
             vertLines: { color: 'rgba(255, 255, 255, 0.04)' },
             horzLines: { color: 'rgba(255, 255, 255, 0.04)' },
@@ -664,11 +696,7 @@ function renderChart() {
           crosshair: {
             mode: window.LightweightCharts.CrosshairMode.Normal,
           },
-          timeScale: {
-            borderColor: 'rgba(255, 255, 255, 0.08)',
-            timeVisible: true,
-            secondsVisible: true,
-          },
+          timeScale: lwcTimeScaleOptions,
           rightPriceScale: {
             borderColor: 'rgba(255, 255, 255, 0.08)',
           },
@@ -713,6 +741,13 @@ function renderChart() {
         console.warn('LightweightCharts init failed, using SVG fallback:', err);
         state.lwcChart = null;
       }
+    } else {
+      // Apply updated options to existing chart instance
+      state.lwcChart.applyOptions({
+        localization: lwcLocalizationOptions,
+        timeScale: lwcTimeScaleOptions,
+      });
+    }
     }
 
     if (state.lwcChart && state.lwcCandles) {
@@ -878,7 +913,7 @@ function updateHudValues(c) {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hour12: false
+      hour12: true
     }) + ' IST';
   }
   if ($('hud-open')) $('hud-open').textContent = number(c.open, c.open > 1000 ? 2 : 4);
@@ -2092,7 +2127,7 @@ function clock(){
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: false
+    hour12: true
   });
   if ($('clock')) $('clock').textContent = `${timeStr} IST`;
 
