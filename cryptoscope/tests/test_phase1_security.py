@@ -143,6 +143,7 @@ def test_safe_defaults_and_explicit_open_signup():
 @pytest.mark.parametrize('module,extra', [('cryptoscope.orchestrator', ['--mode', 'PAPER']), ('cryptoscope.dashboard', [])])
 def test_real_cli_refuses_unsafe_settings_before_service_start(tmp_path, module, extra):
     env = dict(os.environ)
+    env['PYTHONPATH'] = str(Path.cwd()) + os.pathsep + env.get('PYTHONPATH', '')
     env.update(SIGNUP_MODE='open', TRADING_MODE='TESTNET')
     env.pop('ALLOW_OPEN_SIGNUP', None)
     result = subprocess.run([sys.executable, '-B', '-m', module, *extra], cwd=tmp_path,

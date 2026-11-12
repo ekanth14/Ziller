@@ -170,23 +170,26 @@ def run_quantstats_evaluation(
             out_path.parent.mkdir(parents=True, exist_ok=True)
             # Create lightweight HTML summary
             metrics_table_html = qs.reports.metrics(daily_returns, mode="full", display=False)
+            metrics_table_str = metrics_table_html.to_html() if hasattr(metrics_table_html, "to_html") else str(metrics_table_html)
+            
+            raw_html = (
+                "<!DOCTYPE html><html><head><title>ZILLERS QuantStats Tear Sheet</title>"
+                "<style>body{font-family:sans-serif;margin:30px;background:#111;color:#eee}table{border-collapse:collapse;width:100%}th,td{border:1px solid #444;padding:8px;text-align:left}th{background:#222}</style></head><body>"
+                "<h1>ZILLERS Phase 6 Multi-Coin Backtest - QuantStats Tear Sheet</h1>"
+                f"<p><b>Data Period:</b> {start_date} to {end_date} (4 years, 1,461 calendar days)</p>"
+                f"<p><b>Total Trades:</b> {all_trade_count} | <b>Initial NAV:</b> ${initial_capital:,.2f} | <b>Final Portfolio NAV:</b> ${equity_curve.iloc[-1]:,.2f}</p>"
+                "<h2>Discrepancy Analysis: ZILLERS vs QuantStats</h2>"
+                "<table><tr><th>Metric</th><th>ZILLERS Internal</th><th>QuantStats (252)</th><th>QuantStats (365)</th><th>Explanation</th></tr>"
+                + "".join(f"<tr><td><b>{comp.metric}</b></td><td>{comp.zillers_value} {comp.unit}</td><td>{comp.quantstats_equity_252} {comp.unit}</td><td>{comp.quantstats_crypto_365} {comp.unit}</td><td>{comp.explanation}</td></tr>" for comp in comparisons)
+                + "</table>"
+                "<h2>Full QuantStats Performance Table</h2>"
+                f"{metrics_table_str}"
+                "</body></html>"
+            )
+            from cryptoscope.security.report_secrets import configured_secrets, redact
+            final_html = redact(raw_html, configured_secrets(Path.cwd()))
             with open(out_path, "w", encoding="utf-8") as f:
-                f.write("<!DOCTYPE html><html><head><title>ZILLERS QuantStats Tear Sheet</title>")
-                f.write("<style>body{font-family:sans-serif;margin:30px;background:#111;color:#eee}table{border-collapse:collapse;width:100%}th,td{border:1px solid #444;padding:8px;text-align:left}th{background:#222}</style></head><body>")
-                f.write("<h1>ZILLERS Phase 6 Multi-Coin Backtest - QuantStats Tear Sheet</h1>")
-                f.write(f"<p><b>Data Period:</b> {start_date} to {end_date} (4 years, 1,461 calendar days)</p>")
-                f.write(f"<p><b>Total Trades:</b> {all_trade_count} | <b>Initial NAV:</b> ${initial_capital:,.2f} | <b>Final Portfolio NAV:</b> ${equity_curve.iloc[-1]:,.2f}</p>")
-                f.write("<h2>Discrepancy Analysis: ZILLERS vs QuantStats</h2>")
-                f.write("<table><tr><th>Metric</th><th>ZILLERS Internal</th><th>QuantStats (252)</th><th>QuantStats (365)</th><th>Explanation</th></tr>")
-                for comp in comparisons:
-                    f.write(f"<tr><td><b>{comp.metric}</b></td><td>{comp.zillers_value} {comp.unit}</td><td>{comp.quantstats_equity_252} {comp.unit}</td><td>{comp.quantstats_crypto_365} {comp.unit}</td><td>{comp.explanation}</td></tr>")
-                f.write("</table>")
-                f.write("<h2>Full QuantStats Performance Table</h2>")
-                if hasattr(metrics_table_html, "to_html"):
-                    f.write(metrics_table_html.to_html())
-                else:
-                    f.write(str(metrics_table_html))
-                f.write("</body></html>")
+                f.write(final_html)
             html_generated = True
         except Exception as e:
             html_generated = False

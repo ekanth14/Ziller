@@ -58,7 +58,7 @@
         <span class="label">FX:</span>
         <span class="val" id="fx-currency-label">USD</span>
       </button>
-      <div class="telemetry-chip">
+      <div class="telemetry-chip" id="clock-chip">
         <span class="label">CLOCK:</span>
         <span id="clock" class="val">—</span>
       </div>
@@ -66,9 +66,9 @@
         <span class="aum-label">Prime Portfolio NAV</span>
         <span class="aum-val" id="prime-aum">$10,000.00</span>
       </div>
-      <button class="telemetry-chip" id="user-chip" type="button" style="cursor: pointer; background: var(--surface-mid); border: 1px solid var(--border);" title="User Account">
-        <span class="label">USER:</span>
-        <span class="val ok" id="user-display">Sign In</span>
+      <button class="auth-signin-btn" id="user-chip" type="button" title="Sign In or View Account">
+        <span id="user-icon">🔑</span>
+        <span id="user-display">Sign In</span>
       </button>
       <button class="telemetry-chip" id="live-mode-toggle-btn" type="button" style="cursor: pointer; border: 1px solid var(--border); background: var(--surface-mid);" title="5-Gate Live Trading Protocol">
         <span class="label">MODE:</span>
@@ -92,6 +92,18 @@
           <span>ENGINES ACTIVE</span>
           <span>—</span>
         </div>
+      </div>
+
+      <!-- Operator Auth Session Enclave -->
+      <div class="sidebar-auth-panel" id="sidebar-auth-card">
+        <div class="sidebar-auth-header">
+          <span class="sidebar-auth-title">Operator Session</span>
+          <span id="sidebar-auth-badge" class="sidebar-badge" style="background: rgba(244, 63, 94, 0.15); color: #ffb4ab; border-color: rgba(244, 63, 94, 0.3);">GUEST</span>
+        </div>
+        <div id="sidebar-auth-identity" class="sidebar-auth-identity">Not Signed In</div>
+        <button type="button" id="sidebar-signin-btn" class="sidebar-auth-btn">
+          <span id="sidebar-signin-icon">🔑</span> <span id="sidebar-signin-text">SIGN IN / REGISTER</span>
+        </button>
       </div>
 
       <div style="margin-bottom: 16px;">

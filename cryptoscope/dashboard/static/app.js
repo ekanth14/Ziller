@@ -1436,47 +1436,101 @@ if ($('auth-tab-signup')) $('auth-tab-signup').addEventListener('click', () => s
 if ($('auth-tab-reset')) $('auth-tab-reset').addEventListener('click', () => switchAuthTab('reset'));
 if ($('close-auth-dialog')) $('close-auth-dialog').addEventListener('click', () => $('auth-dialog')?.close());
 
-if ($('user-chip')) {
-  $('user-chip').addEventListener('click', async () => {
-    if (state.user) {
-      if (confirm(`Currently signed in as ${state.user.email} (${state.user.role}). Sign out now?`)) {
-        try {
-          await postJson('/api/auth/logout', {});
-          state.user = null;
-          state.favorites = new Set();
-          notice('Successfully signed out.');
-          fetchAuthStatus();
-          renderListings();
-        } catch (err) {
-          notice(`Logout error: ${err.message}`);
-        }
+async function handleUserAuthAction() {
+  if (state.user) {
+    if (confirm(`Currently signed in as ${state.user.email} (${state.user.role}). Sign out now?`)) {
+      try {
+        await postJson('/api/auth/logout', {});
+        state.user = null;
+        state.favorites = new Set();
+        notice('Successfully signed out.');
+        await fetchAuthStatus();
+        renderListings();
+      } catch (err) {
+        notice(`Logout error: ${err.message}`);
       }
-    } else {
-      openAuthModal('login');
     }
-  });
+  } else {
+    openAuthModal('login');
+  }
 }
+
+if ($('user-chip')) $('user-chip').addEventListener('click', handleUserAuthAction);
+if ($('sidebar-signin-btn')) $('sidebar-signin-btn').addEventListener('click', handleUserAuthAction);
 
 async function fetchAuthStatus() {
   try {
     const res = await request('/api/auth/me');
     if (res.authenticated) {
       state.user = res;
-      if ($('user-display')) {
-        $('user-display').textContent = res.email.split('@')[0] + (res.role === 'admin' ? ' (Admin)' : '');
+      const userDisplay = $('user-display');
+      if (userDisplay) {
+        userDisplay.textContent = res.email.split('@')[0] + (res.role === 'admin' ? ' (Admin)' : '');
       }
-      if ($('user-chip')) {
-        $('user-chip').title = `Signed in as ${res.email} (${res.role}). Click to sign out.`;
+      const userIcon = $('user-icon');
+      if (userIcon) userIcon.textContent = '👤';
+      const userChip = $('user-chip');
+      if (userChip) {
+        userChip.classList.add('authenticated');
+        userChip.title = `Signed in as ${res.email} (${res.role}). Click to sign out.`;
       }
+
+      // Update sidebar auth card
+      const sideBadge = $('sidebar-auth-badge');
+      if (sideBadge) {
+        sideBadge.textContent = res.role.toUpperCase();
+        sideBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+        sideBadge.style.color = '#a7f3d0';
+        sideBadge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+      }
+      const sideIdent = $('sidebar-auth-identity');
+      if (sideIdent) sideIdent.textContent = res.email;
+      const sideBtn = $('sidebar-signin-btn');
+      const sideText = $('sidebar-signin-text');
+      const sideIcon = $('sidebar-signin-icon');
+      if (sideBtn) {
+        sideBtn.classList.add('authenticated');
+        if (sideIcon) sideIcon.textContent = '🚪';
+        if (sideText) sideText.textContent = 'LOG OUT';
+      }
+
       await fetchFavorites();
     } else {
       state.user = null;
-      if ($('user-display')) $('user-display').textContent = 'Sign In';
-      if ($('user-chip')) $('user-chip').title = 'Click to sign in';
+      const userDisplay = $('user-display');
+      if (userDisplay) userDisplay.textContent = 'Sign In';
+      const userIcon = $('user-icon');
+      if (userIcon) userIcon.textContent = '🔑';
+      const userChip = $('user-chip');
+      if (userChip) {
+        userChip.classList.remove('authenticated');
+        userChip.title = 'Click to sign in';
+      }
+
+      // Update sidebar auth card
+      const sideBadge = $('sidebar-auth-badge');
+      if (sideBadge) {
+        sideBadge.textContent = 'GUEST';
+        sideBadge.style.background = 'rgba(244, 63, 94, 0.15)';
+        sideBadge.style.color = '#ffb4ab';
+        sideBadge.style.borderColor = 'rgba(244, 63, 94, 0.3)';
+      }
+      const sideIdent = $('sidebar-auth-identity');
+      if (sideIdent) sideIdent.textContent = 'Not Signed In';
+      const sideBtn = $('sidebar-signin-btn');
+      const sideText = $('sidebar-signin-text');
+      const sideIcon = $('sidebar-signin-icon');
+      if (sideBtn) {
+        sideBtn.classList.remove('authenticated');
+        if (sideIcon) sideIcon.textContent = '🔑';
+        if (sideText) sideText.textContent = 'SIGN IN / REGISTER';
+      }
     }
   } catch (e) {
     state.user = null;
     if ($('user-display')) $('user-display').textContent = 'Sign In';
+    if ($('user-icon')) $('user-icon').textContent = '🔑';
+    if ($('user-chip')) $('user-chip').classList.remove('authenticated');
   }
 }
 
