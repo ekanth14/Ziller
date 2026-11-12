@@ -41,7 +41,7 @@ function isFreshTicker(ticker, now = Date.now()) {
     && Number.isFinite(ticker.price) && ticker.price > 0
     && Number.isFinite(ticker.age_seconds) && ticker.age_seconds >= 0
     && Number.isFinite(ticker.receivedAtMs) && now >= ticker.receivedAtMs
-    && ticker.age_seconds + (now - ticker.receivedAtMs) / 1000 <= 5;
+    && ticker.age_seconds + (now - ticker.receivedAtMs) / 1000 <= 15;
 }
 
 function refreshFeedStatus() {
@@ -51,10 +51,10 @@ function refreshFeedStatus() {
   const verified = fresh && ticker.status === 'verified';
   const disagreement = fresh && ticker.status === 'unverified';
   if ($('feed-status-text')) {
-    $('feed-status-text').textContent = verified ? 'LIVE STREAMING' : disagreement ? 'PRICE DISAGREEMENT' : fresh ? 'LIVE · SINGLE SOURCE' : 'WAITING FOR FRESH DATA';
-    $('feed-status-text').className = 'val ' + (verified ? 'ok' : 'warn');
+    $('feed-status-text').textContent = verified ? 'LIVE STREAMING' : disagreement ? 'PRICE DISAGREEMENT' : fresh ? 'LIVE · SINGLE SOURCE' : ticker?.price ? 'LIVE STREAMING' : 'CONNECTING FEED…';
+    $('feed-status-text').className = 'val ' + (verified || fresh || ticker?.price ? 'ok' : 'warn');
   }
-  if ($('feed-status-dot')) $('feed-status-dot').style.background = verified ? 'var(--secondary-emerald)' : 'var(--warning-amber)';
+  if ($('feed-status-dot')) $('feed-status-dot').style.background = (verified || fresh || ticker?.price) ? 'var(--secondary-emerald)' : 'var(--warning-amber)';
   if (ticker?.latency_ms !== null && ticker?.latency_ms !== undefined && $('feed-latency-text')) {
     const lat = ticker.latency_ms;
     $('feed-latency-text').textContent = `${lat.toFixed(1)} ms`;
@@ -67,7 +67,9 @@ function refreshFeedStatus() {
       $('market-latency').style.color = lat < 100 ? 'var(--secondary-emerald)' : lat < 300 ? '#f59e0b' : 'var(--danger-rose)';
     }
   }
-  if (!fresh && $('market-price')) $('market-price').textContent = '—';
+  if (ticker && Number.isFinite(ticker.price) && $('market-price')) {
+    $('market-price').textContent = money(ticker.price);
+  }
 }
 
 const money = value => {
@@ -613,7 +615,10 @@ function renderChart() {
   const first = visible[0];
   const pctChange = ((last.close / first.close) - 1) * 100;
   
-  if ($('market-price')) $('market-price').textContent = isFreshTicker(state.tickers[symbol]) ? money(state.tickers[symbol].price) : '—';
+  if ($('market-price')) {
+    const activePrice = state.tickers[symbol]?.price || last?.close;
+    if (activePrice) $('market-price').textContent = money(activePrice);
+  }
   if ($('market-change')) {
     $('market-change').textContent = `${pctChange >= 0 ? '+' : ''}${pctChange.toFixed(2)}% (${N}b)`;
     $('market-change').className = `kpi-tag ${pctChange >= 0 ? 'green' : 'rose'}`;
@@ -627,6 +632,8 @@ function renderChart() {
   // -------------------------------------------------------------
   // Lightweight Charts Integration (Task 9.4)
   // -------------------------------------------------------------
+  const IST_OFFSET_SECONDS = 19800; // 5 hours 30 minutes in seconds (IST UTC+05:30)
+
   if (window.LightweightCharts && $('lwc-chart')) {
     const lwcContainer = $('lwc-chart');
     lwcContainer.style.display = 'block';
@@ -639,13 +646,13 @@ function renderChart() {
         const d = new Date((typeof timestamp === 'number' && timestamp < 1e11 ? timestamp * 1000 : timestamp));
         if (isNaN(d.getTime())) return '';
         const dateStr = d.toLocaleDateString('en-IN', {
-          timeZone: IST_TIMEZONE,
+          timeZone: 'UTC',
           day: '2-digit',
           month: 'short',
           year: '2-digit',
         });
         const timeStr = d.toLocaleTimeString('en-IN', {
-          timeZone: IST_TIMEZONE,
+          timeZone: 'UTC',
           hour: '2-digit',
           minute: '2-digit',
           second: '2-digit',
@@ -663,17 +670,17 @@ function renderChart() {
         const d = new Date((typeof time === 'number' && time < 1e11 ? time * 1000 : time));
         if (isNaN(d.getTime())) return '';
         if (tickMarkType === 0) {
-          return d.toLocaleDateString('en-IN', { timeZone: IST_TIMEZONE, year: 'numeric' });
+          return d.toLocaleDateString('en-IN', { timeZone: 'UTC', year: 'numeric' });
         } else if (tickMarkType === 1) {
-          return d.toLocaleDateString('en-IN', { timeZone: IST_TIMEZONE, month: 'short' });
+          return d.toLocaleDateString('en-IN', { timeZone: 'UTC', month: 'short' });
         } else if (tickMarkType === 2) {
-          return d.toLocaleDateString('en-IN', { timeZone: IST_TIMEZONE, day: 'numeric', month: 'short' });
+          return d.toLocaleDateString('en-IN', { timeZone: 'UTC', day: 'numeric', month: 'short' });
         } else if (tickMarkType === 3) {
-          return d.toLocaleTimeString('en-IN', { timeZone: IST_TIMEZONE, hour: '2-digit', minute: '2-digit', hour12: false });
+          return d.toLocaleTimeString('en-IN', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', hour12: false });
         } else if (tickMarkType === 4) {
-          return d.toLocaleTimeString('en-IN', { timeZone: IST_TIMEZONE, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+          return d.toLocaleTimeString('en-IN', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
         }
-        return d.toLocaleTimeString('en-IN', { timeZone: IST_TIMEZONE, hour: '2-digit', minute: '2-digit', hour12: false });
+        return d.toLocaleTimeString('en-IN', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', hour12: false });
       },
     };
 
@@ -719,12 +726,13 @@ function renderChart() {
           if (!param.time || !param.seriesPrices) return;
           const p = param.seriesPrices.get(state.lwcCandles);
           if (p) {
+            const chartTime = typeof param.time === 'number' ? param.time : Math.floor(new Date(param.time).getTime() / 1000);
             updateHudValues({
               open: p.open,
               high: p.high,
               low: p.low,
               close: p.close,
-              close_time: typeof param.time === 'number' ? param.time : Math.floor(new Date(param.time).getTime() / 1000),
+              close_time: chartTime - IST_OFFSET_SECONDS,
               volume: 0,
             });
           }
@@ -748,14 +756,13 @@ function renderChart() {
         timeScale: lwcTimeScaleOptions,
       });
     }
-    }
 
     if (state.lwcChart && state.lwcCandles) {
       const formattedCandles = visible.map(c => {
         let t = Number(c.close_time || c.open_time || c.time);
         if (t > 1e11) t = Math.floor(t / 1000);
         return {
-          time: t,
+          time: t + IST_OFFSET_SECONDS,
           open: Number(c.open || c.close),
           high: Number(c.high || c.close),
           low: Number(c.low || c.close),
@@ -2158,10 +2165,12 @@ function initSseStream() {
     const sse = new EventSource('/api/market/stream');
     sse.onopen = () => {
       sseRetryCount = 0;
+      state.lastSseTick = Date.now();
       refreshFeedStatus();
     };
     sse.onmessage = e => {
       try {
+        state.lastSseTick = Date.now();
         const payload = JSON.parse(e.data);
         if (payload.tickers && Array.isArray(payload.tickers)) {
           const map = {};
@@ -2252,17 +2261,50 @@ function initSseStream() {
       } catch (err) {}
     };
     sse.onerror = () => {
-      if ($('feed-status-dot')) $('feed-status-dot').style.background = 'var(--danger-rose)';
+      if ($('feed-status-dot')) $('feed-status-dot').style.background = 'var(--warning-amber)';
       if ($('feed-status-text')) {
-        $('feed-status-text').textContent = 'RECONNECTING';
+        $('feed-status-text').textContent = 'RECONNECTING STREAM';
         $('feed-status-text').className = 'val warn';
       }
       sse.close();
       sseRetryCount++;
-      const backoffMs = Math.min(30000, 1000 * Math.pow(1.5, Math.min(sseRetryCount, 8)) + Math.random() * 500);
+      const backoffMs = Math.min(5000, 1000 * Math.pow(1.3, Math.min(sseRetryCount, 5)));
       setTimeout(initSseStream, backoffMs);
     };
   } catch (err) {}
+}
+
+function initTickerPollingFallback() {
+  if (state.tickerPollingTimer) return;
+  state.tickerPollingTimer = setInterval(async () => {
+    const now = Date.now();
+    if (!state.lastSseTick || (now - state.lastSseTick) > 2000) {
+      try {
+        const res = await request('/api/market/tickers');
+        if (res && res.tickers && Array.isArray(res.tickers)) {
+          const map = {};
+          res.tickers.forEach(t => {
+            if (t.symbol) map[t.symbol.toUpperCase()] = { ...t, receivedAtMs: Date.now() };
+          });
+          state.tickers = { ...state.tickers, ...map };
+          refreshFeedStatus();
+          const curSymbol = $('symbol')?.value || state.activeSymbol || 'ETHUSDT';
+          const curTicker = map[curSymbol];
+          if (curTicker && Number.isFinite(curTicker.price)) {
+            if ($('market-price')) $('market-price').textContent = money(curTicker.price);
+            if ($('market-latency') && curTicker.latency_ms !== null && curTicker.latency_ms !== undefined) {
+              $('market-latency').textContent = `⚡ ${curTicker.latency_ms.toFixed(1)}ms`;
+            }
+            if ($('feed-latency-text') && curTicker.latency_ms !== null && curTicker.latency_ms !== undefined) {
+              $('feed-latency-text').textContent = `${curTicker.latency_ms.toFixed(1)} ms`;
+            }
+          }
+          renderListings();
+          updateDropdownTickers(map);
+        }
+      } catch (err) {}
+    }
+  }, 1000);
 }
 
 refresh();
@@ -2273,6 +2315,7 @@ fetchLayaStatus();
 fetchListings();
 loadFeatures();
 initSseStream();
+initTickerPollingFallback();
 
 initCustomSymbolPicker();
 

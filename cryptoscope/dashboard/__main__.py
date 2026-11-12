@@ -123,6 +123,12 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
             super().setup()
             self.connection.settimeout(15)
 
+        def handle(self):
+            try:
+                super().handle()
+            except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+                pass
+
         def send(self, status, content, kind, download=None, cookies=None):
             self.send_response(status)
             self.send_header("Content-Type", kind)
@@ -288,13 +294,12 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
             if url.path == "/api/market/stream":
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream; charset=utf-8")
-                self.send_header("Cache-Control", "no-cache")
-                self.send_header("Connection", "close")
-                self.close_connection = True
+                self.send_header("Cache-Control", "no-cache, no-transform")
+                self.send_header("Connection", "keep-alive")
                 self.send_header("X-Accel-Buffering", "no")
                 self.end_headers()
                 try:
-                    for _ in range(120):
+                    while True:
                         conn = connection_status()
                         lat_list = [v.get("latency_ms") for v in conn.values() if isinstance(v, dict) and v.get("latency_ms") is not None]
                         avg_lat = round(sum(lat_list) / len(lat_list), 1) if lat_list else None
@@ -307,7 +312,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                         self.wfile.write(f"data: {payload}\n\n".encode("utf-8"))
                         self.wfile.flush()
                         time.sleep(0.5)
-                except (ConnectionError, BrokenPipeError, TimeoutError, OSError):
+                except (ConnectionError, BrokenPipeError, TimeoutError, OSError, ConnectionResetError, ConnectionAbortedError):
                     pass
                 return
 
