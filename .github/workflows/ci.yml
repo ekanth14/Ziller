@@ -48,6 +48,9 @@ jobs:
         run: |
           mypy cryptoscope/auth cryptoscope/fx cryptoscope/market_data --ignore-missing-imports || true
 
+      - name: Build native kernels (C++)
+        run: python native/build.py
+
       - name: Run Test Suite (pytest)
         env:
           ADMIN_EMAIL: admin@zillers.local

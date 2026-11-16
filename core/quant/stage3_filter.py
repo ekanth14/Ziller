@@ -12,6 +12,8 @@ Formulas:
 import math
 from typing import Mapping, Sequence
 
+from core.quant import native as _native
+
 
 def compute_tstat_returns(returns: Sequence[float]) -> float:
     """Calculate t-statistic of returns: t = mean / (sigma / sqrt(n)). Below 2, assume luck."""
@@ -100,7 +102,17 @@ def compute_hurst_exponent(series: Sequence[float], max_lags: int = 20) -> float
     """Estimate Hurst exponent H using Rescaled Range (R/S) analysis.
 
     H < 0.5: mean-reverting, H = 0.5: random walk, H > 0.5: trending.
+    Uses the native C++ kernel when available, else the pure-Python reference.
     """
+    if len(series) >= 50:
+        fast = _native.hurst_exponent(list(series))
+        if fast is not None:
+            return fast
+    return compute_hurst_exponent_py(series, max_lags)
+
+
+def compute_hurst_exponent_py(series: Sequence[float], max_lags: int = 20) -> float:
+    """Pure-Python reference implementation (source of truth and fallback)."""
     n = len(series)
     if n < 50:
         return 0.5
