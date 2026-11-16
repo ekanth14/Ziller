@@ -36,8 +36,40 @@ _PARQUET_TESTS = {
 }
 
 
+# Tests that depend on gitignored local data (work/crypto_candles.db,
+# data/parquet_klines), live exchange network access, or the Playwright browser
+# cannot run on a clean CI runner. They are skipped when CI=true.
+_CI_UNAVAILABLE_PREFIXES = (
+    "test_binance_testnet_live_",
+    "test_binance_testnet_auth_failure_semantics",
+)
+_CI_UNAVAILABLE_TESTS = {
+    "test_01_real_market_candles_present",
+    "test_03_monte_carlo_odds_simulation_with_real_candles",
+    "test_04_multi_agent_deliberation_consensus",
+    "test_09_listings_filter_unlisted_tokens",
+    "test_10_stat_arb_and_volatility_quant_engine",
+    "test_real_candle_replay_full_pipeline",
+    "test_duckdb_parquet_evaluation",
+    "test_talib_precision_evaluation",
+    "test_drex_license_and_evaluation",
+    "test_agents_deliberate_endpoint",
+    "test_quant_orderflow_endpoint",
+    "test_quant_pairs_endpoint",
+    "test_quant_volatility_endpoint",
+}
+
+
 def pytest_collection_modifyitems(config, items):
+    import os
+
     import pytest
+
+    if os.environ.get("CI", "").lower() == "true":
+        ci_skip = pytest.mark.skip(reason="Requires local market data, live exchange access or browsers unavailable on CI")
+        for item in items:
+            if item.name in _CI_UNAVAILABLE_TESTS or item.name.startswith(_CI_UNAVAILABLE_PREFIXES):
+                item.add_marker(ci_skip)
 
     if not _parquet_engine_available():
         skip = pytest.mark.skip(reason="No usable parquet engine (pyarrow/fastparquet) in this environment")

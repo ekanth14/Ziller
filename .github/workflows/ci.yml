@@ -29,7 +29,9 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install --upgrade setuptools
           pip install -r requirements.txt -r requirements-ci.txt flake8 mypy pytest-cov pip-audit
+          python -m playwright install --with-deps chromium
 
       - name: Security Audit (pip-audit)
         run: |
