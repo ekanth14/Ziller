@@ -45,3 +45,53 @@ def test_hurst_matches_python(n, seed):
 def test_hurst_short_and_flat_series():
     assert native.hurst_exponent([1.0] * 10) == 0.5
     assert native.hurst_exponent([5.0] * 200) == pytest.approx(compute_hurst_exponent_py([5.0] * 200))
+
+
+# ------------------------------------------------------------------ HMM
+class _NoNative:
+    @staticmethod
+    def hmm_em(*a, **k):
+        return None
+
+    @staticmethod
+    def hmm_viterbi(*a, **k):
+        return None
+
+
+def _regime_returns(n, seed):
+    rng = random.Random(seed)
+    out, state = [], 0
+    for _ in range(n):
+        if rng.random() < 0.03:
+            state = 1 - state
+        out.append(rng.gauss(0.0005, 0.004) if state == 0 else rng.gauss(-0.001, 0.02))
+    return out
+
+
+@pytest.mark.parametrize("n_states", [2, 3])
+@pytest.mark.parametrize("n,seed", [(60, 1), (300, 2), (700, 3)])
+def test_hmm_em_matches_python(monkeypatch, n_states, n, seed):
+    from core.quant.levels import level10_research as lv
+
+    returns = _regime_returns(n, seed)
+    nat = lv.GaussianRegimeHMM(n_states=n_states).fit(returns)
+    monkeypatch.setattr(lv, "_native", _NoNative)
+    py = lv.GaussianRegimeHMM(n_states=n_states).fit(returns)
+    assert nat.means == pytest.approx(py.means, rel=1e-6, abs=1e-9)
+    assert nat.stds == pytest.approx(py.stds, rel=1e-6, abs=1e-9)
+    assert nat.priors == pytest.approx(py.priors, rel=1e-6, abs=1e-9)
+    for row_n, row_p in zip(nat.transition_matrix, py.transition_matrix):
+        assert row_n == pytest.approx(row_p, rel=1e-6, abs=1e-9)
+
+
+@pytest.mark.parametrize("n_states", [2, 3])
+@pytest.mark.parametrize("n,seed", [(5, 1), (300, 2), (1500, 3)])
+def test_hmm_viterbi_identical_paths(monkeypatch, n_states, n, seed):
+    from core.quant.levels import level10_research as lv
+
+    returns = _regime_returns(n, seed)
+    hmm = lv.GaussianRegimeHMM(n_states=n_states)
+    hmm.fit(returns)
+    native_path = hmm.predict(returns)
+    monkeypatch.setattr(lv, "_native", _NoNative)
+    assert native_path == hmm.predict(returns)

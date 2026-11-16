@@ -221,4 +221,180 @@ ZN_EXPORT double zn_hurst_exponent(const double* series, int n) {
     return hurst_impl(series, static_cast<size_t>(n));
 }
 
-ZN_EXPORT int zn_abi_version() { return 1; }
+// ---------------------------------------------------------------------------
+// Gaussian HMM (mirrors core.quant.levels.level10_research.GaussianRegimeHMM).
+// Initialization and final state sorting stay in Python; these kernels run the EM
+// loop and Viterbi decoding. Matrices are row-major, k x k.
+// ---------------------------------------------------------------------------
+static const double kSqrt2Pi = 2.5066282746310002;  // sqrt(2*pi)
+static const double kPi = 3.14159265358979323846;
+
+// EM loop. In/out: means[k], stds[k], a[k*k], pi[k]. Returns 0 on success, -1 on bad input.
+ZN_EXPORT int zn_hmm_em(const double* x, int t, int k, double* means, double* stds, double* a, double* pi,
+                        int max_iter, double tol) {
+    if (!x || !means || !stds || !a || !pi || t < 1 || k < 1) return -1;
+    const size_t T = static_cast<size_t>(t), K = static_cast<size_t>(k);
+    std::vector<double> b(T * K), alpha(T * K), beta(T * K), gamma(T * K), c(T);
+    std::vector<double> new_a(K * K), xi_sum(K * K), new_means(K), new_stds(K), gw(K), gsum_prev(K), tmp(K);
+
+    for (int iter = 0; iter < max_iter; ++iter) {
+        // Emission probabilities
+        for (size_t s = 0; s < K; ++s) {
+            const double sigma = std::max(1e-4, stds[s]);
+            const double var = sigma * sigma;
+            for (size_t i = 0; i < T; ++i) {
+                const double diff = x[i] - means[s];
+                double v = std::exp(-0.5 * (diff * diff) / var) / (kSqrt2Pi * sigma);
+                b[i * K + s] = std::max(v, 1e-12);
+            }
+        }
+        // Forward (scaled)
+        double c0 = 0.0;
+        for (size_t s = 0; s < K; ++s) {
+            alpha[s] = pi[s] * b[s];
+            c0 += alpha[s];
+        }
+        c[0] = c0;
+        if (c0 > 1e-12)
+            for (size_t s = 0; s < K; ++s) alpha[s] /= c0;
+        for (size_t step = 1; step < T; ++step) {
+            double csum = 0.0;
+            for (size_t j = 0; j < K; ++j) {
+                double acc = 0.0;
+                for (size_t i = 0; i < K; ++i) acc += alpha[(step - 1) * K + i] * a[i * K + j];
+                alpha[step * K + j] = acc * b[step * K + j];
+                csum += alpha[step * K + j];
+            }
+            c[step] = csum;
+            if (csum > 1e-12) {
+                for (size_t j = 0; j < K; ++j) alpha[step * K + j] /= csum;
+            } else {
+                for (size_t j = 0; j < K; ++j) alpha[step * K + j] = 1.0 / static_cast<double>(k);
+            }
+        }
+        // Backward (scaled)
+        for (size_t s = 0; s < K; ++s) beta[(T - 1) * K + s] = 1.0;
+        for (size_t step = T - 1; step-- > 0;) {
+            for (size_t i = 0; i < K; ++i) {
+                double acc = 0.0;
+                for (size_t j = 0; j < K; ++j) acc += a[i * K + j] * (b[(step + 1) * K + j] * beta[(step + 1) * K + j]);
+                beta[step * K + i] = acc;
+            }
+            if (c[step + 1] > 1e-12)
+                for (size_t i = 0; i < K; ++i) beta[step * K + i] /= c[step + 1];
+        }
+        // Posteriors
+        for (size_t i = 0; i < T; ++i) {
+            double sum = 0.0;
+            for (size_t s = 0; s < K; ++s) {
+                gamma[i * K + s] = alpha[i * K + s] * beta[i * K + s];
+                sum += gamma[i * K + s];
+            }
+            if (sum <= 1e-12) sum = 1.0;
+            for (size_t s = 0; s < K; ++s) gamma[i * K + s] /= sum;
+        }
+        // Transition expectations
+        std::fill(xi_sum.begin(), xi_sum.end(), 0.0);
+        const double uniform = 1.0 / static_cast<double>(k * k);
+        for (size_t step = 0; step + 1 < T; ++step) {
+            double denom = 0.0;
+            for (size_t i = 0; i < K; ++i)
+                for (size_t j = 0; j < K; ++j) {
+                    double num = alpha[step * K + i] * a[i * K + j] * (b[(step + 1) * K + j] * beta[(step + 1) * K + j]);
+                    new_a[i * K + j] = num;
+                    denom += num;
+                }
+            for (size_t i = 0; i < K; ++i)
+                for (size_t j = 0; j < K; ++j)
+                    xi_sum[i * K + j] += (denom > 1e-12) ? new_a[i * K + j] / denom : uniform;
+        }
+        // M-step
+        std::vector<double> next_pi(K);
+        for (size_t s = 0; s < K; ++s) next_pi[s] = gamma[s];
+        std::fill(gsum_prev.begin(), gsum_prev.end(), 0.0);
+        for (size_t step = 0; step + 1 < T; ++step)
+            for (size_t s = 0; s < K; ++s) gsum_prev[s] += gamma[step * K + s];
+        for (size_t i = 0; i < K; ++i) {
+            const double den = std::max(1e-12, gsum_prev[i]);
+            double rs = 0.0;
+            for (size_t j = 0; j < K; ++j) {
+                new_a[i * K + j] = xi_sum[i * K + j] / den;
+                rs += new_a[i * K + j];
+            }
+            if (rs <= 1e-12) rs = 1.0;
+            for (size_t j = 0; j < K; ++j) new_a[i * K + j] /= rs;
+        }
+        std::fill(gw.begin(), gw.end(), 0.0);
+        for (size_t i = 0; i < T; ++i)
+            for (size_t s = 0; s < K; ++s) gw[s] += gamma[i * K + s];
+        for (size_t s = 0; s < K; ++s) {
+            const double safe = std::max(1e-12, gw[s]);
+            double m = 0.0;
+            for (size_t i = 0; i < T; ++i) m += gamma[i * K + s] * x[i];
+            m /= safe;
+            new_means[s] = m;
+            double v = 0.0;
+            for (size_t i = 0; i < T; ++i) {
+                const double d = x[i] - m;
+                v += gamma[i * K + s] * (d * d);
+            }
+            new_stds[s] = std::max(1e-4, std::sqrt(v / safe));
+        }
+        double mean_shift = 0.0, std_shift = 0.0;
+        for (size_t s = 0; s < K; ++s) {
+            mean_shift = std::max(mean_shift, std::fabs(new_means[s] - means[s]));
+            std_shift = std::max(std_shift, std::fabs(new_stds[s] - stds[s]));
+        }
+        for (size_t s = 0; s < K; ++s) {
+            pi[s] = next_pi[s];
+            means[s] = new_means[s];
+            stds[s] = new_stds[s];
+        }
+        for (size_t q = 0; q < K * K; ++q) a[q] = new_a[q];
+        if (mean_shift < tol && std_shift < tol) break;
+    }
+    return 0;
+}
+
+// Viterbi decoding; path has t entries. Returns 0 on success, -1 on bad input.
+ZN_EXPORT int zn_hmm_viterbi(const double* x, int t, int k, const double* means, const double* stds, const double* a,
+                             const double* pi, int* path) {
+    if (!x || !means || !stds || !a || !pi || !path || t < 1 || k < 1) return -1;
+    const size_t T = static_cast<size_t>(t), K = static_cast<size_t>(k);
+    std::vector<double> log_a(K * K), log_pi(K), log_b(T * K), v(T * K);
+    std::vector<int> bp(T * K, 0);
+    for (size_t q = 0; q < K * K; ++q) log_a[q] = std::log(std::max(1e-12, a[q]));
+    for (size_t s = 0; s < K; ++s) log_pi[s] = std::log(std::max(1e-12, pi[s]));
+    for (size_t s = 0; s < K; ++s) {
+        const double sigma = std::max(1e-4, stds[s]);
+        const double var = sigma * sigma;
+        for (size_t i = 0; i < T; ++i) {
+            const double d = x[i] - means[s];
+            log_b[i * K + s] = -0.5 * std::log(2.0 * kPi * var) - 0.5 * (d * d) / var;
+        }
+    }
+    for (size_t s = 0; s < K; ++s) v[s] = log_pi[s] + log_b[s];
+    for (size_t step = 1; step < T; ++step) {
+        for (size_t s = 0; s < K; ++s) {
+            size_t best = 0;
+            double best_val = v[(step - 1) * K] + log_a[s] + log_b[step * K + s];
+            for (size_t i = 1; i < K; ++i) {
+                const double val = v[(step - 1) * K + i] + log_a[i * K + s] + log_b[step * K + s];
+                if (val > best_val) {  // first maximum wins, like numpy.argmax
+                    best_val = val;
+                    best = i;
+                }
+            }
+            v[step * K + s] = best_val;
+            bp[step * K + s] = static_cast<int>(best);
+        }
+    }
+    size_t last = 0;
+    for (size_t s = 1; s < K; ++s)
+        if (v[(T - 1) * K + s] > v[(T - 1) * K + last]) last = s;
+    path[T - 1] = static_cast<int>(last);
+    for (size_t step = T - 1; step-- > 0;) path[step] = bp[(step + 1) * K + static_cast<size_t>(path[step + 1])];
+    return 0;
+}
+
+ZN_EXPORT int zn_abi_version() { return 2; }

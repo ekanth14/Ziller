@@ -43,7 +43,7 @@ def _load():
         try:
             lib = ctypes.CDLL(str(path))
             lib.zn_abi_version.restype = ctypes.c_int
-            if lib.zn_abi_version() != 1:
+            if lib.zn_abi_version() != 2:
                 continue
             dp = ctypes.POINTER(ctypes.c_double)
             lib.zn_monte_carlo_drawdown.restype = ctypes.c_double
@@ -52,6 +52,11 @@ def _load():
             ]
             lib.zn_hurst_exponent.restype = ctypes.c_double
             lib.zn_hurst_exponent.argtypes = [dp, ctypes.c_int]
+            ip = ctypes.POINTER(ctypes.c_int)
+            lib.zn_hmm_em.restype = ctypes.c_int
+            lib.zn_hmm_em.argtypes = [dp, ctypes.c_int, ctypes.c_int, dp, dp, dp, dp, ctypes.c_int, ctypes.c_double]
+            lib.zn_hmm_viterbi.restype = ctypes.c_int
+            lib.zn_hmm_viterbi.argtypes = [dp, ctypes.c_int, ctypes.c_int, dp, dp, dp, dp, ip]
             return lib
         except (OSError, AttributeError):
             continue
@@ -85,3 +90,38 @@ def hurst_exponent(series: Sequence[float]) -> float | None:
     arr, n = _as_array(series)
     result = _LIB.zn_hurst_exponent(arr, n)
     return None if math.isnan(result) else result
+
+
+def hmm_em(x, means, stds, a, pi, max_iter: int, tol: float):
+    """Native HMM EM loop. Returns (means, stds, a, pi) as lists, or None if unavailable.
+
+    `a` is a k x k nested sequence; inputs are not modified.
+    """
+    if _LIB is None:
+        return None
+    k = len(means)
+    xs, t = _as_array([float(v) for v in x])
+    m, _ = _as_array([float(v) for v in means])
+    sd, _ = _as_array([float(v) for v in stds])
+    am, _ = _as_array([float(a[i][j]) for i in range(k) for j in range(k)])
+    p, _ = _as_array([float(v) for v in pi])
+    if _LIB.zn_hmm_em(xs, t, k, m, sd, am, p, int(max_iter), float(tol)) != 0:
+        return None
+    a_out = [[am[i * k + j] for j in range(k)] for i in range(k)]
+    return list(m), list(sd), a_out, list(p)
+
+
+def hmm_viterbi(x, means, stds, a, pi):
+    """Native Viterbi decoding. Returns list[int] path, or None if unavailable."""
+    if _LIB is None:
+        return None
+    k = len(means)
+    xs, t = _as_array([float(v) for v in x])
+    m, _ = _as_array([float(v) for v in means])
+    sd, _ = _as_array([float(v) for v in stds])
+    am, _ = _as_array([float(a[i][j]) for i in range(k) for j in range(k)])
+    p, _ = _as_array([float(v) for v in pi])
+    path = (ctypes.c_int * t)()
+    if _LIB.zn_hmm_viterbi(xs, t, k, m, sd, am, p, path) != 0:
+        return None
+    return list(path)
