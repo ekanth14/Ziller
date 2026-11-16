@@ -32,6 +32,7 @@ COPY --from=builder /install /usr/local
 
 # Copy application source code
 COPY --chown=zillers:zillers cryptoscope ./cryptoscope
+COPY --chown=zillers:zillers core ./core
 COPY --chown=zillers:zillers .env.example ./
 COPY --chown=zillers:zillers pytest.ini ./
 

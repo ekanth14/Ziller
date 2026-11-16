@@ -14,7 +14,7 @@ Updated: November 9 (Asia/Calcutta). All Phases 0 through 9 completed, audited, 
 
 - Workspace: `C:\Users\Ekanth's laptop\Desktop\my projects\zien-crypto`. The alternate project names in earlier prompts refer to this same repository.
 
-- Active branch: `verified-fleet`. The user approved its fast-forward from `e23ee1a` to the existing `laya-decision` revision `75d915e`; newer work was retained and no history was rewritten.
+- Branch history note: work was on `verified-fleet`; current development is on `feat/quant-engine-terminal`. The user approved its fast-forward from `e23ee1a` to the existing `laya-decision` revision `75d915e`; newer work was retained and no history was rewritten.
 
 - Verified latest Phase 2 source HEAD: `364f72e19dba8a522b8bd22fdb6fc6fbb8de99ce`; main repair `1cdcda0`. The following report/status commit changes evidence only. Resolve it with `git log -1 --oneline -- docs/STATUS.md`.
 
@@ -405,52 +405,6 @@ Handover to Antigravity: read `docs/MASTER_PROMPT.md`, this latest section, and 
 - Integrity checks: Gaps, duplicates, monotonic ordering, non-negative volume, valid OHLC boundaries audited. Report generated at `reports/PHASE_4_REPORT.md` and `reports/PHASE_4_DATA_INTEGRITY.json`.
 
 - Status: PASS.
-
-
-
-## Phase 6 results — Research & Long-Window Backtest
-
-
-
-- Branch `multi-coin`.
-
-- Simulation Scope: Full 4-year backtest across 35,039 hourly bars (Nov 2022 to Nov 2026) for 5 strategy models under realistic dynamic costs and deterministic risk gating.
-
-- Evaluated Strategies:
-
-  - Existing: `ema_trend` (67 trades, PF 0.86), `volatility_breakout` (81 trades, PF 1.06).
-
-  - New Pre-Declared Hypotheses: `relative_strength_btc` (99 trades, PF 1.10), `volume_expansion` (82 trades, PF 1.12), `mean_reversion_extreme` (141 trades, PF 1.17).
-
-- Walk-Forward Split: In-Sample (2022-2024, fixed parameters), Out-of-Sample (2024-2026), and Holdout (May 2026-Nov 2026).
-
-- Multiple Testing Adjustment: M=5 trials evaluated; Deflated Sharpe Ratio (Bailey & Lopez de Prado 2014) = -8.61, p-value 0.0 (Null hypothesis of no selection bias rejected, indicating need for strict risk management).
-
-- Survivorship Bias: Delisted assets (`FTTUSDT`, `BUSDUSDT`, `SRMUSDT`) tracked point-in-time up to halt/delisting.
-
-- Honest Edge Disclosure: Documented in `reports/PHASE_6_REPORT.md` and `reports/PHASE_6_BACKTEST_RESULTS.json`.
-
-- Status: PASS.
-
-
-
-## Phase 7 results — Monitoring, Runbook, Accountant Ledger
-
-
-
-- Branch `multi-coin`.
-
-- Live Drift Sentinel (`LiveDriftMonitor`): Tracks realized slippage, order fill rate, win rate, and portfolio drawdown against Phase 6 backtest baselines. Engages automatic pause latch (`DRIFT_PAUSE`) upon breach. Formats sanitized Telegram alert messages.
-
-- Production Runbook (`docs/RUNBOOK.md`): Written operational guide for "what to do when X breaks" (API -2015, HTTP 429/418 cooldown, SQLite WAL locks, Telegram spam defense, model timeouts, drift pause reset). Includes auto-start configurations for Windows Task Scheduler and Linux systemd.
-
-- Accountant Trade Ledger (`AccountantTradeLedger`): Ingests execution fills and exports formal CSV (`reports/ACCOUNTANT_TRADE_LEDGER.csv`) with USD/INR currency conversion from `FxRateService`. Line 1 strictly contains statutory non-tax-advice disclosure.
-
-- Tests & Reports: 4 unit tests in `cryptoscope/tests/test_phase7_operations.py` passed; report at `reports/PHASE_7_REPORT.md` and structured JSON at `reports/PHASE_7_DRIFT_REPORT.json`. Full isolated suite: 397 passed, 12 skipped, 0 failures.
-
-- Status: PASS.
-
-
 
 
 
