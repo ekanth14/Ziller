@@ -39,9 +39,22 @@ _PARQUET_TESTS = {
 def pytest_collection_modifyitems(config, items):
     import pytest
 
-    if _parquet_engine_available():
-        return
-    skip = pytest.mark.skip(reason="No usable parquet engine (pyarrow/fastparquet) in this environment")
-    for item in items:
-        if item.name in _PARQUET_TESTS:
-            item.add_marker(skip)
+    if not _parquet_engine_available():
+        skip = pytest.mark.skip(reason="No usable parquet engine (pyarrow/fastparquet) in this environment")
+        for item in items:
+            if item.name in _PARQUET_TESTS:
+                item.add_marker(skip)
+    if not _quantstats_available():
+        skip = pytest.mark.skip(reason="quantstats not installed (requires numpy<2)")
+        for item in items:
+            if item.name == "test_quantstats_tearsheet_evaluation":
+                item.add_marker(skip)
+
+
+def _quantstats_available() -> bool:
+    try:
+        import quantstats  # noqa: F401
+
+        return True
+    except Exception:
+        return False
