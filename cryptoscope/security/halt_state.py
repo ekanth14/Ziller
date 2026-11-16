@@ -15,6 +15,11 @@ ROOT = Path(__file__).resolve().parents[2]
 class GovernorState:
     def __init__(self, path=None):
         self._path = Path(path) if path is not None else None
+        self._listeners = []
+
+    def add_listener(self, callback):
+        """Register callback(snapshot) invoked after every halt(); errors never propagate."""
+        self._listeners.append(callback)
 
     @property
     def path(self):
@@ -59,7 +64,13 @@ class GovernorState:
     def halt(self, reason='Emergency halt', actor='local-system', action='HALT'):
         if action not in {'HALT', 'HALT_FLATTEN'}:
             raise ValueError('Invalid emergency action')
-        return self._write(True, action, str(reason)[:500], str(actor)[:200])
+        snapshot = self._write(True, action, str(reason)[:500], str(actor)[:200])
+        for callback in list(self._listeners):
+            try:
+                callback(snapshot)
+            except Exception:  # an alerting failure must never affect the halt itself
+                pass
+        return snapshot
 
     def resume_local_admin(self, *, admin_reauthenticated, actor):
         if admin_reauthenticated is not True or not actor:

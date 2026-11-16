@@ -101,6 +101,11 @@ class ExecutionBot(TestnetLifecycle,BaseBot):
         self.last_exchange_reconciliation = 0.0
         self.last_emergency_poll = 0.0
 
+        # Every halt raises a CRITICAL alert (deduplicated), whichever code path triggered it
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._last_halt_alert: Dict[str, float] = {}
+        self.halt_state.add_listener(self._on_halt)
+
         # Reconcile on startup
         self.reconcile_state()
 
@@ -109,10 +114,33 @@ class ExecutionBot(TestnetLifecycle,BaseBot):
         self.subscribe(SupervisorHeartbeat)
         self.subscribe(MarketUpdate)
 
+    def _on_halt(self, snapshot: Dict[str, Any]) -> None:
+        """Publish a CRITICAL SystemAlert for a durable halt (thread-safe, 60s per-reason dedup)."""
+        reason = str(snapshot.get('reason', ''))
+        now = time.time()
+        if now - self._last_halt_alert.get(reason, 0.0) < 60.0:
+            return
+        self._last_halt_alert[reason] = now
+        loop = self._loop
+        if loop is None or loop.is_closed():
+            return
+        alert = SystemAlert(
+            severity="CRITICAL",
+            source=self.name,
+            title="Trading halted",
+            message=f"{snapshot.get('action', 'HALT')}: {reason}",
+            details={"actor": snapshot.get('actor'), "mode": self.mode},
+        )
+        try:
+            asyncio.run_coroutine_threadsafe(self.emit(alert), loop)
+        except Exception:
+            logger.exception("[%s] failed to schedule halt alert", self.name)
+
     async def start(self):
+        self._loop = asyncio.get_running_loop()
         if self.mode=='TESTNET':
-            self.reconcile_uncertain_entries()
-            self.reconcile_testnet_positions()
+            await asyncio.to_thread(self.reconcile_uncertain_entries)
+            await asyncio.to_thread(self.reconcile_testnet_positions)
         await super().start()
 
     def reconcile_testnet_positions(self):
@@ -122,7 +150,7 @@ class ExecutionBot(TestnetLifecycle,BaseBot):
         never erases exposure or silently resumes the emergency latch.
         """
         self.last_exchange_reconciliation=time.time()
-        for symbol,pos in self.active_positions.items():
+        for symbol,pos in list(self.active_positions.items()):
             try:
                 reference=pos.get('stop_order_id')
                 if pos.get('mode')!='TESTNET' or not str(reference).isdigit():raise ValueError()
@@ -515,7 +543,8 @@ class ExecutionBot(TestnetLifecycle,BaseBot):
         """
         state=self.halt_state.snapshot()
         if state['halted'] and self.mode=='TESTNET':
-            self.reconcile_uncertain_entries(cancel_working=True)
+            # blocking exchange I/O runs off the event loop so heartbeats keep flowing
+            await asyncio.to_thread(self.reconcile_uncertain_entries, cancel_working=True)
         if (state['halted'] and state['action']=='HALT_FLATTEN' and
                 self.mode in {'PAPER','TESTNET'} and self.active_positions):
             return await self.flatten_all_positions('Durable master HALT_FLATTEN request')
@@ -529,8 +558,9 @@ class ExecutionBot(TestnetLifecycle,BaseBot):
                 self.last_emergency_poll=time.time()
                 await self.apply_emergency_action()
             if self.mode=='TESTNET' and time.time()-self.last_exchange_reconciliation>=60:
-                self.reconcile_uncertain_entries()
-                self.reconcile_testnet_positions()
+                self.last_exchange_reconciliation=time.time()  # prevents re-entry while the thread runs
+                await asyncio.to_thread(self.reconcile_uncertain_entries)
+                await asyncio.to_thread(self.reconcile_testnet_positions)
             elapsed = time.time() - self.last_supervisor_heartbeat
             if elapsed > self.supervisor_timeout_sec and not self.emergency_protection_active:
                 if self.active_positions:
@@ -559,4 +589,7 @@ class ExecutionBot(TestnetLifecycle,BaseBot):
             "seconds_since_supervisor_heartbeat": round(time.time() - self.last_supervisor_heartbeat, 1),
             "watchdog_grace_active": self.watchdog_grace_start is not None,
             "watchdog_grace_sec": self.watchdog_grace_sec,
+            "halted": self.halt_state.snapshot()['halted'],
+            "exchange_cooldown_seconds": max(0.0, round(self.binance_client.retry_after_monotonic - time.monotonic(), 1)),
+            "seconds_since_exchange_reconcile": round(time.time() - self.last_exchange_reconciliation, 1),
         }
