@@ -552,7 +552,6 @@ class ExecutionBot(TestnetLifecycle,BaseBot):
                 if actual is None:continue
             else:actual=pos['entry_price']
 
-            pnl_usd = 0.0
             closed = PositionClosed(
                 symbol=sym,
                 side=pos["side"],
