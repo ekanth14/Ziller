@@ -1,4 +1,4 @@
-"""Explicit offline fixture. This never represents real Laya inference."""
+"""Test-only synthetic fixtures. Never imported by production code; never real Laya inference."""
 import time
 from cryptoscope.agents.schemas import Snapshot
 

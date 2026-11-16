@@ -14,7 +14,7 @@ from cryptoscope.execution.paper_broker import PaperBroker
 from cryptoscope.providers.binance import BinanceProvider
 from cryptoscope.providers.laya import LayaProvider
 from cryptoscope.providers.contracts import role_schema
-from cryptoscope.research.demo import DemoProvider, demo_snapshot
+from cryptoscope.tests.demo_fixtures import DemoProvider, demo_snapshot
 from cryptoscope.research.settings import load_config
 from cryptoscope.storage.research_store import ResearchStore
 

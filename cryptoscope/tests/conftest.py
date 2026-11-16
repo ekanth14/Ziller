@@ -76,6 +76,16 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if item.name in _PARQUET_TESTS:
                 item.add_marker(skip)
+    # These evaluations read downloaded Parquet candles; no bundled/offline data is shipped.
+    from pathlib import Path
+
+    klines = Path(__file__).resolve().parents[2] / "data" / "parquet_klines" / "1h"
+    if not (klines.is_dir() and any(klines.glob("*.parquet"))):
+        skip = pytest.mark.skip(reason="No downloaded Parquet klines (run research/multi_coin/kline_downloader)")
+        for item in items:
+            if item.name in {"test_duckdb_parquet_evaluation", "test_talib_precision_evaluation",
+                             "test_drex_license_and_evaluation"}:
+                item.add_marker(skip)
     if not _quantstats_available():
         skip = pytest.mark.skip(reason="quantstats not installed (requires numpy<2)")
         for item in items:

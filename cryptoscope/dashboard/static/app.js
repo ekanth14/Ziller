@@ -192,8 +192,8 @@ function renderOverview() {
   const failed=data.runs.filter(r=>r.status==='failed').length;
   if($('run-breakdown')) $('run-breakdown').textContent=`${completed} completed · ${running?running+' running':failed+' failed'}`;
   if($('activity-count')) $('activity-count').textContent=data.runs.length;
-  if($('workspace-sub')) $('workspace-sub').textContent=state.workspace==='demo'?'Local · Synthetic data':'Local · Paper account';
-  if($('footer-status')) $('footer-status').textContent=state.workspace==='demo'?'Synthetic demo · Read only':'Local monitor · Read only';
+  if($('workspace-sub')) $('workspace-sub').textContent='Local · Paper account';
+  if($('footer-status')) $('footer-status').textContent='Local monitor · Read only';
   
   if($('risk-fraction')) $('risk-fraction').textContent=`${number(data.settings.risk_fraction*100)}%`;
   if($('allocation-cap')) $('allocation-cap').textContent=`${number(data.settings.max_position_fraction*100)}%`;
@@ -977,7 +977,7 @@ function renderOrderBook() {
 
 function renderAutoTrader(){
   const bot=state.data?.autotrader;
-  if($('autotrader')) $('autotrader').hidden=state.workspace==='demo';
+  if($('autotrader')) $('autotrader').hidden=false;
   if(!bot)return;
   const runtime=bot.runtime || {}, risk=runtime.risk || {}, portfolio=runtime.portfolio || {};
   

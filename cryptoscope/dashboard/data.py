@@ -18,12 +18,10 @@ class DashboardData:
         self.health_lock = threading.Lock()
 
     def directories(self, workspace):
-        if workspace not in {"research", "demo"}:
+        if workspace != "research":
             raise ValueError("Unknown workspace")
-        base = self.root / "work" / ("research-agent" if workspace == "research" else "research-demo")
+        base = self.root / "work" / "research-agent"
         paths = [base] if (base / "research.sqlite3").exists() else []
-        if workspace == "demo" and base.exists():
-            paths += [p.parent for p in base.glob("*/research.sqlite3")]
         return sorted(paths, key=lambda p: (p / "research.sqlite3").stat().st_mtime, reverse=True)
 
     @staticmethod
@@ -137,7 +135,7 @@ class DashboardData:
                 "portfolio": portfolio, "controls": controls, "fills": fills, "runs": [self.summary(b) for b in bodies],
                 "snapshots": snapshots, "errors": errors,
                 "settings": {key: self.config[key] for key in ("symbols", "interval", "risk_fraction", "max_position_fraction", "minimum_reward_risk")},
-                "ledger_label": "Latest demo session" if workspace == "demo" else "Paper research account"}
+                "ledger_label": "Paper research account"}
 
     def backtest(self, run_id):
         if not re.fullmatch(r'[a-f0-9]{32}', run_id):
@@ -151,8 +149,7 @@ class DashboardData:
         for path in paths[:100]:
             try:
                 body = json.loads(path.read_text(encoding='utf-8'))
-                is_demo = body.get('source') == 'synthetic_demo'
-                if is_demo != (workspace == 'demo'):
+                if body.get('source') == 'synthetic_demo':
                     continue
                 result.append({key: body.get(key) for key in ('run_id','created_at','strategy','symbol','source','metrics','fingerprint')})
             except (ValueError, OSError):
@@ -224,7 +221,7 @@ class DashboardData:
 
     def latest_forecast(self, workspace, bodies):
         reports=[{**b['forecast'],'run_id':b['run_id']} for b in bodies if b.get('forecast')]
-        reports.extend(r for r in self.artifacts('forecasts') if (r.get('source')=='synthetic_demo')==(workspace=='demo'))
+        reports.extend(r for r in self.artifacts('forecasts') if r.get('source')!='synthetic_demo')
         if not reports:
             return None
         report=max(reports,key=lambda r:r.get('available_at',0))
