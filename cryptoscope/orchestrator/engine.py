@@ -53,7 +53,9 @@ class OrchestratorEngine:
             self.bus,
             initial_nav=10000.0,
             max_daily_loss_pct=0.03,
-            max_drawdown_pct=0.10
+            max_drawdown_pct=0.10,
+            # Breaker state survives restarts for exchange-connected modes only
+            state_path=str(self.work_dir / "risk_state.json") if self.mode in {"TESTNET", "LIVE"} else None,
         )
         self.execution_bot = ExecutionBot(
             self.bus,

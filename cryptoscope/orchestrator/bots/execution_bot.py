@@ -144,23 +144,58 @@ class ExecutionBot(TestnetLifecycle,BaseBot):
         await super().start()
 
     def reconcile_testnet_positions(self):
-        """Read exchange protection on restart/periodically; mismatches halt.
+        """Read exchange protection on restart/periodically.
 
-        Filled or partial protection requires accounting reconciliation. A read
-        never erases exposure or silently resumes the emergency latch.
+        - Stop FILLED while offline: the fill is booked and the position closed.
+        - Stop missing/cancelled/expired: protection is repaired automatically (adopt, place, or
+          close if price is already through the stop). The durable halt latch is never cleared.
+        - Anything else that does not match the owned protection halts for reconciliation.
         """
         self.last_exchange_reconciliation=time.time()
         for symbol,pos in list(self.active_positions.items()):
             try:
+                if pos.get('mode')!='TESTNET':raise ValueError()
                 reference=pos.get('stop_order_id')
-                if pos.get('mode')!='TESTNET' or not str(reference).isdigit():raise ValueError()
+                if not str(reference).isdigit():
+                    self._repair_or_close(symbol,pos);continue
                 order=self.binance_client.get_order(symbol=symbol,order_id=int(reference))
-                if (order.get('symbol')!=symbol or order.get('side')!='SELL' or order.get('status')!='NEW'
+                status=order.get('status')
+                if status=='FILLED':
+                    actual=self.book_filled_stop(symbol,pos,order)
+                    if actual is not None:self._finalize_closed_position(symbol,pos,'STOP_LOSS',actual)
+                    continue
+                if status in {'CANCELED','EXPIRED','EXPIRED_IN_MATCH','REJECTED'} and float(order.get('executedQty',0))==0:
+                    pos['stop_order_id']=None;self._save_position_db(pos)
+                    self._repair_or_close(symbol,pos);continue
+                if (order.get('symbol')!=symbol or order.get('side')!='SELL' or status!='NEW'
                     or order.get('type') not in {'STOP_LOSS','STOP_LOSS_LIMIT'}
                     or abs(float(order.get('origQty',0))-pos.get('protected_quantity',pos['quantity']))>1e-9
                     or float(order.get('executedQty',0))!=0):raise ValueError()
             except Exception:
                 self.halt_state.halt('Exchange protection mismatch; reconciliation required',self.name)
+
+    def _repair_or_close(self,symbol,pos):
+        outcome,exit_price=self.repair_protection(symbol,pos)
+        if outcome=='CLOSED':
+            self._finalize_closed_position(symbol,pos,'STOP_LOSS',exit_price)
+        else:
+            logger.warning('[%s] Exchange protection %s for %s; durable halt retained for review',self.name,outcome.lower(),symbol)
+
+    def _finalize_closed_position(self,sym,pos,exit_reason,exit_price):
+        """Book a confirmed exchange-side close (thread-safe): remove position, publish PositionClosed."""
+        entry=pos['entry_price'];qty=pos.get('closed_quantity',pos['quantity'])
+        pnl_usd=(exit_price-entry)*qty
+        pnl_pct=((exit_price-entry)/entry)*100.0 if entry else 0.0
+        closed=PositionClosed(symbol=sym,side=pos['side'],entry_price=entry,exit_price=exit_price,quantity=qty,
+            pnl_usd=round(pnl_usd,2),pnl_pct=round(pnl_pct,2),
+            duration_seconds=round(time.time()-pos.get('created_at',time.time()),2),exit_reason=exit_reason,
+            commission_by_asset=pos.get('commission_by_asset',{}),fee_valuation_complete=pos.get('fee_valuation_complete',True))
+        self.active_positions.pop(sym,None)
+        self._remove_position_db(sym)
+        logger.warning('[%s] Position %s closed on exchange via %s @ %.4f (PnL $%.2f)',self.name,sym,exit_reason,exit_price,pnl_usd)
+        loop=self._loop
+        if loop is not None and not loop.is_closed():
+            asyncio.run_coroutine_threadsafe(self.emit(closed),loop)
 
     def _init_db(self) -> None:
         """Initialize SQLite tables for persistent state reconciliation."""
@@ -462,6 +497,9 @@ class ExecutionBot(TestnetLifecycle,BaseBot):
                 exit_price=actual
                 qty=pos.get('closed_quantity',qty)
             pnl_usd = (exit_price - entry) * qty if side == "BUY" else (entry - exit_price) * qty
+            if self.mode != 'TESTNET':
+                # software modes: subtract the same 0.1% fee used for entry accounting on both legs
+                pnl_usd -= 0.001 * (entry * qty + exit_price * qty)
             pnl_pct = ((exit_price - entry) / entry) * 100.0 if side == "BUY" else ((entry - exit_price) / entry) * 100.0
 
             closed = PositionClosed(

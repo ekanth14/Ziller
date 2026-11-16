@@ -1,9 +1,12 @@
 """RiskBot: Deterministic risk controls, multi-limit gating, and fractional Kelly sizing."""
 
 import asyncio
+import json
 import logging
 import math
+import os
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from cryptoscope.orchestrator.base_bot import BaseBot
@@ -53,6 +56,7 @@ class RiskBot(BaseBot):
         kelly_fraction: float = 0.5,           # Half-Kelly sizing
         fixed_risk_fraction: float = 0.005,    # 0.5% default fixed fractional risk
         enable_kelly_sizing: bool = False,     # Gated: requires >= 300 closed trades
+        state_path: Optional[str] = None,      # persist breakers/NAV across restarts when set
     ):
         super().__init__(name, bus)
         self.initial_nav = initial_nav
@@ -85,10 +89,66 @@ class RiskBot(BaseBot):
             "SOLUSDT": {"BTCUSDT": 0.82, "ETHUSDT": 0.84}
         }
 
+        self._state_path: Optional[Path] = Path(state_path) if state_path else None
+        self._day = self._utc_day()
+        self._load_state()
+
         self.subscribe(TradeIntent)
         self.subscribe(DebateResult)
         self.subscribe(Fill)
         self.subscribe(PositionClosed)
+
+    # -- durable breaker state ------------------------------------------------
+    @staticmethod
+    def _utc_day() -> str:
+        return time.strftime("%Y-%m-%d", time.gmtime())
+
+    def _load_state(self) -> None:
+        """Restore NAV/peak/breakers. Daily figures survive only within the same UTC day."""
+        if self._state_path is None or not self._state_path.is_file():
+            return
+        try:
+            data = json.loads(self._state_path.read_text(encoding="utf-8"))
+            self.current_nav = float(data["current_nav"])
+            self.peak_nav = float(data["peak_nav"])
+            self.drawdown_circuit_breaker = bool(data.get("drawdown_circuit_breaker", False))
+            self.closed_trades_count = int(data.get("closed_trades_count", 0))
+            if data.get("day") == self._day:
+                self.daily_realized_pnl = float(data.get("daily_realized_pnl", 0.0))
+                self.daily_loss_circuit_breaker = bool(data.get("daily_loss_circuit_breaker", False))
+        except (OSError, ValueError, KeyError, TypeError):
+            # Unreadable risk state must fail closed rather than silently reset the breakers.
+            logger.error("[%s] Risk state unreadable; latching drawdown breaker", self.name)
+            self.drawdown_circuit_breaker = True
+
+    def _save_state(self) -> None:
+        if self._state_path is None:
+            return
+        data = {
+            "day": self._day,
+            "daily_realized_pnl": self.daily_realized_pnl,
+            "daily_loss_circuit_breaker": self.daily_loss_circuit_breaker,
+            "drawdown_circuit_breaker": self.drawdown_circuit_breaker,
+            "current_nav": self.current_nav,
+            "peak_nav": self.peak_nav,
+            "closed_trades_count": self.closed_trades_count,
+        }
+        try:
+            self._state_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self._state_path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(data), encoding="utf-8")
+            os.replace(tmp, self._state_path)
+        except OSError:
+            logger.exception("[%s] Failed to persist risk state", self.name)
+
+    def _roll_day(self) -> None:
+        """Reset the daily-loss figures at the UTC day boundary (drawdown latch is never reset)."""
+        today = self._utc_day()
+        if today != self._day:
+            self._day = today
+            self.daily_realized_pnl = 0.0
+            self.daily_loss_circuit_breaker = False
+            self._save_state()
 
     async def on_event(self, event: BaseEvent) -> None:
         if isinstance(event, TradeIntent):
@@ -103,6 +163,7 @@ class RiskBot(BaseBot):
     def check_pre_trade_risk(self, intent: TradeIntent) -> Tuple[bool, List[str]]:
         """Deterministic pre-trade risk gating before expensive LLM deliberation."""
         veto_reasons = []
+        self._roll_day()
         if not self._valid_prices(intent):
             return False, ['INVALID_PRICES: Finite positive prices and a protective stop are required.']
 
@@ -147,6 +208,7 @@ class RiskBot(BaseBot):
         self.peak_nav = max(self.peak_nav,nav)
         if self.peak_nav <= 0 or (self.peak_nav-nav)/self.peak_nav >= self.max_drawdown_pct:
             self.drawdown_circuit_breaker = True
+        self._save_state()
 
     def _handle_fill(self, fill: Fill) -> None:
         """Track open position exposure."""
@@ -168,6 +230,7 @@ class RiskBot(BaseBot):
 
     def _handle_position_closed(self, closed: PositionClosed) -> None:
         """Update daily PnL and NAV tracking."""
+        self._roll_day()
         self.daily_realized_pnl += closed.pnl_usd
         self.current_nav += closed.pnl_usd
         self.peak_nav = max(self.peak_nav, self.current_nav)
@@ -177,13 +240,18 @@ class RiskBot(BaseBot):
         max_daily_loss_usd = self.initial_nav * self.max_daily_loss_pct
         if self.daily_realized_pnl <= -max_daily_loss_usd:
             self.daily_loss_circuit_breaker = True
-            asyncio.create_task(self.emit(SystemAlert(
+            alert = SystemAlert(
                 severity="CRITICAL",
                 source=self.name,
                 title="Daily Loss Limit Breached",
                 message=f"Daily realized loss of ${abs(self.daily_realized_pnl):.2f} exceeds limit ${max_daily_loss_usd:.2f}."
-            )))
+            )
+            try:
+                asyncio.get_running_loop().create_task(self.emit(alert))
+            except RuntimeError:
+                logger.critical("[%s] %s (no event loop to publish alert)", self.name, alert.message)
 
+        self._save_state()
         logger.info(
             "[%s] Position %s closed. PnL: $%.2f. Daily PnL: $%.2f. NAV: $%.2f",
             self.name, closed.symbol, closed.pnl_usd, self.daily_realized_pnl, self.current_nav
