@@ -21,7 +21,7 @@ const state = {symbol: localStorage.getItem('desk.symbol') || 'BTCUSDT', user: n
 function makeCharts() {
   const LC = window.LightweightCharts;
   const base = {
-    layout: {background: {color: 'transparent'}, textColor: MUTED, fontFamily: 'Consolas, monospace', fontSize: 10},
+    layout: {background: {color: 'transparent'}, textColor: MUTED, fontFamily: 'Consolas, monospace', fontSize: 10, attributionLogo: false},
     grid: {vertLines: {color: '#0f1822'}, horzLines: {color: '#0f1822'}},
     rightPriceScale: {borderColor: '#18222f'}, timeScale: {borderColor: '#18222f', timeVisible: false},
     crosshair: {mode: 0}, handleScroll: true, handleScale: true,
@@ -87,7 +87,9 @@ function renderCharts(d) {
   s.agents.setData(d.equity.agents.map((v, i) => ({time: eqt[i], value: (v - 1) * 100})));
   s.bh.setData(d.equity.buy_hold.map((v, i) => ({time: eqt[i], value: (v - 1) * 100})));
   if (!state.charts.fitted || state.charts.fitted !== d.symbol) {
-    price.timeScale().setVisibleLogicalRange({from: Math.max(0, times.length - 140), to: times.length + 2});
+    // Show the last ~6 months; re-applied after layout settles so a late resize cannot skew it.
+    const show = () => price.timeScale().setVisibleLogicalRange({from: Math.max(0, times.length - 180), to: times.length + 2});
+    show(); requestAnimationFrame(show); setTimeout(show, 300);
     eq.timeScale().fitContent();
     state.charts.fitted = d.symbol;
   }
@@ -139,6 +141,28 @@ function renderMesh(d) {
     `<div class="pm-foot"><span class="exec">PAPER EXEC</span><span>${esc(dec.execution)}</span>` +
     (pos ? `<span>long 1.00x since ${day(pos.entry_time)}</span><span class="${cls(pos.upnl)}">uPnL ${pct(pos.upnl)}</span>` : '<span>flat</span>') +
     `<span>next-open fills · ${d.fee_bps}bp per side</span></div>`;
+}
+
+function renderAI(d) {
+  const ai = d.ai;
+  if (!ai) { $('ai').innerHTML = ''; return; }
+  const card = s => {
+    let detail = '';
+    if (s.status !== 'OK') detail = `unavailable (${esc(s.error || s.status)})`;
+    else if (s.key === 'smc_laya') detail = `Tier 1 ${esc(s.tier1.setup)} · score ${s.tier1.score} · Laya ${esc(s.tier2.status || '')} ${s.tier2.agreed ? 'agreed' : ''}`;
+    else if (s.key === 'committee') detail = `conviction ${(+s.conviction).toFixed(2)}${s.risk_veto ? ' · <span class="veto">risk veto</span>' : ''}` +
+      (s.thx02 ? `<br>THX-02 <span class="act ${s.thx02.action === 'BUY' || s.thx02.action === 'LONG' ? 'BUY' : s.thx02.action === 'SELL' || s.thx02.action === 'SHORT' ? 'SELL' : 'HOLD'}">${esc(s.thx02.action)}</span> · regime ${esc(s.thx02.regime)}` : '') +
+      `<br>${s.personas.map(p => `${esc(p.persona)} ${esc(p.action)}`).join(' · ')}`;
+    return `<div class="ai-card"><div class="t"><span>${esc(s.label)}</span><span class="act ${s.action}">${s.action}</span></div>` +
+      `<div class="d">${detail}${s.latency_ms != null ? ` · ${s.latency_ms}ms` : ''}</div></div>`;
+  };
+  const o = ai.ollama || {};
+  const ollama = `<div class="ai-card"><div class="t"><span>Ollama ${esc(o.model || '')}</span><span class="${o.status === 'available' ? 'up' : 'dn'}">${esc(o.status || '?')}</span></div>` +
+    `<div class="d">${esc(o.role || '')}${o.laya ? ` · Laya ${esc(o.laya.status)}` : ''}</div></div>`;
+  $('ai').innerHTML = `<div class="ai-head"><span><b>AI LAYER</b> <em>your systems on the last closed bar</em></span><span>veto-only</span></div>` +
+    `<div class="ai-grid">${ai.systems.map(card).join('')}${ollama}</div>` +
+    `<div class="final"><span class="muted">rule PM</span><span class="act ${ai.rule_pm}">${ai.rule_pm}</span><span class="muted">→ final</span>` +
+    `<span class="act ${ai.final_action}">${ai.final_action}</span>${ai.vetoes.map(v => `<span class="veto">⚠ ${esc(v)}</span>`).join('')}</div>`;
 }
 
 function renderVotes(d) {
@@ -221,9 +245,10 @@ async function load() {
   try {
     const res = await fetch(`/api/desk?symbol=${encodeURIComponent(state.symbol)}&fee_bps=10`);
     const d = await res.json();
+    if (d.status === 'INSUFFICIENT_DATA') throw new Error(`${d.symbol} has only ${d.bars} daily bars (needs ${d.required})`);
     if (d.status !== 'OK') throw new Error(d.error || d.status);
     $('live-dot').className = 'dot'; $('live-label').textContent = 'LIVE';
-    renderHeader(d); renderCharts(d); renderMesh(d); renderVotes(d); renderEquity(d); renderTranscript(d); renderBook(d);
+    renderHeader(d); renderCharts(d); renderMesh(d); renderAI(d); renderVotes(d); renderEquity(d); renderTranscript(d); renderBook(d);
   } catch (err) {
     $('live-dot').className = 'dot off'; $('live-label').textContent = 'OFFLINE';
     $('foot-left').textContent = `Desk data unavailable: ${err.message}. No cached or synthetic data is shown.`;
@@ -257,7 +282,27 @@ async function post(path, body) {
 
 // ------------------------------------------------------------------ wiring
 $('symbol').value = state.symbol;
-$('symbol').addEventListener('change', e => { state.symbol = e.target.value; localStorage.setItem('desk.symbol', state.symbol); load(); });
+state.known = new Set();
+$('symbol').addEventListener('change', e => {
+  const v = e.target.value.trim().toUpperCase();
+  if (!/^[A-Z0-9]{5,20}$/.test(v) || (state.known.size && !state.known.has(v))) { e.target.value = state.symbol; return; }
+  state.symbol = v; localStorage.setItem('desk.symbol', v); if (state.charts) state.charts.fitted = null; load();
+});
+async function loadSymbols() {
+  try {
+    const r = await (await fetch('/api/desk/symbols')).json();
+    state.known = new Set(r.symbols.map(x => x.symbol));
+    $('symbol-list').innerHTML = r.symbols.map(x => `<option value="${esc(x.symbol)}">${esc(x.base)}</option>`).join('');
+    $('sym-count').textContent = `${r.symbols.length} pairs`;
+  } catch { $('sym-count').textContent = 'pairs unavailable'; }
+}
+async function loadFleet() {
+  try {
+    const f = await (await fetch('/api/fleet/status')).json();
+    $('fleet-pill').textContent = f.running ? `AUTOTRADER ${f.mode} · ${f.symbols.length} pairs` : 'AUTOTRADER OFF';
+    $('fleet-pill').className = `fleet-pill ${f.running ? 'run' : ''}`;
+  } catch {}
+}
 $('signin').addEventListener('click', async () => {
   if (state.user) { try { await post('/api/auth/logout'); } catch {} return loadUser(); }
   $('login-err').textContent = ''; $('login').showModal();
@@ -276,6 +321,6 @@ $('kill').addEventListener('click', async () => {
   loadGovernor();
 });
 
-load(); loadGovernor(); loadUser();
-state.timer = setInterval(() => { load(); loadGovernor(); }, 30000);
+load(); loadGovernor(); loadUser(); loadSymbols(); loadFleet();
+state.timer = setInterval(() => { load(); loadGovernor(); loadFleet(); }, 30000);
 })();

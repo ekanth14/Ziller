@@ -352,6 +352,7 @@ def build_desk(candles: Sequence[Dict[str, float]], symbol: str = "BTCUSDT", fee
                    "since": int(candles[start]["open_time"])},
         "position": open_pos,
         "trades": trades[-8:],
+        "all_trades": trades,
         "book": {"closed": len(trades), "won": sum(1 for x in closed_net if x > 0),
                  "avg_net": sum(closed_net) / len(closed_net) if closed_net else None,
                  "exposure": bars_in_market / max(1, len(eq_curve)), "fills": fills},

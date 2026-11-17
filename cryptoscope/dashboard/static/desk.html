@@ -10,12 +10,12 @@
 <body>
 <header class="strip">
   <span class="brand"><b>ACTION DESK</b> <i id="live-dot" class="dot"></i><span id="live-label">LIVE</span></span>
+  <nav class="nav"><a href="/" class="on">DESK</a><a href="/system">SYSTEM</a><a href="/system#fleet" id="fleet-pill" class="fleet-pill">AUTOTRADER …</a></nav>
   <span id="chips" class="chips"></span>
   <span class="strip-right">
-    <select id="symbol" aria-label="Symbol">
-      <option>BTCUSDT</option><option>ETHUSDT</option><option>SOLUSDT</option><option>BNBUSDT</option>
-      <option>XRPUSDT</option><option>DOGEUSDT</option><option>ADAUSDT</option><option>AVAXUSDT</option>
-    </select>
+    <input id="symbol" list="symbol-list" aria-label="Symbol" spellcheck="false" autocomplete="off" placeholder="Search any Binance pair">
+    <datalist id="symbol-list"></datalist>
+    <span id="sym-count" class="muted"></span>
     <span id="gov" class="gov" title="Emergency governor">GOVERNOR …</span>
     <button id="kill" class="btn danger" hidden>KILL-SWITCH</button>
     <button id="signin" class="btn">SIGN IN</button>
@@ -49,6 +49,7 @@
     </div>
     <div class="mesh-row"><span id="risk-node" class="node risk">● RISK</span></div>
     <div id="pm" class="pm"></div>
+    <div id="ai" class="ai"></div>
   </section>
 
   <!-- model votes heatmap -->

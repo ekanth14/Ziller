@@ -26,6 +26,9 @@ from cryptoscope.auth.security import (
 from cryptoscope.auth.store import AuthStore
 from cryptoscope.dashboard.data import DashboardData
 from cryptoscope.desk import DeskFeed
+from cryptoscope.desk.feed import SymbolDirectory
+from cryptoscope.desk.fleet import FleetManager
+from cryptoscope.desk.system_monitor import SystemMonitor
 from cryptoscope.dashboard.collaborate_view import render_collaborations_html
 from cryptoscope.fx.rate_service import FxRateService
 from cryptoscope.market_data.aggregator import MarketDataAggregator
@@ -112,7 +115,32 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
     if not isinstance(kill_switch, PersistentKillSwitch):
         kill_switch = PersistentKillSwitch(kill_switch)
     laya_evaluator = laya_evaluator or LayaTier2Evaluator()
-    desk_feed = DeskFeed()
+    def _ollama_status():
+        st = laya_evaluator.get_status()
+        return {"status": "available" if st.get("ollama_available") else "unavailable", "model": st.get("ollama_model"),
+                "role": "explainer only (never votes)",
+                "laya": {"status": st.get("status"), "checkpoint_loaded": st.get("checkpoint_loaded"),
+                         "evaluations": st.get("total_evaluations")}}
+
+    desk_feed = DeskFeed(ollama_status=_ollama_status)
+    symbol_directory = SymbolDirectory()
+    fleet = FleetManager(ROOT)
+
+    def _feed_delays():
+        out = {}
+        conns = market_aggregator.get_connection_status()
+        for src, c in conns.items():
+            out[src] = {"state": c.get("state"), "heartbeat_age_s": c.get("last_heartbeat_age"),
+                        "latency_ms": c.get("latency_ms"), "errors": c.get("consecutive_errors"), "feed": c.get("feed_type")}
+        ticks = {}
+        for sym in ("BTCUSDT", "ETHUSDT", "SOLUSDT"):
+            t = market_aggregator.get_ticker(sym)
+            ticks[sym] = {"status": t.get("status"), "age_s": t.get("age_seconds"), "latency_ms": t.get("latency_ms"),
+                          "sources": t.get("sources_reporting"), "source_latencies": t.get("source_latencies")}
+        return {"exchanges": out, "tickers": ticks}
+
+    system_monitor = SystemMonitor(feed_status=_feed_delays,
+                                   extra_targets=(("Ollama (local)", (os.environ.get("OLLAMA_HOST") or "http://127.0.0.1:11434").rstrip("/") + "/api/version"),))
 
     def connection_status():
         return {**market_aggregator.get_connection_status(),
@@ -220,6 +248,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 "/desk": ("desk.html", "text/html"),
                 "/desk.js": ("desk.js", "text/javascript"),
                 "/desk.css": ("desk.css", "text/css"),
+                "/system": ("system.html", "text/html"),
+                "/system.js": ("system.js", "text/javascript"),
             }
             if url.path in assets:
                 name, kind = assets[url.path]
@@ -280,6 +310,14 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 except ValueError as err:
                     return self.json(400, {"error": str(err)})
                 return self.json(200 if result.get("status") == "OK" else 503, result)
+
+            if url.path == "/api/desk/symbols":
+                return self.json(200, symbol_directory.symbols())
+            if url.path == "/api/system/metrics":
+                return self.json(200, {**system_monitor.snapshot(), "fleet": fleet.status(),
+                                       "ai": _ollama_status()})
+            if url.path == "/api/fleet/status":
+                return self.json(200, fleet.status())
 
             # Public market data and FX APIs
             if url.path == "/api/fx/rate":
@@ -1343,6 +1381,20 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 theme = str(body.get("theme", "dark"))
                 auth_store.update_settings(session["user_id"], currency, theme)
                 return self.json(200, {"status": "ok", "settings": {"display_currency": currency, "theme": theme}})
+
+            # Autotrading fleet (PAPER / TESTNET only; admin + CSRF; refuses while the halt latch is engaged)
+            if url.path in {"/api/fleet/start", "/api/fleet/stop"}:
+                if session.get("role") != "admin":
+                    return self.json(403, {"error": "Admin role required to control the trading fleet"})
+                if url.path == "/api/fleet/stop":
+                    return self.json(200, fleet.stop())
+                if kill_switch.halted:
+                    return self.json(409, {"error": "Emergency halt is engaged; resume the governor before starting the fleet"})
+                try:
+                    symbols = body.get("symbols") or ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+                    return self.json(200, fleet.start(body.get("mode", "PAPER"), symbols, session.get("email", "admin")))
+                except (ValueError, RuntimeError) as err:
+                    return self.json(400, {"error": str(err)})
 
             # Master Emergency Kill Switch (supports HALT and HALT_FLATTEN)
             if url.path == "/api/governor/kill_switch":

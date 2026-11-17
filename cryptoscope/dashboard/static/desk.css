@@ -13,10 +13,25 @@ a{color:var(--blue)}
 .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
 .dot.off{background:var(--red);box-shadow:0 0 6px var(--red)}
 
-.strip{display:flex;align-items:center;gap:12px;padding:6px 12px;background:#03060a;border-bottom:1px solid var(--line);white-space:nowrap;overflow-x:auto}
+.strip{display:flex;align-items:center;gap:8px 12px;padding:6px 12px;background:#03060a;border-bottom:1px solid var(--line);white-space:nowrap;flex-wrap:wrap}
 .brand{color:var(--green);display:flex;gap:6px;align-items:center}
 .brand b{color:var(--green)}
-.chips{display:flex;gap:6px;flex:1}
+.chips{display:flex;gap:6px;flex:1;flex-wrap:nowrap;overflow:hidden;min-width:0}
+@media (max-width:1400px){.chips{display:none}}
+.nav{display:flex;gap:4px}
+.nav a{color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:3px;padding:2px 8px}
+.nav a.on{color:var(--green);border-color:#134a36}
+.fleet-pill.run{color:var(--green);border-color:#134a36}
+#symbol{width:170px;background:var(--panel2);color:var(--txt);border:1px solid var(--line);font:inherit;padding:3px 6px;border-radius:3px;text-transform:uppercase}
+.ai{margin-top:10px;border:1px solid var(--line);border-radius:8px;padding:8px}
+.ai-head{display:flex;justify-content:space-between;color:var(--muted);margin-bottom:6px}
+.ai-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.ai-card{border:1px solid var(--line);border-radius:6px;padding:6px;background:var(--panel2)}
+.ai-card .t{display:flex;justify-content:space-between;font-weight:700}
+.ai-card .d{color:var(--muted);font-size:10.5px;margin-top:3px}
+.act{font-weight:800}.act.BUY{color:var(--green)}.act.SELL{color:var(--red)}.act.HOLD{color:#9fb0c3}
+.final{margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.veto{color:var(--amber);font-size:11px}
 .chip{padding:2px 8px;border:1px solid var(--line);border-radius:3px;color:var(--muted)}
 .chip b{font-weight:600}
 .strip-right{display:flex;gap:8px;align-items:center}
