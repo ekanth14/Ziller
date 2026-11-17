@@ -164,6 +164,7 @@ function renderMesh(d) {
 function renderAI(d) {
   const ai = d.ai;
   if (!ai) { $('ai').innerHTML = ''; return; }
+  if (ai.halted) { $('ai').innerHTML = `<div class="halted-banner">■ KILL SWITCH ENGAGED — AI layer, LLMs and fleet stopped. ${esc(ai.policy)}</div>`; return; }
   const card = s => {
     let detail = '';
     if (s.status !== 'OK') detail = `unavailable (${esc(s.error || s.status)})`;
@@ -290,7 +291,9 @@ async function loadGovernor() {
     const g = await (await fetch('/api/governor/status')).json();
     const halted = g.kill_switch_engaged || g.emergency_halted;
     $('gov').className = `gov ${halted ? 'halt' : 'ok'}`;
-    $('gov').textContent = halted ? `HALTED · ${g.action || 'HALT'}` : `GOVERNOR OK · ${g.mode}`;
+    $('gov').textContent = halted ? `HALTED · ${g.action || 'HALT'} · AI stopped` : `GOVERNOR OK · ${g.mode}`;
+    $('kill').classList.toggle('engaged', !!halted);
+    $('kill').textContent = halted ? '■ KILLED' : '■ KILL SWITCH';
   } catch { $('gov').textContent = 'GOVERNOR ?'; }
 }
 
@@ -298,7 +301,6 @@ async function loadUser() {
   const res = await fetch('/api/auth/me');
   state.user = res.ok ? await res.json() : null;
   $('signin').textContent = state.user ? 'SIGN OUT' : 'SIGN IN';
-  $('kill').hidden = !state.user;
 }
 
 async function post(path, body) {
@@ -345,11 +347,26 @@ $('login-form').addEventListener('submit', async e => {
     $('password').value = ''; $('login').close(); await loadUser();
   } catch (err) { $('login-err').textContent = err.message; }
 });
-$('kill').addEventListener('click', async () => {
-  if (!confirm('Engage the master kill-switch? All new entries halt until an admin resumes.')) return;
-  try { await post('/api/governor/kill_switch', {action: 'HALT'}); } catch (err) { alert(err.message); }
-  loadGovernor();
-});
+
+// ---- master kill switch (shared by desk and system pages) --------------------------
+async function masterKill() {
+  if (!state.user) { $('login-err').textContent = 'Sign in to use the kill switch.'; $('login').showModal(); return; }
+  const flatten = confirm('MASTER KILL SWITCH\n\nThis immediately:\n' +
+    ' • latches the emergency halt (no new entries anywhere)\n • stops the autotrader fleet\n' +
+    ' • stops every AI system (SMC/Laya, committee, THX-02, strategies, all Ollama models) and unloads models from memory\n\n' +
+    'OK = HALT + FLATTEN open positions (market close)\nCancel = choose plain HALT instead');
+  const action = flatten ? 'HALT_FLATTEN' : (confirm('Engage plain HALT (keep open positions and their exchange stops)?') ? 'HALT' : null);
+  if (!action) return;
+  try {
+    const r = await post('/api/governor/kill_switch', {action});
+    const b = r.background || {};
+    alert(`Kill switch engaged (${action}).\nFleet running: ${b.fleet?.running ? 'YES — check logs' : 'no'}\n` +
+      `LLM jobs dropped: ${b.llm?.queued_jobs_dropped ?? 0}; models unloaded: ${(b.llm?.models_unloaded || []).join(', ') || 'none loaded'}\n` +
+      'Resuming needs an admin with password re-entry.');
+  } catch (err) { alert(err.message); }
+  loadGovernor(); if (typeof load === 'function') load();
+}
+$('kill').addEventListener('click', masterKill);
 
 function renderAll(d) { renderHeader(d); renderCharts(d); renderMesh(d); renderAI(d); renderVotes(d); renderEquity(d); renderTranscript(d); renderBook(d); }
 function renderToggles() {

@@ -123,7 +123,9 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 "laya": {"status": st.get("status"), "checkpoint_loaded": st.get("checkpoint_loaded"),
                          "evaluations": st.get("total_evaluations")}}
 
-    desk_feed = DeskFeed(ollama_status=_ollama_status, llm_panel=LLMPanel())
+    ai_allowed = lambda: not kill_switch.halted  # noqa: E731 - the durable latch gates every AI system
+    llm_panel = LLMPanel(gate=ai_allowed)
+    desk_feed = DeskFeed(ollama_status=_ollama_status, llm_panel=llm_panel, ai_gate=ai_allowed)
     symbol_directory = SymbolDirectory()
     fleet = FleetManager(ROOT)
 
@@ -447,6 +449,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     "halted_at": kill_switch.halted_at,
                     "halted_by": kill_switch.halted_by,
                     "target_exchange": "Binance Spot",
+                    "ai_layer": "stopped" if kill_switch.halted else "running",
+                    "fleet_running": fleet.status()["running"],
                 })
 
             # Quantitative Analysis & Statistical Arbitrage APIs
@@ -1403,6 +1407,11 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 operator = session.get("email", "Operator")
                 action = str(body.get("action", "HALT")).strip().upper()
                 result = kill_switch.execute_kill_switch(action=action, triggered_by=operator)
+                # Master kill: also stop everything this server runs in the background.
+                result["background"] = {"fleet": {"was_running": fleet.status()["running"]},
+                                        "llm": llm_panel.halt(), "ai_layer": "stopped"}
+                fleet.stop()
+                result["background"]["fleet"]["running"] = fleet.status()["running"]
                 return self.json(200, result)
 
             # Resume from Emergency Kill Switch (Requires Admin Password)

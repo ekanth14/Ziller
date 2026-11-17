@@ -83,7 +83,10 @@ async function tick() {
     const g = await (await fetch('/api/governor/status')).json();
     const halted = g.kill_switch_engaged || g.emergency_halted;
     $('gov').className = `gov ${halted ? 'halt' : 'ok'}`;
-    $('gov').textContent = halted ? `HALTED · ${g.action || 'HALT'}` : `GOVERNOR OK · ${g.mode}`;
+    $('gov').textContent = halted ? `HALTED · ${g.action || 'HALT'} · AI stopped` : `GOVERNOR OK · ${g.mode}`;
+    $('kill').classList.toggle('engaged', !!halted);
+    $('resume').hidden = !halted;
+    $('kill').textContent = halted ? '■ KILLED' : '■ KILL SWITCH';
   } catch {}
 }
 
@@ -117,6 +120,40 @@ $('fleet-start').addEventListener('click', async () => {
   if (!confirm(`Start the autotrader fleet in ${mode} mode for ${symbols.join(', ')}?`)) return;
   try { renderFleet(await post('/api/fleet/start', {mode, symbols})); } catch (err) { $('fleet-err').textContent = err.message; }
 });
+const loadGovernor = tick;
+$('resume').addEventListener('click', () => {
+  if (!state.user) { $('login-err').textContent = 'Sign in as admin to resume.'; $('login').showModal(); return; }
+  $('resume-err').textContent = ''; $('resume-dlg').showModal();
+});
+$('resume-cancel').addEventListener('click', () => $('resume-dlg').close());
+$('resume-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  try {
+    await post('/api/governor/resume', {password: $('resume-password').value});
+    $('resume-password').value = ''; $('resume-dlg').close(); tick();
+  } catch (err) { $('resume-err').textContent = err.message; }
+});
+
+// ---- master kill switch (shared by desk and system pages) --------------------------
+async function masterKill() {
+  if (!state.user) { $('login-err').textContent = 'Sign in to use the kill switch.'; $('login').showModal(); return; }
+  const flatten = confirm('MASTER KILL SWITCH\n\nThis immediately:\n' +
+    ' • latches the emergency halt (no new entries anywhere)\n • stops the autotrader fleet\n' +
+    ' • stops every AI system (SMC/Laya, committee, THX-02, strategies, all Ollama models) and unloads models from memory\n\n' +
+    'OK = HALT + FLATTEN open positions (market close)\nCancel = choose plain HALT instead');
+  const action = flatten ? 'HALT_FLATTEN' : (confirm('Engage plain HALT (keep open positions and their exchange stops)?') ? 'HALT' : null);
+  if (!action) return;
+  try {
+    const r = await post('/api/governor/kill_switch', {action});
+    const b = r.background || {};
+    alert(`Kill switch engaged (${action}).\nFleet running: ${b.fleet?.running ? 'YES — check logs' : 'no'}\n` +
+      `LLM jobs dropped: ${b.llm?.queued_jobs_dropped ?? 0}; models unloaded: ${(b.llm?.models_unloaded || []).join(', ') || 'none loaded'}\n` +
+      'Resuming needs an admin with password re-entry.');
+  } catch (err) { alert(err.message); }
+  loadGovernor(); if (typeof load === 'function') load();
+}
+$('kill').addEventListener('click', masterKill);
+
 $('fleet-stop').addEventListener('click', async () => {
   $('fleet-err').textContent = '';
   try { renderFleet(await post('/api/fleet/stop')); } catch (err) { $('fleet-err').textContent = err.message; }

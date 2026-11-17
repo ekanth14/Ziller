@@ -49,7 +49,7 @@ def _facts(desk: Dict[str, Any]) -> str:
 
 class LLMPanel:
     def __init__(self, host: Optional[str] = None, models: Optional[List[str]] = None, timeout: float = 180.0,
-                 cache_size: int = 300, discover_ttl: float = 300.0):
+                 cache_size: int = 300, discover_ttl: float = 300.0, gate=None):
         self.host = (host or os.environ.get("OLLAMA_HOST") or "http://127.0.0.1:11434").strip().rstrip("/")
         if not self.host.startswith(("http://", "https://")):  # Ollama accepts a bare host:port in OLLAMA_HOST
             self.host = "http://" + self.host
@@ -65,6 +65,8 @@ class LLMPanel:
         self._lock = threading.Lock()
         self._wake = threading.Event()
         self._worker: Optional[threading.Thread] = None
+        # gate() -> False while the master kill switch is engaged; no model is called then.
+        self.gate = gate or (lambda: True)
 
     # ---------------------------------------------------------- discovery
     def models(self) -> List[str]:
@@ -86,8 +88,28 @@ class LLMPanel:
         return list(names)
 
     # ---------------------------------------------------------- public API
+    def halt(self) -> Dict[str, Any]:
+        """Kill switch: drop every queued job and unload all models from Ollama memory."""
+        with self._lock:
+            dropped = sum(len(j["models"]) for j in self._queue.values())
+            self._queue.clear()
+        unloaded = []
+        try:
+            with urlopen(Request(self.host + "/api/ps"), timeout=5) as resp:  # noqa: S310 - local Ollama
+                loaded = [m["name"] for m in json.loads(resp.read()).get("models", [])]
+            for name in loaded:
+                body = json.dumps({"model": name, "keep_alive": 0}).encode()
+                with urlopen(Request(self.host + "/api/generate", data=body, headers={"Content-Type": "application/json"}), timeout=15):  # noqa: S310
+                    unloaded.append(name)
+        except Exception:
+            pass
+        return {"queued_jobs_dropped": dropped, "models_unloaded": unloaded}
+
     def request(self, symbol: str, interval: str, bar_time: float, desk: Dict[str, Any]) -> Dict[str, Any]:
         """Return what is known now; schedule missing answers for this bar in the background."""
+        if not self.gate():
+            return {"models": [], "ready": 0, "total": 0, "panel_action": None, "host": self.host,
+                    "available": False, "halted": True}
         models = self.models()
         results, missing = [], []
         with self._lock:
@@ -127,6 +149,8 @@ class LLMPanel:
             self._wake.clear()
             while True:
                 with self._lock:
+                    if not self.gate():
+                        self._queue.clear()
                     if not self._queue:
                         break
                     key, job = self._queue.popitem(last=True)  # newest first
@@ -140,6 +164,8 @@ class LLMPanel:
                 result = self._ask(model, job["prompt"])
                 with self._lock:
                     self._busy = None
+                    if not self.gate():  # kill switch engaged while the model was answering: discard
+                        continue
                     self._cache[ck] = result
                     while len(self._cache) > self.cache_size:
                         self._cache.popitem(last=False)

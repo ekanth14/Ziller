@@ -42,12 +42,13 @@ class DeskFeed:
     """Caches the computed desk per symbol for a short time so page polling stays cheap."""
 
     def __init__(self, ttl_seconds: float = 30.0, fetcher=fetch_klines, with_ai: bool = True, ollama_status=None,
-                 llm_panel=None):
+                 llm_panel=None, ai_gate=None):
         self.ttl = ttl_seconds
         self.fetcher = fetcher
         self.with_ai = with_ai
         self.ollama_status = ollama_status
         self.llm_panel = llm_panel
+        self.ai_gate = ai_gate or (lambda: True)  # False while the master kill switch is engaged
         self._fast_layer = None
         self._cache: Dict[str, tuple[float, Dict[str, Any]]] = {}
         self._lock = threading.Lock()
@@ -72,7 +73,7 @@ class DeskFeed:
         now = time.time()
         with self._lock:
             hit = self._cache.get(key)
-            if hit and now - hit[0] < ttl:
+            if hit and now - hit[0] < ttl and (self.ai_gate() or hit[1].get("ai", {}).get("halted")):
                 return hit[1]
         try:
             try:
@@ -83,7 +84,10 @@ class DeskFeed:
             return {"status": "UNAVAILABLE", "symbol": symbol, "error": str(exc)}
         forming = bool(candles) and now < candles[-1]["open_time"] + step
         result = build_desk(candles, symbol=symbol, fee_bps=fee_bps, bar_forming=forming, interval=interval)
-        if result.get("status") == "OK" and self.with_ai:
+        if result.get("status") == "OK" and self.with_ai and not self.ai_gate():
+            result["ai"] = {"halted": True, "systems": [], "vetoes": [], "rule_pm": result["decision"]["action"],
+                            "final_action": "HOLD", "policy": "Master kill switch engaged: AI layer stopped, no new entries."}
+        elif result.get("status") == "OK" and self.with_ai:
             from cryptoscope.desk.ai_layer import ai_overlay
             closed = candles[:-1] if forming else candles
             result["ai"] = ai_overlay(closed, symbol, result, layer=self._layer(), bar_seconds=step,

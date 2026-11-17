@@ -33,7 +33,7 @@
   <span class="brand"><b>ACTION DESK</b> <i id="live-dot" class="dot"></i><span id="live-label">LIVE</span></span>
   <nav class="nav"><a href="/">DESK</a><a href="/system" class="on">SYSTEM</a><a href="#fleet" id="fleet-pill" class="fleet-pill">AUTOTRADER …</a></nav>
   <span class="chips"></span>
-  <span class="strip-right"><span id="gov" class="gov">GOVERNOR …</span><button id="signin" class="btn">SIGN IN</button></span>
+  <span class="strip-right"><span id="gov" class="gov">GOVERNOR …</span><button id="resume" class="btn primary" hidden title="Admin: clear the emergency halt">RESUME</button><button id="kill" class="btn kill" title="Stop trading, the fleet and every AI model">■ KILL SWITCH</button><button id="signin" class="btn">SIGN IN</button></span>
 </header>
 
 <main class="sys-grid">
@@ -67,6 +67,15 @@
     <label>Password <input type="password" id="password" autocomplete="current-password" required></label>
     <p id="login-err" class="err"></p>
     <div class="row"><button type="button" class="btn" id="login-cancel">Cancel</button><button class="btn primary">Sign in</button></div>
+  </form>
+</dialog>
+<dialog id="resume-dlg">
+  <form method="dialog" id="resume-form">
+    <h3>Resume from emergency halt</h3>
+    <p class="note">Admin only, from this computer. Re-enter your password. The AI layer restarts automatically; the autotrader fleet does not — start it again yourself if you want it.</p>
+    <label>Admin password <input type="password" id="resume-password" autocomplete="current-password" required></label>
+    <p id="resume-err" class="err"></p>
+    <div class="row"><button type="button" class="btn" id="resume-cancel">Cancel</button><button class="btn primary">Resume</button></div>
   </form>
 </dialog>
 <script src="/system.js"></script>
