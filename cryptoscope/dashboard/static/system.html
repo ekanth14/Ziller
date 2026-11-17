@@ -31,7 +31,7 @@
 <body>
 <header class="strip">
   <span class="brand"><b>ACTION DESK</b> <i id="live-dot" class="dot"></i><span id="live-label">LIVE</span></span>
-  <nav class="nav"><a href="/">DESK</a><a href="/markets">MARKETS</a><a href="/scanner">SCANNER</a><a href="/system" class="on">SYSTEM</a><a href="#fleet" id="fleet-pill" class="fleet-pill">AUTOTRADER …</a></nav>
+  <nav class="nav"><a href="/">DESK</a><a href="/markets">MARKETS</a><a href="/scanner">SCANNER</a><a href="/bots">BOTS</a><a href="/system" class="on">SYSTEM</a><a href="#fleet" id="fleet-pill" class="fleet-pill">AUTOTRADER …</a></nav>
   <span class="chips"></span>
   <span class="strip-right"><span id="gov" class="gov">GOVERNOR …</span><button id="resume" class="btn primary" hidden title="Admin: clear the emergency halt">RESUME</button><button id="kill" class="btn kill" title="Stop trading, the fleet and every AI model">■ KILL SWITCH</button><button id="signin" class="btn">SIGN IN</button></span>
 </header>
@@ -46,6 +46,12 @@
 
   <section class="panel wide"><div class="ph"><span><i class="dot"></i> <b>MARKET DATA DELAY</b> <em>live feeds in this server</em></span></div><table id="feeds" class="tbl"></table><table id="ticks" class="tbl" style="margin-top:8px"></table></section>
   <section class="panel"><div class="ph"><span><i class="dot"></i> <b>AI SYSTEMS</b></span></div><div id="ai" class="kv"></div><p class="note">The desk runs SMC + Laya, the hedge-fund committee and THX-02 on every refresh; Ollama is used as an explainer only.</p></section>
+
+  <section class="panel full" id="protections">
+    <div class="ph"><span><i class="dot"></i> <b>PROTECTIONS</b> <em>cooldown · stop-loss guard · low-profit pairs · closed-trade drawdown (fleet)</em></span><span id="prot-state" class="muted"></span></div>
+    <table id="prot" class="tbl"></table>
+    <p class="note" id="prot-cfg"></p>
+  </section>
 
   <section class="panel full" id="telegram">
     <div class="ph"><span><i class="dot"></i> <b>TELEGRAM ALERTS</b> <em>bot fills · closed positions · halts · fleet start/stop</em></span><span id="tg-state" class="muted"></span></div>

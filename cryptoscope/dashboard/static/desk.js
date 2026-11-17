@@ -258,13 +258,14 @@ function renderBook(d) {
       `<td><span class="bar" style="width:${Math.round(Math.abs(t.gross_pct || 0) / maxAbs * 50)}px;background:${(t.gross_pct || 0) >= 0 ? GREEN : RED}"></span></td></tr>`).join('');
   const b = d.book;
   $('book-stats').textContent = `closed ${b.closed} · won ${b.won}/${b.closed} · avg net ${b.avg_net == null ? '—' : pct(b.avg_net)} · exposure ${Math.round(b.exposure * 100)}% · fills ${b.fills}`;
-  $('score').innerHTML = '<tr><th>MODEL</th><th>RULE</th><th class="num">INPUT</th><th>VOTE</th><th class="num">N</th><th class="num">HIT</th><th class="num">EDGE 5D</th></tr>' +
+  $('score').innerHTML = '<tr><th>MODEL</th><th>RULE</th><th class="num">INPUT</th><th>VOTE</th><th class="num">N</th><th class="num">HIT</th><th class="num">EDGE 5D</th><th class="num" title="Permutation test vs 1,000 random timings (Bonferroni-corrected)">p-VALUE</th></tr>' +
     d.scoreboard.map(m => {
       const input = m.input == null ? '—' : m.key === 'pm' ? (m.input >= 0 ? '+' : '') + m.input.toFixed(2) : m.key === 'volume' ? m.input.toFixed(2) + 'x' : pct(m.input);
       return `<tr><td style="color:${COLORS[m.key]};font-weight:700">${esc(m.label)}</td><td class="muted">${esc(m.rule)}</td><td class="num">${input}</td>` +
         `<td><span class="vote ${voteCls(m.vote)}">${voteTxt(m.vote)}</span></td><td class="num">${m.n}</td>` +
         `<td class="num">${m.hit_rate == null ? '—' : Math.round(m.hit_rate * 100) + '%'}</td>` +
-        `<td class="num ${cls(m.edge)}">${m.edge == null ? '—' : pct(m.edge)}</td></tr>`;
+        `<td class="num ${cls(m.edge)}">${m.edge == null ? '—' : pct(m.edge)}</td>` +
+        `<td class="num ${m.significant ? 'up' : ''}" title="${m.significant ? 'beats random timing' : 'not distinguishable from luck'}">${m.p_value == null ? '—' : m.p_value.toFixed(3) + (m.significant ? ' ✓' : '')}</td></tr>`;
     }).join('');
   const r = d.risk, e = d.equity;
   $('risk-line').innerHTML = `<b>RISK</b> ATR14 ${px(r.atr14)} · vol20 ${pct(r.vol20, 1)} · VaR95 1d ${pct(r.var95_1d)} · worst day ${pct(r.worst_day)}` +
@@ -370,7 +371,17 @@ async function masterKill() {
 }
 $('kill').addEventListener('click', masterKill);
 
-function renderAll(d) { renderHeader(d); renderCharts(d); renderMesh(d); renderAI(d); renderVotes(d); renderEquity(d); renderTranscript(d); renderBook(d); }
+function renderJournal(d) {
+  const j = d.ai_journal;
+  if (!j || j.error || !j.systems) { $('journal').innerHTML = ''; return; }
+  $('journal').innerHTML = `<div class="ai-head"><span><b>AI SCOREBOARD</b> <em>every AI call on ${esc(d.symbol)} ${esc(d.interval)}, scored ${j.horizon_bars} bars later</em></span></div>` +
+    (j.systems.length ? `<table class="tbl"><tr><th>SYSTEM</th><th class="num">CALLS</th><th class="num">SCORED</th><th class="num">HIT</th><th class="num">AVG EDGE</th><th class="num">B/H/S</th></tr>` +
+      j.systems.map(s => `<tr><td>${esc(s.system)}</td><td class="num">${s.n}</td><td class="num">${s.scored}</td>` +
+        `<td class="num">${s.hit == null ? '—' : Math.round(s.hit * 100) + '%'}</td><td class="num ${cls(s.edge)}">${s.edge == null ? '—' : pct(s.edge)}</td>` +
+        `<td class="num muted">${s.buys}/${s.holds}/${s.sells}</td></tr>`).join('') + '</table>'
+      : '<div class="muted">Recording starts now; scores appear once the horizon bars close.</div>');
+}
+function renderAll(d) { renderHeader(d); renderCharts(d); renderMesh(d); renderAI(d); renderJournal(d); renderVotes(d); renderEquity(d); renderTranscript(d); renderBook(d); }
 function renderToggles() {
   document.querySelectorAll('#tz-seg button').forEach(b => b.classList.toggle('on', b.dataset.tz === state.tz));
   document.querySelectorAll('#ccy-seg button').forEach(b => {

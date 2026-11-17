@@ -57,6 +57,7 @@ class RiskBot(BaseBot):
         fixed_risk_fraction: float = 0.005,    # 0.5% default fixed fractional risk
         enable_kelly_sizing: bool = False,     # Gated: requires >= 300 closed trades
         state_path: Optional[str] = None,      # persist breakers/NAV across restarts when set
+        protections: Any = None,               # cryptoscope.execution.protections.ProtectionManager
     ):
         super().__init__(name, bus)
         self.initial_nav = initial_nav
@@ -90,6 +91,7 @@ class RiskBot(BaseBot):
         }
 
         self._state_path: Optional[Path] = Path(state_path) if state_path else None
+        self.protections = protections
         self._day = self._utc_day()
         self._load_state()
 
@@ -170,6 +172,11 @@ class RiskBot(BaseBot):
         if self.daily_loss_circuit_breaker:
             veto_reasons.append("DAILY_LOSS_LIMIT: Circuit breaker active.")
 
+        if self.protections is not None:
+            locked, reasons = self.protections.is_locked(intent.symbol)
+            if locked:
+                veto_reasons.extend(reasons)
+
         current_drawdown_pct = (self.peak_nav - self.current_nav) / self.peak_nav if self.peak_nav > 0 else 0.0
         if current_drawdown_pct >= self.max_drawdown_pct:
             self.drawdown_circuit_breaker = True
@@ -231,6 +238,17 @@ class RiskBot(BaseBot):
     def _handle_position_closed(self, closed: PositionClosed) -> None:
         """Update daily PnL and NAV tracking."""
         self._roll_day()
+        if self.protections is not None:
+            new_locks = self.protections.record_close(closed.symbol, closed.pnl_pct / 100.0, closed.pnl_usd, closed.exit_reason)
+            for lk in new_locks:
+                if lk.guard == "CooldownPeriod":
+                    continue  # routine; not worth a Telegram message
+                note = SystemAlert(severity="WARNING", source=self.name, title=f"Protection: {lk.guard}",
+                                   message=f"{'ALL pairs' if lk.pair == '*' else lk.pair} locked: {lk.reason}")
+                try:
+                    asyncio.get_running_loop().create_task(self.emit(note))
+                except RuntimeError:
+                    logger.warning("[%s] %s", self.name, note.message)
         self.daily_realized_pnl += closed.pnl_usd
         self.current_nav += closed.pnl_usd
         self.peak_nav = max(self.peak_nav, self.current_nav)
@@ -275,6 +293,12 @@ class RiskBot(BaseBot):
         # Gate 1: Debate verdict
         if debate.verdict != "APPROVE":
             veto_reasons.append(f"Debate layer verdict is {debate.verdict} (Conviction: {debate.conviction_score:.1f})")
+
+        # Gate 1b: Protections (cooldown, stop-loss guard, low-profit pair, closed-trade drawdown)
+        if self.protections is not None:
+            locked, reasons = self.protections.is_locked(intent.symbol)
+            if locked:
+                veto_reasons.extend(reasons)
 
         # Gate 2: Daily Loss Limit
         max_daily_loss_usd = self.initial_nav * self.max_daily_loss_pct

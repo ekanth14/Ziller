@@ -173,6 +173,18 @@ $('tg-test').addEventListener('click', async () => {
   try { const r = await post('/api/telegram/test'); $('tg-result').innerHTML = `<span class="ok">Delivered</span> (message ${r.message_id}) — check your Telegram.`; }
   catch (err) { $('tg-result').innerHTML = `<span class="bad">${esc(err.message)}</span>`; }
 });
+async function loadProtections() {
+  try {
+    const p = await (await fetch('/api/protections')).json();
+    $('prot-state').innerHTML = p.locks.length ? `<span class="warn">${p.locks.length} active lock${p.locks.length > 1 ? 's' : ''}</span>` : '<span class="ok">no active locks</span>';
+    $('prot').innerHTML = p.locks.length ? '<tr><th>PAIR</th><th>GUARD</th><th>REASON</th><th class="num">REMAINING</th></tr>' + p.locks.map(l =>
+      `<tr><td>${l.pair === '*' ? '<b>ALL PAIRS</b>' : esc(l.pair)}</td><td>${esc(l.guard)}</td><td>${esc(l.reason)}</td><td class="num">${Math.ceil(l.remaining_s / 60)} min</td></tr>`).join('') : '';
+    const c = p.config || {};
+    $('prot-cfg').textContent = `Cooldown ${c.cooldown_minutes} min after any exit · ${c.stoploss_limit} stop-losses in ${c.stoploss_lookback_minutes / 60} h → pause ${c.stoploss_lock_minutes} min · ` +
+      `last ${c.lowprofit_trades} trades ≤ ${(c.lowprofit_required * 100).toFixed(1)}% → lock pair ${c.lowprofit_lock_hours} h · closed-trade drawdown ≥ ${(c.max_drawdown * 100).toFixed(0)}% in ${c.drawdown_lookback_hours} h → pause all ${c.drawdown_lock_hours} h.`;
+  } catch {}
+}
+loadProtections(); setInterval(loadProtections, 15000);
 loadTelegram();
 loadUser(); tick();
 setInterval(tick, 3000);

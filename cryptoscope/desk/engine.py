@@ -185,6 +185,29 @@ def pm_decision(votes: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
             "bull_pct": round(50 + 50 * score / MAX_SCORE, 1)}
 
 
+# --------------------------------------------------------------------------- significance
+def significance(votes: Sequence[int], fwd: Sequence[float], trials: int = 1000, seed: int = 7) -> Optional[float]:
+    """Permutation test (idea from Jesse's rule-significance testing).
+
+    Edge = mean of vote x forward return over the sessions where the model voted. The null keeps
+    the model's exact vote counts but assigns them to random sessions (shuffles the vote vector
+    against the real forward returns) `trials` times. p = share of random runs whose edge is at
+    least the real one (+1 smoothing). Small p -> the rule's timing beats chance on this history.
+    """
+    import numpy as np
+
+    v = np.asarray(votes, dtype=float)
+    r = np.asarray(fwd, dtype=float)
+    active = v != 0
+    if active.sum() < 10 or len(v) < 20:
+        return None
+    actual = float((v * r)[active].mean())
+    rng = np.random.default_rng(seed)
+    perms = np.stack([rng.permutation(v) for _ in range(trials)])
+    edges = (perms * r).sum(axis=1) / active.sum()
+    return float((np.sum(edges >= actual) + 1) / (trials + 1))
+
+
 # --------------------------------------------------------------------------- desk
 def _max_drawdown(curve: Sequence[float]) -> float:
     peak, worst = curve[0], 0.0
@@ -291,17 +314,21 @@ def build_desk(candles: Sequence[Dict[str, float]], symbol: str = "BTCUSDT", fee
     for key, label, weight, rule in rows:
         hits = scored = 0
         edge = 0.0
+        votes_all, fwd_all = [], []
         for s in sessions:
             j = s["i"] + SCORE_HORIZON
             if j > last_closed:
                 continue
             vote = ({"BUY": 1, "SELL": -1}.get(s["pm"]["action"], 0) if key == "pm" else s["votes"][key])
+            fwd = closes[j] / closes[s["i"]] - 1
+            votes_all.append(vote)
+            fwd_all.append(fwd)
             if vote == 0:
                 continue
-            fwd = closes[j] / closes[s["i"]] - 1
             scored += 1
             hits += 1 if fwd * vote > 0 else 0
             edge += fwd * vote
+        p_value = significance(votes_all, fwd_all)
         last = sessions[-1]
         scoreboard.append({
             "key": key, "label": label, "weight": weight, "rule": rule,
@@ -309,6 +336,9 @@ def build_desk(candles: Sequence[Dict[str, float]], symbol: str = "BTCUSDT", fee
             "input": last["pm"]["score"] if key == "pm" else last["inputs"][key],
             "n": scored, "hit_rate": hits / scored if scored else None,
             "edge": edge / scored if scored else None,
+            "p_value": p_value,
+            # Bonferroni: 5 rules are tested on the same history, so each must clear 0.05 / 5.
+            "significant": p_value is not None and p_value < 0.05 / len(rows),
         })
 
     last = sessions[-1]

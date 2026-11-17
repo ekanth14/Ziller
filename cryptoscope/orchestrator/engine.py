@@ -19,6 +19,7 @@ from cryptoscope.orchestrator.bots import (
     NotifierBot,
 )
 from cryptoscope.telegram.gateway import TelegramGateway
+from cryptoscope.execution.protections import ProtectionManager
 from cryptoscope.security.config import validate_startup
 
 logger = logging.getLogger("cryptoscope.orchestrator.engine")
@@ -57,6 +58,7 @@ class OrchestratorEngine:
             max_drawdown_pct=0.10,
             # Breaker state survives restarts for exchange-connected modes only
             state_path=str(self.work_dir / "risk_state.json") if self.mode in {"TESTNET", "LIVE"} else None,
+            protections=ProtectionManager(state_path=str(self.work_dir / "protections.json")),
         )
         self.execution_bot = ExecutionBot(
             self.bus,

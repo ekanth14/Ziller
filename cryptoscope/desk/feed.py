@@ -42,16 +42,35 @@ class DeskFeed:
     """Caches the computed desk per symbol for a short time so page polling stays cheap."""
 
     def __init__(self, ttl_seconds: float = 30.0, fetcher=fetch_klines, with_ai: bool = True, ollama_status=None,
-                 llm_panel=None, ai_gate=None):
+                 llm_panel=None, ai_gate=None, journal=None):
         self.ttl = ttl_seconds
         self.fetcher = fetcher
         self.with_ai = with_ai
         self.ollama_status = ollama_status
         self.llm_panel = llm_panel
+        self.journal = journal  # AIJournal: records and scores every AI decision per bar
         self.ai_gate = ai_gate or (lambda: True)  # False while the master kill switch is engaged
         self._fast_layer = None
         self._cache: Dict[str, tuple[float, Dict[str, Any]]] = {}
         self._lock = threading.Lock()
+
+    def _journal(self, symbol, interval, closed, result):
+        try:
+            ai, bar = result["ai"], closed[-1]
+            atr = result["risk"].get("atr14") or 0.0
+            threshold = 0.25 * atr / bar["close"] if bar["close"] else 0.0
+            decisions = [{"system": "Rule PM", "action": ai["rule_pm"]},
+                         {"system": "Final (rule + AI veto)", "action": ai["final_action"]}]
+            decisions += [{"system": s["label"].split(" (")[0], "action": s["action"]}
+                          for s in ai.get("systems", []) if s.get("status") == "OK"]
+            for m in (ai.get("llm") or {}).get("models", []):
+                if m.get("status") == "ready":
+                    decisions.append({"system": f"LLM {m['model']}", "action": m["action"], "confidence": m.get("confidence")})
+            self.journal.record(symbol, interval, bar["open_time"], bar["close"], threshold, decisions)
+            self.journal.score(symbol, interval, closed, len(closed) - 1)
+            result["ai_journal"] = self.journal.scoreboard(symbol, interval)
+        except Exception as exc:  # the journal must never break the desk
+            result["ai_journal"] = {"error": type(exc).__name__}
 
     def _layer(self):
         if self._fast_layer is None:
@@ -93,6 +112,8 @@ class DeskFeed:
             result["ai"] = ai_overlay(closed, symbol, result, layer=self._layer(), bar_seconds=step,
                                       llm_panel=self.llm_panel, interval=interval,
                                       ollama_status=self.ollama_status() if self.ollama_status else None)
+            if self.journal is not None:
+                self._journal(symbol, interval, closed, result)
         result.pop("all_trades", None)
         result["source"] = f"Binance spot · {interval}"
         result["generated_at"] = now
