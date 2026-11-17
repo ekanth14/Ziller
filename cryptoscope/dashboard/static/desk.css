@@ -154,6 +154,9 @@ select{background:var(--panel2);color:var(--txt);border:1px solid var(--line);fo
 .tbl td.num,.tbl th.num{text-align:right}
 .bar{display:inline-block;height:6px;border-radius:2px;vertical-align:middle}
 .book-stats{color:var(--muted);font-size:11px;margin-top:4px}
+.mstruct{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 10px;font-size:11px}
+.mstruct div span{display:block;color:var(--muted);font-size:10px}
+.mstruct .rd{grid-column:1/-1;color:var(--amber)}
 .risk-line{margin-top:8px;color:var(--muted);font-size:11px;border-top:1px solid var(--line);padding-top:6px}
 .risk-line b{color:var(--red)}
 

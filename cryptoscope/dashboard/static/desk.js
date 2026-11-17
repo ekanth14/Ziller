@@ -274,7 +274,28 @@ function renderBook(d) {
 }
 
 // ------------------------------------------------------------------ data
+async function loadStructure() {
+  try {
+    const m = await (await fetch(`/api/marketdata?symbol=${encodeURIComponent(state.symbol)}`)).json();
+    const f = m.funding || {}, oi = m.open_interest || {}, ls = m.long_short || {}, tf = m.taker_flow || {}, b = m.book || {};
+    const cell = (k, v, c = '') => `<div><span>${k}</span><b class="${c}">${v}</b></div>`;
+    const usd = v => v == null ? '—' : (state.ccy === 'INR' && state.fx ? '₹' : '$') + ((v * fxk()) >= 1e9 ? ((v * fxk()) / 1e9).toFixed(2) + 'B' : ((v * fxk()) / 1e6).toFixed(1) + 'M');
+    $('mstruct').innerHTML = (m.perpetual
+      ? cell('Funding /8h', f.rate == null ? '—' : (f.rate * 100).toFixed(4) + '%', cls(f.rate)) + cell('Funding APR', pct(f.apr), cls(f.apr)) +
+        cell('Basis (mark−index)', f.basis == null ? '—' : (f.basis * 100).toFixed(3) + '%') +
+        cell('Open interest', usd(oi.value_usd)) + cell('OI 24h', pct(oi.change_24h), cls(oi.change_24h)) +
+        cell('Long/short accts', ls.ratio == null ? '—' : ls.ratio.toFixed(2)) + cell('Taker buy/sell 1h', tf.buy_sell_ratio_1h == null ? '—' : tf.buy_sell_ratio_1h.toFixed(2)) +
+        cell('Taker buy/sell 24h', tf.buy_sell_ratio_24h == null ? '—' : tf.buy_sell_ratio_24h.toFixed(2)) + cell('Perp', esc(m.perp_symbol || '—'))
+      : cell('Perpetual', 'no futures market')) +
+      (b.available ? cell('Spread', b.spread_bps.toFixed(2) + ' bps') + cell('Book imbalance ±1%', pct(b.imbalance_1pct), cls(b.imbalance_1pct)) +
+        cell(`Bid / ask depth ±1%${b.book_reaches_1pct ? '' : ' (top 500 levels)'}`, `${usd(b.bid_depth_1pct)} / ${usd(b.ask_depth_1pct)}`) : '') +
+      (m.readings || []).map(r => `<div class="rd">• ${esc(r)}</div>`).join('');
+  } catch { $('mstruct').innerHTML = '<div class="muted">market structure unavailable</div>'; }
+}
+
 async function load() {
+  loadStructure();
+  if ($('lab-link')) $('lab-link').href = `/lab?symbol=${encodeURIComponent(state.symbol)}`;
   try {
     const res = await fetch(`/api/desk?symbol=${encodeURIComponent(state.symbol)}&interval=${state.interval}&fee_bps=10`);
     const d = await res.json();

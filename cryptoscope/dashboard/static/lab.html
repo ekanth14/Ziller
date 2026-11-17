@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZILLERS Strategy Lab</title>
+<link rel="icon" href="/assets/zien-emblem.png">
+<link rel="stylesheet" href="/desk.css">
+<style>
+  .lab{display:grid;gap:8px;padding:8px;grid-template-columns:minmax(0,1fr) 360px}
+  .tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .tools input,.tools select{background:var(--panel2);color:var(--txt);border:1px solid var(--line);font:inherit;padding:4px 6px;border-radius:3px}
+  .tools input{width:150px;text-transform:uppercase}
+  #eq{height:320px;margin-top:6px}
+  .tbl-wrap{overflow:auto;margin-top:8px}
+  .tbl td,.tbl th{white-space:nowrap}
+  tr.sel td{background:#0b1a26}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+  pre.method{white-space:pre-wrap;font-size:11px;color:var(--muted);margin:0}
+  .warn{color:var(--amber);font-size:11px}
+  @media (max-width:1100px){.lab{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<header class="strip">
+  <span class="brand"><b>ACTION DESK</b> <i id="live-dot" class="dot"></i><span id="live-label">LIVE</span></span>
+  <nav class="nav"><a href="/">DESK</a><a href="/markets">MARKETS</a><a href="/scanner">SCANNER</a><a href="/lab" class="on">LAB</a><a href="/bots">BOTS</a><a href="/system">SYSTEM</a></nav>
+  <span class="chips"></span>
+</header>
+<main class="lab">
+  <section class="panel">
+    <div class="ph"><span><i class="dot"></i> <b>STRATEGY LAB</b> <em id="meta">13 strategies · same candles · same costs</em></span>
+      <span class="tools">
+        <input id="symbol" list="syms" value="BTCUSDT" spellcheck="false"><datalist id="syms"></datalist>
+        <select id="interval"><option>15m</option><option>1h</option><option>4h</option><option selected>1d</option><option>1w</option></select>
+        <select id="fee"><option value="10" selected>10 bp/side</option><option value="7.5">7.5 bp (BNB)</option><option value="0">0 bp</option><option value="20">20 bp</option></select>
+        <button id="run" class="btn primary">RUN</button>
+      </span></div>
+    <div id="eq"></div>
+    <p class="warn" id="warn"></p>
+    <div class="tbl-wrap"><table id="tbl" class="tbl"></table></div>
+    <p class="muted" style="font-size:11px">Click a row to show/hide its equity curve. p-value: strategy timing vs the same exposure at random (1,000 shuffles), Bonferroni-corrected across all 13 strategies — ✓ means it beats chance on this history. OOS = return on the last 30% of bars (no parameter was tuned on any of it). Past results do not predict future returns.</p>
+  </section>
+  <section class="panel">
+    <div class="ph"><span><b>FORMULAS</b></span></div>
+    <pre class="method" id="method"></pre>
+  </section>
+</main>
+<script src="/assets/lightweight-charts.standalone.production.js"></script>
+<script src="/lab.js"></script>
+</body>
+</html>

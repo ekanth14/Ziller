@@ -155,6 +155,11 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                                  gate=lambda: not kill_switch.halted, notify=fleet.notify)
     paper_bots.ensure_running()
 
+    from cryptoscope.desk.market_structure import MarketStructure
+    from cryptoscope.desk.strategy_lab import run_lab
+    market_structure = MarketStructure()
+    _lab_cache = {}
+
     def _fleet_positions_open():
         db = ROOT / "work" / "runtime" / "orchestrator_execution.db"
         if not db.is_file():
@@ -297,6 +302,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 "/markets.js": ("markets.js", "text/javascript"),
                 "/bots": ("bots.html", "text/html"),
                 "/bots.js": ("bots.js", "text/javascript"),
+                "/lab": ("lab.html", "text/html"),
+                "/lab.js": ("lab.js", "text/javascript"),
             }
             if url.path in assets:
                 name, kind = assets[url.path]
@@ -388,6 +395,33 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     return self.json(200, paper_bots.get(url.path.rsplit("/", 1)[1]))
                 except KeyError:
                     return self.json(404, {"error": "Bot not found"})
+            if url.path == "/api/marketdata":
+                sym = query.get("symbol", ["BTCUSDT"])[0].upper()
+                if not sym.isalnum() or not 5 <= len(sym) <= 20:
+                    return self.json(400, {"error": "Invalid symbol"})
+                return self.json(200, market_structure.snapshot(sym))
+            if url.path == "/api/lab":
+                sym = query.get("symbol", ["BTCUSDT"])[0].upper()
+                iv = query.get("interval", ["1d"])[0]
+                try:
+                    fee = float(query.get("fee_bps", ["10"])[0])
+                except ValueError:
+                    return self.json(400, {"error": "fee_bps must be a number"})
+                if not sym.isalnum() or not 5 <= len(sym) <= 20 or not 0 <= fee <= 100:
+                    return self.json(400, {"error": "Invalid symbol or fee"})
+                key = (sym, iv, fee)
+                hit = _lab_cache.get(key)
+                if hit and time.time() - hit[0] < 120:
+                    return self.json(200, hit[1])
+                try:
+                    candles = _klines(sym, iv, 1000)
+                    result = {**run_lab(candles, iv, fee), "symbol": sym}
+                except ValueError as err:
+                    return self.json(400, {"error": str(err)})
+                except Exception as err:
+                    return self.json(503, {"status": "UNAVAILABLE", "error": type(err).__name__})
+                _lab_cache[key] = (time.time(), result)
+                return self.json(200, result)
             if url.path == "/api/markets":
                 m = market_directory.markets()
                 return self.json(200 if m.get("status") in {"OK", "STALE"} else 503, m)
