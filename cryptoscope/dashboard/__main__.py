@@ -25,6 +25,7 @@ from cryptoscope.auth.security import (
 )
 from cryptoscope.auth.store import AuthStore
 from cryptoscope.dashboard.data import DashboardData
+from cryptoscope.desk import DeskFeed
 from cryptoscope.dashboard.collaborate_view import render_collaborations_html
 from cryptoscope.fx.rate_service import FxRateService
 from cryptoscope.market_data.aggregator import MarketDataAggregator
@@ -111,6 +112,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
     if not isinstance(kill_switch, PersistentKillSwitch):
         kill_switch = PersistentKillSwitch(kill_switch)
     laya_evaluator = laya_evaluator or LayaTier2Evaluator()
+    desk_feed = DeskFeed()
 
     def connection_status():
         return {**market_aggregator.get_connection_status(),
@@ -214,11 +216,10 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
 
             # Static assets
             assets = {
-                "/": ("index.html", "text/html"),
-                "/app.js": ("app.js", "text/javascript"),
-                "/style.css": ("style.css", "text/css"),
-                "/static/app.js": ("app.js", "text/javascript"),
-                "/static/style.css": ("style.css", "text/css"),
+                "/": ("desk.html", "text/html"),
+                "/desk": ("desk.html", "text/html"),
+                "/desk.js": ("desk.js", "text/javascript"),
+                "/desk.css": ("desk.css", "text/css"),
             }
             if url.path in assets:
                 name, kind = assets[url.path]
@@ -270,6 +271,15 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 if STATIC in asset_path.parents and asset_path.is_file():
                     mime = "text/css" if asset_path.suffix == ".css" else "text/javascript" if asset_path.suffix == ".js" else "image/png" if asset_path.suffix == ".png" else "image/svg+xml" if asset_path.suffix == ".svg" else "application/octet-stream"
                     return self.send(200, asset_path.read_bytes(), f"{mime}; charset=utf-8" if "text" in mime else mime)
+
+            # Action Desk: rule-model votes, PM decision and paper book on real daily candles
+            if url.path == "/api/desk":
+                try:
+                    fee_bps = float(query.get("fee_bps", ["10"])[0])
+                    result = desk_feed.desk(query.get("symbol", ["BTCUSDT"])[0], fee_bps=fee_bps)
+                except ValueError as err:
+                    return self.json(400, {"error": str(err)})
+                return self.json(200 if result.get("status") == "OK" else 503, result)
 
             # Public market data and FX APIs
             if url.path == "/api/fx/rate":

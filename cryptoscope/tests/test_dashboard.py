@@ -86,7 +86,7 @@ class DashboardTests(unittest.TestCase):
         handler = self.handler("/")
         handler.do_GET()
         self.assertEqual(handler.send.call_args.args[0], 200)
-        self.assertIn(b"Research overview", handler.send.call_args.args[1])
+        self.assertIn(b"ACTION DESK", handler.send.call_args.args[1])
         body = self.make_run(self.root / "work/research-agent")
         handler = self.handler(f"/api/runs/{body['run_id']}?download=1")
         handler.do_GET()
