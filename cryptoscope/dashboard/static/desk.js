@@ -31,6 +31,8 @@ const store = (k, d) => { try { return localStorage.getItem(k) || d; } catch { r
 const state = {symbol: store('desk.symbol', 'BTCUSDT'), interval: store('desk.interval', '1d'), tz: store('desk.tz', 'IST'),
   ccy: store('desk.ccy', 'INR'), fx: null, last: null, user: null, charts: null, timer: null};
 if (!INTERVALS[state.interval]) state.interval = '1d';
+{ const q = new URLSearchParams(location.search).get('symbol');
+  if (q && /^[A-Z0-9]{5,20}$/.test(q.toUpperCase())) { state.symbol = q.toUpperCase(); try { localStorage.setItem('desk.symbol', state.symbol); } catch {} } }
 
 // ------------------------------------------------------------------ charts
 function makeCharts() {

@@ -31,6 +31,7 @@ from cryptoscope.desk.feed import SymbolDirectory
 from cryptoscope.desk.fleet import FleetManager
 from cryptoscope.desk.llm_panel import LLMPanel
 from cryptoscope.desk.scanner import Autopilot, MarketScanner
+from cryptoscope.desk.markets import MarketDirectory
 from cryptoscope.desk.system_monitor import SystemMonitor
 from cryptoscope.dashboard.collaborate_view import render_collaborations_html
 from cryptoscope.fx.rate_service import FxRateService
@@ -133,6 +134,12 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
     symbol_directory = SymbolDirectory()
     fleet = FleetManager(ROOT)
     scanner = MarketScanner()
+
+    def _coin_meta():
+        listing = coingecko_service.get_top_listings(per_page=150, page=1)
+        return {str(it.get("base_symbol") or "").upper(): it for it in listing.get("items", []) if it.get("base_symbol")}
+
+    market_directory = MarketDirectory(meta_fetcher=_coin_meta)
 
     def _fleet_positions_open():
         db = ROOT / "work" / "runtime" / "orchestrator_execution.db"
@@ -272,6 +279,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 "/system.js": ("system.js", "text/javascript"),
                 "/scanner": ("scanner.html", "text/html"),
                 "/scanner.js": ("scanner.js", "text/javascript"),
+                "/markets": ("markets.html", "text/html"),
+                "/markets.js": ("markets.js", "text/javascript"),
             }
             if url.path in assets:
                 name, kind = assets[url.path]
@@ -351,6 +360,9 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     return self.json(503, {"status": "UNAVAILABLE", "error": type(err).__name__})
             if url.path == "/api/scanner/autopilot":
                 return self.json(200, autopilot.status())
+            if url.path == "/api/markets":
+                m = market_directory.markets()
+                return self.json(200 if m.get("status") in {"OK", "STALE"} else 503, m)
             if url.path == "/api/telegram/status":
                 from cryptoscope.telegram.notify import configured as telegram_configured
                 return self.json(200, telegram_configured())
