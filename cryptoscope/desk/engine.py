@@ -31,7 +31,10 @@ VOLUME_SPIKE = 1.40
 DD_LOW, DD_HIGH = -0.25, -0.05
 MIN_BARS = 60
 SCORE_HORIZON = 5
-BARS_PER_YEAR = 365  # crypto trades every day
+BARS_PER_YEAR = 365  # daily bars; crypto trades every day
+# Supported chart/decision intervals (Binance kline codes -> seconds)
+INTERVALS = {"1m": 60, "5m": 300, "15m": 900, "30m": 1800, "1h": 3600, "4h": 14400, "1d": 86400, "1w": 604800}
+YEAR_SECONDS = 365 * 86400
 
 
 # --------------------------------------------------------------------------- indicators
@@ -93,7 +96,7 @@ def _atr(highs, lows, closes, n: int = 14) -> List[Optional[float]]:
     return _sma(trs, n)
 
 
-def indicators(candles: Sequence[Dict[str, float]]) -> Dict[str, list]:
+def indicators(candles: Sequence[Dict[str, float]], bars_per_year: float = BARS_PER_YEAR) -> Dict[str, list]:
     closes = [c["close"] for c in candles]
     highs = [c["high"] for c in candles]
     lows = [c["low"] for c in candles]
@@ -121,7 +124,7 @@ def indicators(candles: Sequence[Dict[str, float]]) -> Dict[str, list]:
     signal = _ema(macd, 9)
     rets = [0.0] + [math.log(closes[i] / closes[i - 1]) for i in range(1, len(closes))]
     sd_r = _rolling_std(rets, 20)
-    vol20 = [None if s is None else s * math.sqrt(BARS_PER_YEAR) for s in sd_r]
+    vol20 = [None if s is None else s * math.sqrt(bars_per_year) for s in sd_r]
     return {
         "sma10": sma10, "sma30": sma30, "bb_pct": bb_pct, "r20": r20, "vol_ratio": vol_ratio,
         "peak": peak, "dd": dd, "rsi14": _rsi(closes), "macd": macd, "macd_signal": signal,
@@ -191,17 +194,17 @@ def _max_drawdown(curve: Sequence[float]) -> float:
     return worst
 
 
-def _sharpe(curve: Sequence[float]) -> float:
+def _sharpe(curve: Sequence[float], bars_per_year: float = BARS_PER_YEAR) -> float:
     rets = [curve[i] / curve[i - 1] - 1 for i in range(1, len(curve))]
     if len(rets) < 2:
         return 0.0
     m = sum(rets) / len(rets)
     sd = math.sqrt(sum((r - m) ** 2 for r in rets) / (len(rets) - 1))
-    return 0.0 if sd == 0 else m / sd * math.sqrt(BARS_PER_YEAR)
+    return 0.0 if sd == 0 else m / sd * math.sqrt(bars_per_year)
 
 
 def build_desk(candles: Sequence[Dict[str, float]], symbol: str = "BTCUSDT", fee_bps: float = 10.0,
-               window: int = 365, bar_forming: bool = False) -> Dict[str, Any]:
+               window: int = 365, bar_forming: bool = False, interval: str = "1d") -> Dict[str, Any]:
     """Run the whole desk over `candles` (oldest first, daily)."""
     n = len(candles)
     if n < MIN_BARS:
@@ -210,7 +213,10 @@ def build_desk(candles: Sequence[Dict[str, float]], symbol: str = "BTCUSDT", fee
         if not all(math.isfinite(c[k]) and c[k] > 0 for k in ("open", "high", "low", "close")) or c["volume"] < 0:
             return {"status": "INVALID_DATA", "symbol": symbol, "bars": n}
 
-    ind = indicators(candles)
+    if interval not in INTERVALS:
+        raise ValueError("Unsupported interval")
+    bars_per_year = YEAR_SECONDS / INTERVALS[interval]
+    ind = indicators(candles, bars_per_year)
     fee = fee_bps / 10000.0
     # The still-forming bar is displayed but never used for decisions.
     last_closed = n - 2 if bar_forming else n - 1
@@ -322,7 +328,7 @@ def build_desk(candles: Sequence[Dict[str, float]], symbol: str = "BTCUSDT", fee
         return None if v is None else float(v)
 
     return {
-        "status": "OK", "symbol": symbol, "interval": "1d", "bars": n, "fee_bps": fee_bps,
+        "status": "OK", "symbol": symbol, "interval": interval, "interval_seconds": INTERVALS[interval], "bars": n, "fee_bps": fee_bps,
         "bar_forming": bar_forming, "as_of": cur["open_time"], "decision_time": lc["open_time"],
         "models": [{"key": k, "label": lbl, "weight": w, "rule": rule} for k, lbl, w, rule in MODELS],
         "thresholds": {"buy": BUY_SCORE, "sell": SELL_SCORE, "max_score": MAX_SCORE},
@@ -348,7 +354,7 @@ def build_desk(candles: Sequence[Dict[str, float]], symbol: str = "BTCUSDT", fee
         "equity": {"times": [int(c["open_time"]) for c in candles[start:]], "agents": eq_curve, "buy_hold": bh_curve,
                    "agents_return": eq_curve[-1] - 1, "buy_hold_return": bh_curve[-1] - 1,
                    "edge_pts": (eq_curve[-1] - bh_curve[-1]) * 100, "max_dd": _max_drawdown(eq_curve),
-                   "buy_hold_max_dd": _max_drawdown(bh_curve), "sharpe": _sharpe(eq_curve),
+                   "buy_hold_max_dd": _max_drawdown(bh_curve), "sharpe": _sharpe(eq_curve, bars_per_year),
                    "since": int(candles[start]["open_time"])},
         "position": open_pos,
         "trades": trades[-8:],

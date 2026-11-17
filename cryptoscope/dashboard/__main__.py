@@ -306,7 +306,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
             if url.path == "/api/desk":
                 try:
                     fee_bps = float(query.get("fee_bps", ["10"])[0])
-                    result = desk_feed.desk(query.get("symbol", ["BTCUSDT"])[0], fee_bps=fee_bps)
+                    result = desk_feed.desk(query.get("symbol", ["BTCUSDT"])[0], fee_bps=fee_bps,
+                                            interval=query.get("interval", ["1d"])[0])
                 except ValueError as err:
                     return self.json(400, {"error": str(err)})
                 return self.json(200 if result.get("status") == "OK" else 503, result)

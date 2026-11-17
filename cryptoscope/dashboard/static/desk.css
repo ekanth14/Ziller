@@ -47,11 +47,15 @@ select{background:var(--panel2);color:var(--txt);border:1px solid var(--line);fo
 .grid{display:grid;gap:8px;padding:8px;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);
   grid-template-areas:"chart mesh" "votes equity" "term book"}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0}
-.ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;color:var(--txt)}
+.ph{display:flex;flex-wrap:wrap;gap:4px 10px;justify-content:space-between;align-items:center;margin-bottom:6px;color:var(--txt)}
 .ph.sub{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
 .chart-panel{grid-area:chart}.mesh-panel{grid-area:mesh}.votes-panel{grid-area:votes}
 .equity-panel{grid-area:equity}.term-panel{grid-area:term}.book-panel{grid-area:book}
 
+.intervals{display:flex;flex-wrap:wrap;gap:2px}
+.intervals button{background:transparent;color:var(--muted);border:1px solid var(--line);font:inherit;font-size:11px;padding:1px 7px;border-radius:3px;cursor:pointer}
+.intervals button:hover{color:var(--txt);border-color:var(--blue)}
+.intervals button.on{color:#000;background:var(--green);border-color:var(--green);font-weight:700}
 .ohlc,.ind{font-size:11px;color:var(--muted);display:flex;flex-wrap:wrap;gap:10px}
 .ohlc span b{color:var(--txt);font-weight:500}
 .ind .t10{color:var(--amber)}.ind .t30{color:var(--violet)}

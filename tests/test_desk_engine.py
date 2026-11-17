@@ -95,3 +95,28 @@ def test_feed_caches_within_ttl():
     assert feed.desk("BTCUSDT")["status"] == "OK"
     feed.desk("BTCUSDT")
     assert calls == ["BTCUSDT"]
+
+
+def test_intervals_change_annualisation_and_are_validated():
+    candles = _candles(_wave())
+    daily = build_desk(candles, interval="1d")
+    hourly = build_desk(candles, interval="1h")
+    assert daily["interval"] == "1d" and hourly["interval_seconds"] == 3600
+    # same bars read as hourly data imply a much larger annualised volatility
+    assert hourly["risk"]["vol20"] > daily["risk"]["vol20"] * 4
+    with pytest.raises(ValueError):
+        build_desk(candles, interval="3d")
+
+
+def test_feed_passes_interval_and_rejects_unknown():
+    seen = []
+
+    def fetch(symbol, interval):
+        seen.append(interval)
+        return _candles(_wave())
+
+    feed = DeskFeed(fetcher=fetch, with_ai=False)
+    assert feed.desk("BTCUSDT", interval="15m")["interval"] == "15m"
+    assert seen == ["15m"]
+    with pytest.raises(ValueError):
+        feed.desk("BTCUSDT", interval="2h")

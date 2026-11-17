@@ -9,16 +9,18 @@ from typing import Any, Dict, List
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from cryptoscope.desk.engine import build_desk
+from cryptoscope.desk.engine import INTERVALS, build_desk
 
 ENDPOINTS = ("https://api.binance.com", "https://data-api.binance.vision")
 SYMBOL_RE = re.compile(r"^[A-Z0-9]{5,20}$")
 DAY = 86400.0
 
 
-def fetch_daily_klines(symbol: str, limit: int = 700, timeout: float = 8.0) -> List[Dict[str, float]]:
-    """Fetch daily candles, oldest first. Tries the public fallback host on failure."""
-    query = urlencode({"symbol": symbol, "interval": "1d", "limit": limit})
+def fetch_klines(symbol: str, interval: str = "1d", limit: int = 700, timeout: float = 8.0) -> List[Dict[str, float]]:
+    """Fetch candles for any supported interval, oldest first. Tries the public fallback host on failure."""
+    if interval not in INTERVALS:
+        raise ValueError("Unsupported interval")
+    query = urlencode({"symbol": symbol, "interval": interval, "limit": limit})
     last_error: Exception | None = None
     for base in ENDPOINTS:
         try:
@@ -29,13 +31,17 @@ def fetch_daily_klines(symbol: str, limit: int = 700, timeout: float = 8.0) -> L
                      "close": float(r[4]), "volume": float(r[5])} for r in rows]
         except Exception as exc:  # try the next host
             last_error = exc
-    raise RuntimeError(f"Daily candles unavailable: {type(last_error).__name__}")
+    raise RuntimeError(f"Candles unavailable: {type(last_error).__name__}")
+
+
+def fetch_daily_klines(symbol: str, limit: int = 700, timeout: float = 8.0) -> List[Dict[str, float]]:
+    return fetch_klines(symbol, "1d", limit, timeout)
 
 
 class DeskFeed:
     """Caches the computed desk per symbol for a short time so page polling stays cheap."""
 
-    def __init__(self, ttl_seconds: float = 30.0, fetcher=fetch_daily_klines, with_ai: bool = True, ollama_status=None):
+    def __init__(self, ttl_seconds: float = 30.0, fetcher=fetch_klines, with_ai: bool = True, ollama_status=None):
         self.ttl = ttl_seconds
         self.fetcher = fetcher
         self.with_ai = with_ai
@@ -50,31 +56,38 @@ class DeskFeed:
             self._fast_layer = FastDecisionLayer()
         return self._fast_layer
 
-    def desk(self, symbol: str, fee_bps: float = 10.0) -> Dict[str, Any]:
+    def desk(self, symbol: str, fee_bps: float = 10.0, interval: str = "1d") -> Dict[str, Any]:
         symbol = (symbol or "").upper()
         if not SYMBOL_RE.match(symbol):
             raise ValueError("Invalid symbol")
         if not (0 <= fee_bps <= 100):
             raise ValueError("fee_bps must be between 0 and 100")
-        key = f"{symbol}:{fee_bps}"
+        if interval not in INTERVALS:
+            raise ValueError("interval must be one of " + ", ".join(INTERVALS))
+        step = INTERVALS[interval]
+        ttl = min(self.ttl, max(5.0, step / 4))  # 1m charts refresh faster than daily ones
+        key = f"{symbol}:{fee_bps}:{interval}"
         now = time.time()
         with self._lock:
             hit = self._cache.get(key)
-            if hit and now - hit[0] < self.ttl:
+            if hit and now - hit[0] < ttl:
                 return hit[1]
         try:
-            candles = self.fetcher(symbol)
+            try:
+                candles = self.fetcher(symbol, interval)
+            except TypeError:  # simple fetchers (tests) that only take a symbol
+                candles = self.fetcher(symbol)
         except Exception as exc:
             return {"status": "UNAVAILABLE", "symbol": symbol, "error": str(exc)}
-        forming = bool(candles) and now < candles[-1]["open_time"] + DAY
-        result = build_desk(candles, symbol=symbol, fee_bps=fee_bps, bar_forming=forming)
+        forming = bool(candles) and now < candles[-1]["open_time"] + step
+        result = build_desk(candles, symbol=symbol, fee_bps=fee_bps, bar_forming=forming, interval=interval)
         if result.get("status") == "OK" and self.with_ai:
             from cryptoscope.desk.ai_layer import ai_overlay
             closed = candles[:-1] if forming else candles
-            result["ai"] = ai_overlay(closed, symbol, result, layer=self._layer(),
+            result["ai"] = ai_overlay(closed, symbol, result, layer=self._layer(), bar_seconds=step,
                                       ollama_status=self.ollama_status() if self.ollama_status else None)
         result.pop("all_trades", None)
-        result["source"] = "Binance spot · daily"
+        result["source"] = f"Binance spot · {interval}"
         result["generated_at"] = now
         with self._lock:
             self._cache[key] = (now, result)

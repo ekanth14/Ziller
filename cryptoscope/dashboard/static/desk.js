@@ -1,4 +1,4 @@
-/* ZILLERS Action Desk — renders /api/desk (real Binance daily candles, rule-model votes, PM, paper book). */
+/* ZILLERS Action Desk — renders /api/desk (real Binance candles at any interval, rule-model votes, PM, paper book). */
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
@@ -9,13 +9,17 @@ const pct = (v, d = 2) => v == null ? '—' : `${v >= 0 ? '+' : ''}${(v * 100).t
 const num = (v, d = 2) => v == null ? '—' : Number(v).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
 const px = v => v == null ? '—' : num(v, v >= 1000 ? 2 : v >= 1 ? 4 : 6);
 const cls = v => v == null ? '' : v >= 0 ? 'up' : 'dn';
-const day = t => new Date(t * 1000).toISOString().slice(5, 10);
-const date = t => new Date(t * 1000).toISOString().slice(0, 10);
+const INTERVALS = {'1m': 60, '5m': 300, '15m': 900, '30m': 1800, '1h': 3600, '4h': 14400, '1d': 86400, '1w': 604800};
+const intraday = () => (INTERVALS[state.interval] || 86400) < 86400;
+// Short bar label (transcript/tables) and full label (headers); intraday shows the time too.
+const day = t => { const s = new Date(t * 1000).toISOString(); return intraday() ? `${s.slice(5, 10)} ${s.slice(11, 16)}` : s.slice(5, 10); };
+const date = t => { const s = new Date(t * 1000).toISOString(); return intraday() ? `${s.slice(0, 10)} ${s.slice(11, 16)}Z` : s.slice(0, 10); };
 const voteTxt = v => v > 0 ? '+1' : v < 0 ? '-1' : '0';
 const voteCls = v => v > 0 ? 'p' : v < 0 ? 'n' : 'z';
 const big = v => v == null ? '—' : v >= 1e9 ? (v / 1e9).toFixed(1) + 'B' : v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? (v / 1e3).toFixed(1) + 'K' : v.toFixed(0);
 
-const state = {symbol: localStorage.getItem('desk.symbol') || 'BTCUSDT', user: null, charts: null, timer: null};
+const state = {symbol: localStorage.getItem('desk.symbol') || 'BTCUSDT', interval: localStorage.getItem('desk.interval') || '1d', user: null, charts: null, timer: null};
+if (!INTERVALS[state.interval]) state.interval = '1d';
 
 // ------------------------------------------------------------------ charts
 function makeCharts() {
@@ -57,6 +61,8 @@ function makeCharts() {
 function renderCharts(d) {
   if (!state.charts) state.charts = makeCharts();
   const {s, price, eq} = state.charts;
+  price.applyOptions({timeScale: {timeVisible: intraday(), secondsVisible: false}});
+  eq.applyOptions({timeScale: {timeVisible: intraday(), secondsVisible: false}});
   const c = d.chart, times = c.candles.map(k => k.time);
   const line = arr => arr.map((v, i) => v == null ? {time: times[i]} : {time: times[i], value: v});
   s.candles.setData(c.candles);
@@ -86,12 +92,12 @@ function renderCharts(d) {
   const eqt = d.equity.times;
   s.agents.setData(d.equity.agents.map((v, i) => ({time: eqt[i], value: (v - 1) * 100})));
   s.bh.setData(d.equity.buy_hold.map((v, i) => ({time: eqt[i], value: (v - 1) * 100})));
-  if (!state.charts.fitted || state.charts.fitted !== d.symbol) {
+  if (!state.charts.fitted || state.charts.fitted !== `${d.symbol}:${d.interval}`) {
     // Show the last ~6 months; re-applied after layout settles so a late resize cannot skew it.
     const show = () => price.timeScale().setVisibleLogicalRange({from: Math.max(0, times.length - 180), to: times.length + 2});
     show(); requestAnimationFrame(show); setTimeout(show, 300);
     eq.timeScale().fitContent();
-    state.charts.fitted = d.symbol;
+    state.charts.fitted = `${d.symbol}:${d.interval}`;
   }
 }
 
@@ -99,6 +105,7 @@ function renderCharts(d) {
 function renderHeader(d) {
   const t = d.ticker;
   $('sym-title').textContent = d.symbol;
+  $('sym-meta').textContent = `${d.interval.toUpperCase()} · BINANCE SPOT · agent calls · paper fills`;
   $('src').textContent = `${d.source || ''} · ${d.bar_forming ? 'bar forming' : 'bar closed'}`;
   $('ohlc').innerHTML = `<span>O <b>${px(t.open)}</b></span><span>H <b>${px(t.high)}</b></span><span>L <b>${px(t.low)}</b></span>` +
     `<span>C <b>${px(t.close)}</b></span><span class="${cls(t.chg)}">${t.abs_chg >= 0 ? '+' : ''}${px(t.abs_chg)} (${pct(t.chg)})</span>`;
@@ -115,7 +122,7 @@ function renderHeader(d) {
 
 function renderMesh(d) {
   const dec = d.decision;
-  $('mesh-source').textContent = `● Binance ${d.symbol} 1D bars`;
+  $('mesh-source').textContent = `● Binance ${d.symbol} ${d.interval.toUpperCase()} bars`;
   $('mesh-ind').textContent = `● ${d.models.length} models · SMA RSI MACD BB ATR`;
   $('models').innerHTML = d.models.map(m => {
     const v = dec.votes[m.key];
@@ -237,15 +244,15 @@ function renderBook(d) {
   const r = d.risk, e = d.equity;
   $('risk-line').innerHTML = `<b>RISK</b> ATR14 ${px(r.atr14)} · vol20 ${pct(r.vol20, 1)} · VaR95 1d ${pct(r.var95_1d)} · worst day ${pct(r.worst_day)}` +
     `<br><b style="color:var(--green)">PAPER</b> agents ${pct(e.agents_return, 1)} · hold ${pct(e.buy_hold_return, 1)} · maxDD ${pct(e.max_dd, 1)} · sharpe ${e.sharpe.toFixed(2)}`;
-  $('foot-left').textContent = `${d.symbol} · ${d.bars} daily bars · decision on ${date(d.decision_time)} close · updated ${new Date(d.generated_at * 1000).toLocaleTimeString()}`;
+  $('foot-left').textContent = `${d.symbol} · ${d.bars} × ${d.interval} bars · decision on ${date(d.decision_time)} close · updated ${new Date(d.generated_at * 1000).toLocaleTimeString()}`;
 }
 
 // ------------------------------------------------------------------ data
 async function load() {
   try {
-    const res = await fetch(`/api/desk?symbol=${encodeURIComponent(state.symbol)}&fee_bps=10`);
+    const res = await fetch(`/api/desk?symbol=${encodeURIComponent(state.symbol)}&interval=${state.interval}&fee_bps=10`);
     const d = await res.json();
-    if (d.status === 'INSUFFICIENT_DATA') throw new Error(`${d.symbol} has only ${d.bars} daily bars (needs ${d.required})`);
+    if (d.status === 'INSUFFICIENT_DATA') throw new Error(`${d.symbol} has only ${d.bars} ${state.interval} bars (needs ${d.required})`);
     if (d.status !== 'OK') throw new Error(d.error || d.status);
     $('live-dot').className = 'dot'; $('live-label').textContent = 'LIVE';
     renderHeader(d); renderCharts(d); renderMesh(d); renderAI(d); renderVotes(d); renderEquity(d); renderTranscript(d); renderBook(d);
@@ -321,6 +328,22 @@ $('kill').addEventListener('click', async () => {
   loadGovernor();
 });
 
+function renderIntervals() {
+  $('intervals').innerHTML = Object.keys(INTERVALS).map(k => `<button type="button" data-iv="${k}" class="${k === state.interval ? 'on' : ''}">${k.toUpperCase()}</button>`).join('');
+}
+// Poll faster on short intervals (5-30 s); the server caches each symbol/interval accordingly.
+function schedule() {
+  clearInterval(state.timer);
+  const ms = Math.min(30000, Math.max(5000, (INTERVALS[state.interval] * 1000) / 6));
+  state.timer = setInterval(() => { load(); loadGovernor(); loadFleet(); }, ms);
+}
+$('intervals').addEventListener('click', e => {
+  const iv = e.target.closest('button')?.dataset.iv;
+  if (!iv || iv === state.interval) return;
+  state.interval = iv; localStorage.setItem('desk.interval', iv);
+  renderIntervals(); schedule(); load();
+});
+renderIntervals();
 load(); loadGovernor(); loadUser(); loadSymbols(); loadFleet();
-state.timer = setInterval(() => { load(); loadGovernor(); loadFleet(); }, 30000);
+schedule();
 })();

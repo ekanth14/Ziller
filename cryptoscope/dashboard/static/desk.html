@@ -25,7 +25,7 @@
 <main class="grid">
   <!-- price chart -->
   <section class="panel chart-panel">
-    <div class="ph"><span><b id="sym-title">BTCUSDT</b> <em>1D · BINANCE SPOT · agent calls · paper fills</em></span><span id="src" class="muted"></span></div>
+    <div class="ph"><span><b id="sym-title">BTCUSDT</b> <em id="sym-meta">1D · BINANCE SPOT · agent calls · paper fills</em></span><span class="intervals" id="intervals" role="group" aria-label="Chart interval"></span><span id="src" class="muted"></span></div>
     <div id="ohlc" class="ohlc"></div>
     <div id="ind" class="ind"></div>
     <div id="lwc-chart" class="chart price"></div>
@@ -40,7 +40,7 @@
   <!-- agent mesh + PM -->
   <section class="panel mesh-panel">
     <div class="ph"><span><i class="dot"></i> <b>AGENT MESH</b> <em>rule models as roles</em></span><span class="muted">paper</span></div>
-    <div class="mesh-top"><span class="pill blue" id="mesh-source">● Binance 1D bars</span><span class="pill" id="mesh-ind">● indicator map</span></div>
+    <div class="mesh-top"><span class="pill blue" id="mesh-source">● Binance bars</span><span class="pill" id="mesh-ind">● indicator map</span></div>
     <div id="models" class="models"></div>
     <div class="mesh-row">
       <span id="bull-node" class="node bull">BULL +0.00</span>

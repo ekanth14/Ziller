@@ -28,9 +28,9 @@ def _kelly(trades: Sequence[Dict[str, Any]]) -> float:
     return max(0.0, p - (1 - p) / b) if b > 0 else 0.0
 
 
-def _smc_laya(candles: List[Dict[str, Any]], symbol: str, layer) -> Dict[str, Any]:
+def _smc_laya(candles: List[Dict[str, Any]], symbol: str, layer, bar_seconds: float = DAY) -> Dict[str, Any]:
     started = time.perf_counter()
-    rows = [dict(c, close_time=c["open_time"] + DAY, taker_buy_volume=c.get("taker_buy_volume", 0.0)) for c in candles]
+    rows = [dict(c, close_time=c["open_time"] + bar_seconds, taker_buy_volume=c.get("taker_buy_volume", 0.0)) for c in candles]
     res = layer.decide(rows, symbol)
     t1, t2 = res["tier1"], res["tier2"]
     action = {"LONG": "BUY", "SHORT": "SELL"}.get(res["final_action"], "HOLD")
@@ -84,14 +84,14 @@ def _committee(candles, symbol, desk) -> Dict[str, Any]:
 
 
 def ai_overlay(candles: List[Dict[str, Any]], symbol: str, desk: Dict[str, Any], layer=None,
-               ollama_status=None) -> Dict[str, Any]:
+               ollama_status=None, bar_seconds: float = DAY) -> Dict[str, Any]:
     """Run every linked system on closed bars only and combine with the rule PM (veto-only)."""
     systems: List[Dict[str, Any]] = []
     try:
         if layer is None:
             from cryptoscope.autotrader.decision import FastDecisionLayer
             layer = FastDecisionLayer()
-        systems.append(_smc_laya(candles, symbol, layer))
+        systems.append(_smc_laya(candles, symbol, layer, bar_seconds))
     except Exception as exc:  # one failing system must not take the desk down
         systems.append({"key": "smc_laya", "label": "SMC + Laya", "status": "ERROR", "action": "HOLD", "error": type(exc).__name__})
     try:
