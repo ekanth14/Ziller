@@ -159,6 +159,21 @@ $('fleet-stop').addEventListener('click', async () => {
   try { renderFleet(await post('/api/fleet/stop')); } catch (err) { $('fleet-err').textContent = err.message; }
 });
 
+async function loadTelegram() {
+  try {
+    const t = await (await fetch('/api/telegram/status')).json();
+    $('tg-state').innerHTML = t.configured ? '<span class="ok">CONFIGURED</span>'
+      : `<span class="bad">NOT CONFIGURED</span> ${t.token_set ? '' : '· bot token missing '}${t.owner_chat_set ? '' : '· owner chat id missing'}`;
+    $('tg-test').disabled = !t.configured;
+  } catch { $('tg-state').textContent = 'unknown'; }
+}
+$('tg-test').addEventListener('click', async () => {
+  if (!state.user) { $('login-err').textContent = 'Sign in as admin to send a test message.'; $('login').showModal(); return; }
+  $('tg-result').textContent = 'sending…';
+  try { const r = await post('/api/telegram/test'); $('tg-result').innerHTML = `<span class="ok">Delivered</span> (message ${r.message_id}) — check your Telegram.`; }
+  catch (err) { $('tg-result').innerHTML = `<span class="bad">${esc(err.message)}</span>`; }
+});
+loadTelegram();
 loadUser(); tick();
 setInterval(tick, 3000);
 })();

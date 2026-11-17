@@ -66,9 +66,12 @@ class OrchestratorEngine:
             self.bus,
             db_path=str(self.work_dir / "trading_journal.db")
         )
+        from cryptoscope.fx.rate_service import FxRateService
         self.notifier_bot = NotifierBot(
             self.bus,
-            rate_limit_per_minute=30
+            rate_limit_per_minute=30,
+            mode=self.mode,
+            fx_service=FxRateService(),
         )
 
         # Register bots with supervisor watchdog
@@ -128,6 +131,9 @@ class OrchestratorEngine:
                 logger.warning("[OrchestratorEngine] Telegram could not connect: %s. Offline spool enabled.", exc)
 
         logger.info("[OrchestratorEngine] Autonomous fleet online (%d bots active).", len(self.supervisor.bots))
+        await self.notifier_bot.announce(
+            f"🤖 <b>Autotrader fleet online</b>\nMode: <b>{self.mode}</b> · Symbols: {', '.join(self.symbols)}\n"
+            "You will get a message for every fill, every closed position and every halt.")
 
     async def stop(self) -> None:
         """Clean shutdown of all bots, bus, and gateways."""

@@ -11,6 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import logging
 import os
+import sys
 from pathlib import Path
 import time
 from urllib.parse import parse_qs, urlsplit
@@ -322,6 +323,9 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                                        "ai": _ollama_status()})
             if url.path == "/api/fleet/status":
                 return self.json(200, fleet.status())
+            if url.path == "/api/telegram/status":
+                from cryptoscope.telegram.notify import configured as telegram_configured
+                return self.json(200, telegram_configured())
 
             # Public market data and FX APIs
             if url.path == "/api/fx/rate":
@@ -1388,6 +1392,20 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 auth_store.update_settings(session["user_id"], currency, theme)
                 return self.json(200, {"status": "ok", "settings": {"display_currency": currency, "theme": theme}})
 
+            # Telegram test message (admin + CSRF); sent by a child process so the token never enters this server
+            if url.path == "/api/telegram/test":
+                if session.get("role") != "admin":
+                    return self.json(403, {"error": "Admin role required"})
+                import subprocess as _sp
+                env = {k: v for k, v in os.environ.items() if not k.startswith("TELEGRAM_")}
+                out = _sp.run([sys.executable, "-B", "-m", "cryptoscope.telegram.notify", "--test"], cwd=str(ROOT), env=env,
+                              capture_output=True, text=True, timeout=25)
+                try:
+                    result = json.loads(out.stdout.strip().splitlines()[-1])
+                except Exception:
+                    result = {"ok": False, "error": "Telegram sender produced no result"}
+                return self.json(200 if result.get("ok") else 502, result)
+
             # Autotrading fleet (PAPER / TESTNET only; admin + CSRF; refuses while the halt latch is engaged)
             if url.path in {"/api/fleet/start", "/api/fleet/stop"}:
                 if session.get("role") != "admin":
@@ -1410,7 +1428,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 # Master kill: also stop everything this server runs in the background.
                 result["background"] = {"fleet": {"was_running": fleet.status()["running"]},
                                         "llm": llm_panel.halt(), "ai_layer": "stopped"}
-                fleet.stop()
+                fleet.stop(reason="master kill switch")
                 result["background"]["fleet"]["running"] = fleet.status()["running"]
                 return self.json(200, result)
 

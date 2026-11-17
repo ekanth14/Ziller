@@ -2,6 +2,8 @@
 
 import asyncio
 from collections import deque
+from datetime import datetime, timedelta, timezone
+import html
 import logging
 import time
 from typing import Any, Callable, Deque, Dict, List, Optional
@@ -19,6 +21,12 @@ from cryptoscope.orchestrator.events import (
 )
 
 logger = logging.getLogger("cryptoscope.orchestrator.notifier_bot")
+IST = timezone(timedelta(hours=5, minutes=30))
+
+
+def _esc(value: Any) -> str:
+    """Telegram HTML mode rejects stray <, > and &; escape every dynamic string."""
+    return html.escape(str(value), quote=False)
 
 
 class NotificationMessage:
@@ -39,12 +47,16 @@ class NotifierBot(BaseBot):
         name: str = "notifier_bot",
         max_queue_size: int = 1000,
         rate_limit_per_minute: int = 30,
-        dispatch_callback: Optional[Callable[[str], Any]] = None
+        dispatch_callback: Optional[Callable[[str], Any]] = None,
+        mode: str = "PAPER",
+        fx_service: Any = None,
     ):
         super().__init__(name, bus)
         self.max_queue_size = max_queue_size
         self.rate_limit_per_minute = rate_limit_per_minute
         self.dispatch_callback = dispatch_callback
+        self.mode = mode.upper()
+        self._fx = fx_service  # optional FxRateService for INR equivalents; never required
 
         # Offline & rate-limiting queue
         self.outbox_queue: asyncio.Queue = asyncio.Queue(maxsize=max_queue_size)
@@ -62,6 +74,26 @@ class NotifierBot(BaseBot):
         self.subscribe(Fill)
         self.subscribe(PositionClosed)
         self.subscribe(SystemAlert)
+
+    def _stamp(self) -> str:
+        now = datetime.now(IST)
+        return f"<i>{self.mode} · {now:%d %b %Y %H:%M:%S} IST</i>"
+
+    async def _inr(self, usd: float) -> str:
+        """' (≈ ₹x)' using the live USD/INR rate when available; empty string otherwise."""
+        if self._fx is None:
+            return ""
+        try:
+            r = await asyncio.to_thread(self._fx.get_rate, "INR")
+            if r.get("status") in {"available", "stale"} and r.get("rate"):
+                return f" (≈ ₹{usd * r['rate']:,.2f})"
+        except Exception:
+            pass
+        return ""
+
+    async def announce(self, text: str, priority: int = 0) -> None:
+        """Lifecycle messages (fleet online, etc.)."""
+        await self.enqueue_notification(NotificationMessage(text=f"{text}\n{self._stamp()}", category="SYSTEM", priority=priority))
 
     async def on_event(self, event: BaseEvent) -> None:
         """Process incoming bus events and format notifications."""
@@ -81,26 +113,28 @@ class NotifierBot(BaseBot):
     async def _handle_fill(self, fill: Fill) -> None:
         """Format and enqueue a detailed entry alert."""
         # Find matching intent and debate
-        intent = None
-        debate = None
-        for i_id, i_val in self._intents.items():
-            if i_val.symbol == fill.symbol:
-                intent = i_val
-                debate = self._debates.get(i_id)
-                break
+        # Correlate by the client order id (cli_<intent_id>); fall back to the newest intent for the symbol.
+        intent_id = str(getattr(fill, "client_order_id", "") or "").removeprefix("cli_")
+        intent = self._intents.get(intent_id)
+        if intent is None:
+            for i_id, i_val in reversed(list(self._intents.items())):
+                if i_val.symbol == fill.symbol:
+                    intent, intent_id = i_val, i_id
+                    break
+        debate = self._debates.get(intent_id) if intent is not None else None
 
         price = getattr(fill, "executed_price", getattr(fill, "fill_price", 0.0))
         fee = getattr(fill, "fee", getattr(fill, "fee_usd", 0.0))
         slippage = getattr(fill, "slippage_pct", 0.0)
 
         side_emoji = "🟢" if fill.side == "BUY" else "🔴"
-        title = f"{side_emoji} <b>EXECUTION ENTRY: {fill.symbol} ({fill.side})</b>"
+        title = f"{side_emoji} <b>BOT TRADE · {_esc(fill.symbol)} {_esc(fill.side)}</b>"
         
         lines = [
             title,
             "━━━━━━━━━━━━━━━━━━━",
             f"<b>Filled Price:</b> ${price:,.4f}",
-            f"<b>Quantity:</b> {fill.quantity} (${fill.quantity * price:,.2f})",
+            f"<b>Quantity:</b> {fill.quantity} (${fill.quantity * price:,.2f}{await self._inr(fill.quantity * price)})",
             f"<b>Exchange Fee:</b> ${fee:.2f} | <b>Slippage:</b> {slippage:.3f}%"
         ]
 
@@ -108,18 +142,18 @@ class NotifierBot(BaseBot):
             lines.extend([
                 f"🛡️ <b>Stop Loss:</b> ${intent.stop_loss:,.4f} [Exchange Gated]",
                 f"🎯 <b>Take Profit:</b> ${intent.take_profit:,.4f}",
-                f"🏷️ <b>Strategy:</b> {getattr(intent, 'strategy_id', 'core')}"
+                f"🏷️ <b>Strategy:</b> {_esc(getattr(intent, 'strategy_id', 'core'))}"
             ])
 
         if debate:
             score = getattr(debate, 'conviction_score', 0.0)
             summary = getattr(debate, 'bull_thesis', '') or getattr(debate, 'debate_summary', '')
             lines.extend([
-                f"⚖️ <b>Consensus:</b> {debate.verdict} ({score:+.1f} conviction)",
-                f"💬 <b>Debate:</b> {summary}"
+                f"⚖️ <b>Consensus:</b> {_esc(debate.verdict)} ({score:+.1f} conviction)",
+                f"💬 <b>Debate:</b> {_esc(summary)[:600]}"
             ])
 
-        lines.append("━━━━━━━━━━━━━━━━━━━")
+        lines.extend(["━━━━━━━━━━━━━━━━━━━", self._stamp()])
         msg = NotificationMessage(text="\n".join(lines), category="ENTRY", priority=0)
         await self.enqueue_notification(msg)
 
@@ -127,7 +161,7 @@ class NotifierBot(BaseBot):
         """Format and enqueue a position closure alert."""
         pnl_emoji = "🟢" if closed.pnl_usd >= 0 else "🔴"
         icon = "🎯" if closed.exit_reason == "TAKE_PROFIT" else "🛑"
-        title = f"{icon} <b>POSITION CLOSED: {closed.symbol} ({closed.exit_reason})</b>"
+        title = f"{icon} <b>POSITION CLOSED · {_esc(closed.symbol)} ({_esc(closed.exit_reason)})</b>"
 
         mins = int(closed.duration_seconds // 60)
         secs = int(closed.duration_seconds % 60)
@@ -142,9 +176,10 @@ class NotifierBot(BaseBot):
             f"<b>Entry Price:</b> ${closed.entry_price:,.4f}",
             f"<b>Exit Price:</b> ${closed.exit_price:,.4f}",
             f"<b>Quantity:</b> {closed.quantity}",
-            f"{pnl_emoji} <b>Realized PnL:</b> {pnl_str} ({pct_str})",
+            f"{pnl_emoji} <b>Realized PnL:</b> {pnl_str} ({pct_str}){await self._inr(closed.pnl_usd)}",
             f"⏱️ <b>Hold Time:</b> {duration_str}",
-            "━━━━━━━━━━━━━━━━━━━"
+            "━━━━━━━━━━━━━━━━━━━",
+            self._stamp(),
         ]
         msg = NotificationMessage(text="\n".join(lines), category="EXIT", priority=0)
         await self.enqueue_notification(msg)
@@ -157,9 +192,10 @@ class NotifierBot(BaseBot):
 
         lines = [
             f"{icon} <b>SYSTEM ALERT [{sev}]</b>",
-            f"<b>Source:</b> {alert.source}",
-            f"<b>Title:</b> {alert.title}",
-            f"<b>Message:</b> {alert.message}"
+            f"<b>Source:</b> {_esc(alert.source)}",
+            f"<b>Title:</b> {_esc(alert.title)}",
+            f"<b>Message:</b> {_esc(alert.message)[:800]}",
+            self._stamp(),
         ]
         msg = NotificationMessage(text="\n".join(lines), category="ALERT", priority=priority)
         await self.enqueue_notification(msg)

@@ -47,6 +47,12 @@
   <section class="panel wide"><div class="ph"><span><i class="dot"></i> <b>MARKET DATA DELAY</b> <em>live feeds in this server</em></span></div><table id="feeds" class="tbl"></table><table id="ticks" class="tbl" style="margin-top:8px"></table></section>
   <section class="panel"><div class="ph"><span><i class="dot"></i> <b>AI SYSTEMS</b></span></div><div id="ai" class="kv"></div><p class="note">The desk runs SMC + Laya, the hedge-fund committee and THX-02 on every refresh; Ollama is used as an explainer only.</p></section>
 
+  <section class="panel full" id="telegram">
+    <div class="ph"><span><i class="dot"></i> <b>TELEGRAM ALERTS</b> <em>bot fills · closed positions · halts · fleet start/stop</em></span><span id="tg-state" class="muted"></span></div>
+    <div class="fleet-form"><button id="tg-test" class="btn primary">SEND TEST MESSAGE</button><span id="tg-result" class="note"></span></div>
+    <p class="note">Uses TELEGRAM_BOT_TOKEN and TELEGRAM_OWNER_CHAT_ID from <code>.env</code>. Messages are sent by the fleet process (and a short-lived sender for tests/stops); the token never reaches this page or the dashboard process. Times are in IST; values also shown in INR when the rate is available.</p>
+  </section>
+
   <section class="panel full" id="fleet">
     <div class="ph"><span><i class="dot"></i> <b>AUTOTRADER FLEET</b> <em>10-bot orchestrator · data → analyst → quant → strategy → debate → risk → execution</em></span><span id="fleet-state" class="muted"></span></div>
     <div class="fleet-form">

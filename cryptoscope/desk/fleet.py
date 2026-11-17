@@ -63,7 +63,18 @@ class FleetManager:
                           "log": str(log_path.relative_to(self.root)), "pid": self._proc.pid}
         return self.status()
 
-    def stop(self, timeout: float = 15.0) -> Dict[str, Any]:
+    def notify(self, text: str) -> Dict[str, Any]:
+        """Send one Telegram message via a child process (the dashboard never holds the token)."""
+        try:
+            out = subprocess.run([self.python, "-B", "-m", "cryptoscope.telegram.notify", "--text", text], cwd=str(self.root),
+                                 env={k: v for k, v in os.environ.items() if not k.startswith("TELEGRAM_")},
+                                 capture_output=True, text=True, timeout=20)
+            import json as _json
+            return _json.loads(out.stdout.strip().splitlines()[-1]) if out.stdout.strip() else {"ok": False, "error": "no output"}
+        except Exception as exc:
+            return {"ok": False, "error": type(exc).__name__}
+
+    def stop(self, timeout: float = 15.0, reason: str = "stopped from the dashboard") -> Dict[str, Any]:
         with self._lock:
             proc = self._proc
         if not proc or proc.poll() is not None:
@@ -81,6 +92,9 @@ class FleetManager:
             proc.wait(timeout=5)
         with self._lock:
             self._meta["stopped_at"] = time.time()
+            meta = dict(self._meta)
+        threading.Thread(target=self.notify, daemon=True, args=(
+            f"⏹️ <b>Autotrader fleet stopped</b>\nMode: {meta.get('mode')} · reason: {reason}",)).start()
         return self.status()
 
     def tail(self, lines: int = 40) -> List[str]:
