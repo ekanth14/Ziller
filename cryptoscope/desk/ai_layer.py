@@ -152,6 +152,8 @@ def ai_overlay(candles: List[Dict[str, Any]], symbol: str, desk: Dict[str, Any],
     if llm_panel is not None:
         try:
             llm = llm_panel.request(symbol, interval, candles[-1]["open_time"], desk)
+            if llm.get("halted"):
+                llm["note"] = "paused: kill switch engaged or the autotrader fleet is using Ollama"
             if llm["panel_action"]:
                 systems.append({"key": "llm_panel", "label": f"LLM panel ({llm['ready']}/{llm['total']})", "status": "OK",
                                 "action": llm["panel_action"], "detail": "majority of answered local models"})

@@ -23,11 +23,18 @@ class StrategyBot(BaseBot):
         bus: EventBus,
         name: str = "strategy_bot",
         min_confidence: float = 0.65,
-        cooldown_sec: float = 5.0
+        cooldown_sec: float = 5.0,
+        spot_only: bool = True,
+        repeat_window_sec: float = 900.0,
     ):
         super().__init__(name, bus)
         self.min_confidence = min_confidence
         self.cooldown_sec = cooldown_sec
+        self.spot_only = spot_only
+        self.repeat_window_sec = repeat_window_sec
+        self._last_proposal: Dict[str, tuple] = {}
+        self.suppressed_shorts = 0
+        self.suppressed_repeats = 0
         self.is_paused: bool = False
         self.pause_reason: str = ""
         self.latest_prices: Dict[str, float] = {}
@@ -71,6 +78,12 @@ class StrategyBot(BaseBot):
         if sig.confidence < self.min_confidence:
             return
 
+        # Spot account: a SELL signal is not an entry (no borrowing). Exits are handled by
+        # the execution layer's stops/targets, so short proposals are dropped here.
+        if self.spot_only and sig.direction == "SELL":
+            self.suppressed_shorts += 1
+            return
+
         now = time.time()
         last_time = self.last_signal_time.get(sig.symbol, 0.0)
         if (now - last_time) < self.cooldown_sec:
@@ -94,6 +107,14 @@ class StrategyBot(BaseBot):
             entry = price
             stop = round(entry + risk_distance, 4)
             target = round(entry - (risk_distance * 2.0), 4)
+
+        # The same symbol/direction/price was already proposed recently (unchanged candle): skip.
+        key = (sig.direction, round(entry, 8))
+        last = self._last_proposal.get(sig.symbol)
+        if last and last[0] == key and now - last[1] < self.repeat_window_sec:
+            self.suppressed_repeats += 1
+            return
+        self._last_proposal[sig.symbol] = (key, now)
 
         intent = TradeIntent(
             strategy_id=sig.strategy_id,

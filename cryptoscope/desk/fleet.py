@@ -37,6 +37,8 @@ class FleetManager:
     def _child_env(self, mode: str) -> Dict[str, str]:
         env = {k: v for k, v in os.environ.items() if k not in _STRIP_KEYS}
         env.update(TRADING_MODE=mode, LIVE_TRADING="false", PYTHONUNBUFFERED="1", PYTHONIOENCODING="utf-8")
+        # CPU-only Ollama needs ~10-40 s per debate; 35 s made most debates time out and fail closed.
+        env.setdefault("DEBATE_TIMEOUT_SEC", "90")
         return env
 
     def start(self, mode: str, symbols: List[str], actor: str) -> Dict[str, Any]:
@@ -110,6 +112,10 @@ class FleetManager:
         except OSError:
             return []
         return [_SECRETISH.sub(r"\1=<redacted>", ln) for ln in text.splitlines()[-lines:]]
+
+    def is_running(self) -> bool:
+        with self._lock:
+            return bool(self._proc and self._proc.poll() is None)
 
     def status(self) -> Dict[str, Any]:
         with self._lock:

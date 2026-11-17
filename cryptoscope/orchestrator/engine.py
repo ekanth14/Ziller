@@ -44,7 +44,8 @@ class OrchestratorEngine:
         self.supervisor = SupervisorBot(self.bus)
 
         # Micro-bots
-        self.data_bot = DataBot(self.bus, symbols=self.symbols)
+        # Live Binance candles every 15 s (closed 15m bars for signals, ticker price for stops)
+        self.data_bot = DataBot(self.bus, symbols=self.symbols, poll_interval=15.0, live=True)
         self.analyst_bot = AnalystBot(self.bus)
         self.quant_bot = QuantBot(self.bus)
         self.strategy_bot = StrategyBot(self.bus)

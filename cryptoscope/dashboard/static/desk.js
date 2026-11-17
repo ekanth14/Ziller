@@ -188,7 +188,7 @@ function renderAI(d) {
       (m.status === 'ready' ? `<span class="act ${m.action}">${m.action} ${Math.round((m.confidence || 0) * 100)}%</span><span class="r" title="${esc(m.reason)}">${esc(m.reason)} · ${(m.latency_ms / 1000).toFixed(1)}s</span>`
         : m.status === 'error' ? `<span class="dn">error</span><span class="r">${esc(m.error)}</span>`
         : `<span class="muted">${esc(m.status)}</span><span class="r">waiting for the local model…</span>`) + '</div>').join('')
-      : '<div class="muted">No Ollama chat models found.</div>') + '</div>';
+      : `<div class="muted">${L.halted ? esc(L.note || 'paused') : 'No Ollama chat models found.'}</div>`) + '</div>';
   $('ai').innerHTML = `<div class="ai-head"><span><b>AI LAYER</b> <em>your systems on the last closed bar</em></span><span>veto-only</span></div>` +
     `<div class="ai-grid">${ai.systems.map(card).join('')}${ollama}</div>` + llm +
     `<div class="final"><span class="muted">rule PM</span><span class="act ${ai.rule_pm}">${ai.rule_pm}</span><span class="muted">→ final</span>` +

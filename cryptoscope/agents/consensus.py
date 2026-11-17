@@ -11,6 +11,38 @@ from cryptoscope.simulation.time_machine import simulate_trade_odds
 from cryptoscope.providers.deadline_http import post_json_deadline
 
 
+_RESOLVED_MODEL = None
+
+
+def resolve_debate_model():
+    """OLLAMA_DEBATE_MODEL > OLLAMA_MODEL > first installed gemma chat model > gemma4:12b.
+
+    The old hard default (gemma4:12b) is not installed on this machine, which made every debate
+    fail with HTTP 404 and every trade get vetoed.
+    """
+    global _RESOLVED_MODEL
+    import os, json, urllib.request
+    explicit = (os.environ.get("OLLAMA_DEBATE_MODEL") or os.environ.get("OLLAMA_MODEL") or "").strip()
+    if explicit:
+        return explicit
+    if _RESOLVED_MODEL:
+        return _RESOLVED_MODEL
+    host = (os.environ.get("OLLAMA_HOST") or "http://127.0.0.1:11434").strip().rstrip("/")
+    if not host.startswith(("http://", "https://")):
+        host = "http://" + host
+    try:
+        with urllib.request.urlopen(host + "/api/tags", timeout=3) as resp:
+            tags = json.loads(resp.read()).get("models", [])
+        chat = [m["name"] for m in tags if "gemma" in str(m.get("details", {}).get("family", "")).lower()]
+        preferred = [n for n in chat if "quant" in n] + chat
+        if preferred:
+            _RESOLVED_MODEL = preferred[0]
+            return _RESOLVED_MODEL
+    except Exception:
+        pass
+    return "gemma4:12b"
+
+
 class DeliberationConsensusEngine:
     """Orchestrates adversarial multi-agent debate and compiles institutional consensus."""
 
@@ -38,9 +70,11 @@ class DeliberationConsensusEngine:
         log = logging.getLogger("cryptoscope.agents.consensus")
         t0 = time.perf_counter()
 
-        model_name = model or os.environ.get("OLLAMA_DEBATE_MODEL", "gemma4:12b")
+        model_name = model or resolve_debate_model()
         deadline = timeout_sec or float(os.environ.get("DEBATE_TIMEOUT_SEC", "35.0"))
-        host = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+        host = (os.environ.get("OLLAMA_HOST") or "http://127.0.0.1:11434").strip().rstrip("/")
+        if not host.startswith(("http://", "https://")):
+            host = "http://" + host
 
         ind = indicators or {}
         context_str = ", ".join(f"{k}={v}" for k, v in ind.items() if not isinstance(v, (list, dict)))

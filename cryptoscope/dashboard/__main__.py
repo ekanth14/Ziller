@@ -30,6 +30,7 @@ from cryptoscope.desk import DeskFeed
 from cryptoscope.desk.feed import SymbolDirectory
 from cryptoscope.desk.fleet import FleetManager
 from cryptoscope.desk.llm_panel import LLMPanel
+from cryptoscope.desk.scanner import Autopilot, MarketScanner
 from cryptoscope.desk.system_monitor import SystemMonitor
 from cryptoscope.dashboard.collaborate_view import render_collaborations_html
 from cryptoscope.fx.rate_service import FxRateService
@@ -125,10 +126,25 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                          "evaluations": st.get("total_evaluations")}}
 
     ai_allowed = lambda: not kill_switch.halted  # noqa: E731 - the durable latch gates every AI system
-    llm_panel = LLMPanel(gate=ai_allowed)
+    # The fleet gets Ollama to itself while it runs: the panel cycling 5 models forces reloads that
+    # make the fleet's debate calls time out.
+    llm_panel = LLMPanel(gate=lambda: ai_allowed() and not fleet.is_running())
     desk_feed = DeskFeed(ollama_status=_ollama_status, llm_panel=llm_panel, ai_gate=ai_allowed)
     symbol_directory = SymbolDirectory()
     fleet = FleetManager(ROOT)
+    scanner = MarketScanner()
+
+    def _fleet_positions_open():
+        db = ROOT / "work" / "runtime" / "orchestrator_execution.db"
+        if not db.is_file():
+            return 0
+        try:
+            with sqlite3.connect(db.resolve().as_uri() + "?mode=ro", uri=True, timeout=5) as conn:
+                return int(conn.execute("SELECT count(*) FROM positions").fetchone()[0])
+        except sqlite3.Error:
+            return 1  # unknown -> treat as holding, so the autopilot never rotates blindly
+
+    autopilot = Autopilot(scanner, fleet, _fleet_positions_open, notify=fleet.notify)
 
     def _feed_delays():
         out = {}
@@ -254,6 +270,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 "/desk.css": ("desk.css", "text/css"),
                 "/system": ("system.html", "text/html"),
                 "/system.js": ("system.js", "text/javascript"),
+                "/scanner": ("scanner.html", "text/html"),
+                "/scanner.js": ("scanner.js", "text/javascript"),
             }
             if url.path in assets:
                 name, kind = assets[url.path]
@@ -323,6 +341,16 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                                        "ai": _ollama_status()})
             if url.path == "/api/fleet/status":
                 return self.json(200, fleet.status())
+            if url.path == "/api/scanner":
+                mode = query.get("mode", ["PAPER"])[0].upper()
+                if mode not in {"PAPER", "TESTNET"}:
+                    return self.json(400, {"error": "mode must be PAPER or TESTNET"})
+                try:
+                    return self.json(200, scanner.scan(mode, force=query.get("force", ["0"])[0] == "1"))
+                except Exception as err:
+                    return self.json(503, {"status": "UNAVAILABLE", "error": type(err).__name__})
+            if url.path == "/api/scanner/autopilot":
+                return self.json(200, autopilot.status())
             if url.path == "/api/telegram/status":
                 from cryptoscope.telegram.notify import configured as telegram_configured
                 return self.json(200, telegram_configured())
@@ -1406,6 +1434,24 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     result = {"ok": False, "error": "Telegram sender produced no result"}
                 return self.json(200 if result.get("ok") else 502, result)
 
+            # Scanner autopilot: scan all USDT pairs, trade the top 5, rescan every 4 h (admin + CSRF)
+            if url.path == "/api/scanner/autopilot":
+                if session.get("role") != "admin":
+                    return self.json(403, {"error": "Admin role required to control the autopilot"})
+                if not body.get("enable", True):
+                    autopilot.stop()
+                    return self.json(200, autopilot.status())
+                if kill_switch.halted:
+                    return self.json(409, {"error": "Emergency halt is engaged; resume the governor first"})
+                mode = str(body.get("mode", "PAPER")).upper()
+                if mode not in {"PAPER", "TESTNET"}:
+                    return self.json(400, {"error": "Autopilot runs in PAPER or TESTNET only"})
+                try:
+                    out = autopilot.start(mode, session.get("email", "admin"))
+                except (ValueError, RuntimeError) as err:
+                    return self.json(400, {"error": str(err)})
+                return self.json(200, {"autopilot": out["autopilot"], "top": out["scan"]["top"]})
+
             # Autotrading fleet (PAPER / TESTNET only; admin + CSRF; refuses while the halt latch is engaged)
             if url.path in {"/api/fleet/start", "/api/fleet/stop"}:
                 if session.get("role") != "admin":
@@ -1428,6 +1474,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 # Master kill: also stop everything this server runs in the background.
                 result["background"] = {"fleet": {"was_running": fleet.status()["running"]},
                                         "llm": llm_panel.halt(), "ai_layer": "stopped"}
+                autopilot.stop()
                 fleet.stop(reason="master kill switch")
                 result["background"]["fleet"]["running"] = fleet.status()["running"]
                 return self.json(200, result)
