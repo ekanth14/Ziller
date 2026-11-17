@@ -40,7 +40,7 @@ def _desk_with(action):
 def test_ai_layer_runs_real_systems_and_never_creates_a_buy():
     candles = _candles()
     out = ai_overlay(candles, "BTCUSDT", _desk_with("HOLD"), layer=_Layer("LONG"))
-    assert {s["key"] for s in out["systems"]} == {"smc_laya", "committee"}
+    assert {s["key"] for s in out["systems"]} == {"smc_laya", "committee", "strategies"}
     assert out["final_action"] == "HOLD"  # an AI BUY alone never opens a position
 
 
@@ -120,3 +120,79 @@ def test_fleet_log_tail_redacts_secret_like_values(tmp_path):
     f._meta = {"log": "fleet.log"}
     tail = f.tail()
     assert "abc123" not in "".join(tail) and "xyz" not in "".join(tail)
+
+
+# ------------------------------------------------------------------ LLM panel and strategy library
+def test_strategy_library_runs_on_real_shaped_candles():
+    out = ai_overlay(_candles(), "BTCUSDT", _desk_with("HOLD"), layer=_Layer("STAND_ASIDE"))
+    strat = next(s for s in out["systems"] if s["key"] == "strategies")
+    assert strat["status"] == "OK" and len(strat["signals"]) == 4
+    assert all(g["action"] in {"BUY", "SELL", "NONE"} for g in strat["signals"])
+
+
+def test_llm_panel_answers_in_background_and_caches_per_bar(monkeypatch):
+    import time
+    from cryptoscope.desk import llm_panel as lp
+
+    calls = []
+
+    def fake_ask(self, model, prompt):
+        calls.append(model)
+        assert "Use ONLY the numbers below" in prompt and "BTCUSDT" in prompt
+        return {"model": model, "status": "ready", "action": "SELL" if model == "b" else "HOLD", "confidence": 0.6,
+                "reason": "test", "latency_ms": 1}
+
+    monkeypatch.setattr(lp.LLMPanel, "_ask", fake_ask)
+    panel = lp.LLMPanel(models=["a", "b", "c"])
+    desk = _desk_with("BUY")
+    first = panel.request("BTCUSDT", "1d", 1.0, desk)
+    assert first["ready"] == 0 and {m["status"] for m in first["models"]} <= {"queued", "running"}
+    for _ in range(50):
+        time.sleep(0.05)
+        res = panel.request("BTCUSDT", "1d", 1.0, desk)
+        if res["ready"] == 3:
+            break
+    assert res["ready"] == 3 and res["panel_action"] == "HOLD"  # majority, not any single model
+    assert sorted(calls) == ["a", "b", "c"]
+    panel.request("BTCUSDT", "1d", 1.0, desk)
+    assert len(calls) == 3  # cached for this bar
+
+
+def test_llm_panel_rejects_non_json_answers(monkeypatch):
+    from cryptoscope.desk import llm_panel as lp
+
+    class Resp:
+        def __init__(self, body):
+            self.body = body
+
+        def read(self):
+            return self.body
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(lp, "urlopen", lambda req, timeout=0: Resp(b'{"response": "I think you should buy"}'))
+    out = lp.LLMPanel(models=["x"])._ask("x", "prompt")
+    assert out["status"] == "error"
+    monkeypatch.setattr(lp, "urlopen", lambda req, timeout=0: Resp(b'{"response": "{\\"action\\": \\"YOLO\\"}"}'))
+    assert lp.LLMPanel(models=["x"])._ask("x", "prompt")["status"] == "error"
+
+
+def test_llm_panel_host_without_scheme_is_normalised(monkeypatch):
+    from cryptoscope.desk.llm_panel import LLMPanel
+
+    monkeypatch.setenv("OLLAMA_HOST", "127.0.0.1:11434")
+    assert LLMPanel().host == "http://127.0.0.1:11434"
+
+
+def test_ai_overlay_vetoes_buy_when_llm_panel_majority_sells():
+    class Panel:
+        def request(self, *a):
+            return {"models": [], "ready": 3, "total": 3, "panel_action": "SELL", "available": True}
+
+    out = ai_overlay(_candles(), "BTCUSDT", _desk_with("BUY"), layer=_Layer("STAND_ASIDE"), llm_panel=Panel())
+    assert out["final_action"] == "HOLD"
+    assert any("LLM panel" in v for v in out["vetoes"])

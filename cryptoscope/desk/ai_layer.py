@@ -83,8 +83,54 @@ def _committee(candles, symbol, desk) -> Dict[str, Any]:
     }
 
 
+def _strategy_indicators(candles: List[Dict[str, Any]]) -> Dict[str, float]:
+    closes = [c["close"] for c in candles]
+
+    def ema(n):
+        k, out = 2 / (n + 1), closes[0]
+        for v in closes[1:]:
+            out = k * v + (1 - k) * out
+        return out
+
+    gains = losses = 0.0
+    for i in range(len(closes) - 14, len(closes)):
+        d = closes[i] - closes[i - 1]
+        gains += max(d, 0.0)
+        losses += max(-d, 0.0)
+    rsi = 100.0 if losses == 0 else 100 - 100 / (1 + gains / losses)
+    trs = [max(c["high"] - c["low"], abs(c["high"] - p["close"]), abs(c["low"] - p["close"]))
+           for p, c in zip(candles[-15:-1], candles[-14:])]
+    return {"ema20": ema(20), "ema50": ema(50), "rsi14": rsi, "atr14": sum(trs) / len(trs)}
+
+
+def _strategies(candles: List[Dict[str, Any]], bar_seconds: float) -> Dict[str, Any]:
+    """The autotrader strategy library on the same closed bars (stat-arb needs a pair, so it is listed only)."""
+    from cryptoscope.autotrader.strategies import (BoxOscillationStrategy, ShrinkPullbackStrategy,
+                                                    VolatilityCompressionBreakoutStrategy, VolumeBreakoutStrategy)
+    started = time.perf_counter()
+    rows = [dict(c, close_time=c["open_time"] + bar_seconds) for c in candles[-200:]]
+    ind = _strategy_indicators(rows)
+    signals = []
+    for strat in (VolumeBreakoutStrategy(), ShrinkPullbackStrategy(), BoxOscillationStrategy(),
+                  VolatilityCompressionBreakoutStrategy()):
+        name = getattr(strat, "display_name", type(strat).__name__)
+        try:
+            sig = strat.evaluate(rows, ind)
+        except Exception as exc:
+            signals.append({"name": name, "action": "ERROR", "reason": type(exc).__name__})
+            continue
+        side = (sig or {}).get("side")
+        signals.append({"name": name, "action": side if side in {"BUY", "SELL"} else "NONE",
+                        "confidence": (sig or {}).get("confidence"), "reason": (sig or {}).get("reason")})
+    acts = [x["action"] for x in signals]
+    action = "SELL" if "SELL" in acts else "BUY" if "BUY" in acts else "HOLD"
+    return {"key": "strategies", "label": "Strategy library", "status": "OK", "action": action, "signals": signals,
+            "not_run": ["Stat-arb pairs (needs a second symbol)"],
+            "latency_ms": round((time.perf_counter() - started) * 1000, 2)}
+
+
 def ai_overlay(candles: List[Dict[str, Any]], symbol: str, desk: Dict[str, Any], layer=None,
-               ollama_status=None, bar_seconds: float = DAY) -> Dict[str, Any]:
+               ollama_status=None, bar_seconds: float = DAY, llm_panel=None, interval: str = "1d") -> Dict[str, Any]:
     """Run every linked system on closed bars only and combine with the rule PM (veto-only)."""
     systems: List[Dict[str, Any]] = []
     try:
@@ -98,6 +144,19 @@ def ai_overlay(candles: List[Dict[str, Any]], symbol: str, desk: Dict[str, Any],
         systems.append(_committee(candles, symbol, desk))
     except Exception as exc:
         systems.append({"key": "committee", "label": "Hedge-fund committee", "status": "ERROR", "action": "HOLD", "error": type(exc).__name__})
+    try:
+        systems.append(_strategies(candles, bar_seconds))
+    except Exception as exc:
+        systems.append({"key": "strategies", "label": "Strategy library", "status": "ERROR", "action": "HOLD", "error": type(exc).__name__})
+    llm = None
+    if llm_panel is not None:
+        try:
+            llm = llm_panel.request(symbol, interval, candles[-1]["open_time"], desk)
+            if llm["panel_action"]:
+                systems.append({"key": "llm_panel", "label": f"LLM panel ({llm['ready']}/{llm['total']})", "status": "OK",
+                                "action": llm["panel_action"], "detail": "majority of answered local models"})
+        except Exception as exc:
+            llm = {"available": False, "error": type(exc).__name__, "models": []}
 
     pm = desk["decision"]["action"]
     vetoes = []
@@ -113,6 +172,7 @@ def ai_overlay(candles: List[Dict[str, Any]], symbol: str, desk: Dict[str, Any],
     return {
         "systems": systems,
         "ollama": ollama_status or {"status": "unknown"},
+        "llm": llm,
         "rule_pm": pm,
         "final_action": final,
         "vetoes": vetoes,

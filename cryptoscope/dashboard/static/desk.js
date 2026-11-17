@@ -7,18 +7,29 @@ const COLORS = {trend:'#ffb547', momentum:'#a98bff', volume:'#4aa8ff', drawdown:
 const GREEN = '#22e39b', RED = '#ff4d6a', MUTED = '#5f7186';
 const pct = (v, d = 2) => v == null ? '—' : `${v >= 0 ? '+' : ''}${(v * 100).toFixed(d)}%`;
 const num = (v, d = 2) => v == null ? '—' : Number(v).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
-const px = v => v == null ? '—' : num(v, v >= 1000 ? 2 : v >= 1 ? 4 : 6);
+const px = v => money(v);
 const cls = v => v == null ? '' : v >= 0 ? 'up' : 'dn';
 const INTERVALS = {'1m': 60, '5m': 300, '15m': 900, '30m': 1800, '1h': 3600, '4h': 14400, '1d': 86400, '1w': 604800};
 const intraday = () => (INTERVALS[state.interval] || 86400) < 86400;
 // Short bar label (transcript/tables) and full label (headers); intraday shows the time too.
-const day = t => { const s = new Date(t * 1000).toISOString(); return intraday() ? `${s.slice(5, 10)} ${s.slice(11, 16)}` : s.slice(5, 10); };
-const date = t => { const s = new Date(t * 1000).toISOString(); return intraday() ? `${s.slice(0, 10)} ${s.slice(11, 16)}Z` : s.slice(0, 10); };
+// Time zone: IST = UTC+05:30 (no daylight saving). All labels and chart times shift by this offset.
+const tzOff = () => state.tz === 'IST' ? 19800 : 0;
+const tzTag = () => state.tz === 'IST' ? 'IST' : 'UTC';
+const iso = t => new Date((t + tzOff()) * 1000).toISOString();
+const day = t => { const s = iso(t); return intraday() ? `${s.slice(5, 10)} ${s.slice(11, 16)}` : s.slice(5, 10); };
+const date = t => { const s = iso(t); return intraday() ? `${s.slice(0, 10)} ${s.slice(11, 16)} ${tzTag()}` : s.slice(0, 10); };
+const ct = t => Math.round(t + tzOff());  // chart time (the chart library labels everything as UTC)
+// Currency: Binance quotes in USDT; INR = USDT price x live USD/INR rate from /api/fx/rate.
+const fxk = () => state.ccy === 'INR' && state.fx ? state.fx.rate : 1;
+const money = v => v == null ? '—' : (state.ccy === 'INR' && state.fx ? '₹' : '') +
+  (v * fxk()).toLocaleString(state.ccy === 'INR' ? 'en-IN' : 'en-US', {minimumFractionDigits: 2, maximumFractionDigits: Math.abs(v * fxk()) >= 1000 ? 2 : Math.abs(v * fxk()) >= 1 ? 4 : 6});
 const voteTxt = v => v > 0 ? '+1' : v < 0 ? '-1' : '0';
 const voteCls = v => v > 0 ? 'p' : v < 0 ? 'n' : 'z';
 const big = v => v == null ? '—' : v >= 1e9 ? (v / 1e9).toFixed(1) + 'B' : v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? (v / 1e3).toFixed(1) + 'K' : v.toFixed(0);
 
-const state = {symbol: localStorage.getItem('desk.symbol') || 'BTCUSDT', interval: localStorage.getItem('desk.interval') || '1d', user: null, charts: null, timer: null};
+const store = (k, d) => { try { return localStorage.getItem(k) || d; } catch { return d; } };
+const state = {symbol: store('desk.symbol', 'BTCUSDT'), interval: store('desk.interval', '1d'), tz: store('desk.tz', 'IST'),
+  ccy: store('desk.ccy', 'INR'), fx: null, last: null, user: null, charts: null, timer: null};
 if (!INTERVALS[state.interval]) state.interval = '1d';
 
 // ------------------------------------------------------------------ charts
@@ -63,41 +74,41 @@ function renderCharts(d) {
   const {s, price, eq} = state.charts;
   price.applyOptions({timeScale: {timeVisible: intraday(), secondsVisible: false}});
   eq.applyOptions({timeScale: {timeVisible: intraday(), secondsVisible: false}});
-  const c = d.chart, times = c.candles.map(k => k.time);
-  const line = arr => arr.map((v, i) => v == null ? {time: times[i]} : {time: times[i], value: v});
-  s.candles.setData(c.candles);
+  const c = d.chart, times = c.candles.map(k => ct(k.time)), k = fxk();
+  const line = (arr, scale = k) => arr.map((v, i) => v == null ? {time: times[i]} : {time: times[i], value: v * scale});
+  s.candles.setData(c.candles.map((b, i) => ({time: times[i], open: b.open * k, high: b.high * k, low: b.low * k, close: b.close * k})));
   s.sma10.setData(line(c.sma10));
   s.sma30.setData(line(c.sma30));
-  s.vol.setData(c.candles.map(k => ({time: k.time, value: k.volume, color: k.close >= k.open ? 'rgba(34,227,155,.55)' : 'rgba(255,77,106,.55)'})));
-  s.rsi.setData(line(c.rsi14));
+  s.vol.setData(c.candles.map((b, i) => ({time: times[i], value: b.volume, color: b.close >= b.open ? 'rgba(34,227,155,.55)' : 'rgba(255,77,106,.55)'})));
+  s.rsi.setData(line(c.rsi14, 1));
   s.macd.setData(line(c.macd));
   s.macdSig.setData(line(c.macd_signal));
-  s.macdHist.setData(c.macd_hist.map((v, i) => ({time: times[i], value: v, color: v >= 0 ? 'rgba(34,227,155,.5)' : 'rgba(255,77,106,.5)'})));
+  s.macdHist.setData(c.macd_hist.map((v, i) => ({time: times[i], value: v * k, color: v >= 0 ? 'rgba(34,227,155,.5)' : 'rgba(255,77,106,.5)'})));
   // paper fills as markers
-  const first = times[0], markers = [];
+  const first = c.candles[0].time, markers = [];
   for (const t of d.trades) {
-    if (t.entry_time >= first) markers.push({time: Math.round(t.entry_time), position: 'belowBar', color: GREEN, shape: 'arrowUp', text: `BUY ${px(t.entry)}`});
-    if (t.exit_time >= first) markers.push({time: Math.round(t.exit_time), position: 'aboveBar', color: RED, shape: 'arrowDown', text: `SELL ${px(t.exit)}`});
+    if (t.entry_time >= first) markers.push({time: ct(t.entry_time), position: 'belowBar', color: GREEN, shape: 'arrowUp', text: `BUY ${px(t.entry)}`});
+    if (t.exit_time >= first) markers.push({time: ct(t.exit_time), position: 'aboveBar', color: RED, shape: 'arrowDown', text: `SELL ${px(t.exit)}`});
   }
   if (d.position && d.position.entry_time >= first)
-    markers.push({time: Math.round(d.position.entry_time), position: 'belowBar', color: GREEN, shape: 'arrowUp', text: `LONG 1.00x @ ${px(d.position.entry)}`});
+    markers.push({time: ct(d.position.entry_time), position: 'belowBar', color: GREEN, shape: 'arrowUp', text: `LONG 1.00x @ ${px(d.position.entry)}`});
   markers.sort((a, b) => a.time - b.time);
   s.candles.setMarkers(markers);
   // Peak line only when it sits inside the displayed window, so it never squashes the candles.
   if (state.charts.peakLine) { s.candles.removePriceLine(state.charts.peakLine); state.charts.peakLine = null; }
   const shownHigh = Math.max(...c.candles.slice(-140).map(k => k.high));
   if (d.ticker.peak <= shownHigh * 1.0001)
-    state.charts.peakLine = s.candles.createPriceLine({price: d.ticker.peak, color: RED, lineWidth: 1, lineStyle: 2, axisLabelVisible: true,
+    state.charts.peakLine = s.candles.createPriceLine({price: d.ticker.peak * k, color: RED, lineWidth: 1, lineStyle: 2, axisLabelVisible: true,
       title: `PEAK · dd ${pct(d.ticker.dd)}`});
   const eqt = d.equity.times;
-  s.agents.setData(d.equity.agents.map((v, i) => ({time: eqt[i], value: (v - 1) * 100})));
-  s.bh.setData(d.equity.buy_hold.map((v, i) => ({time: eqt[i], value: (v - 1) * 100})));
-  if (!state.charts.fitted || state.charts.fitted !== `${d.symbol}:${d.interval}`) {
+  s.agents.setData(d.equity.agents.map((v, i) => ({time: ct(eqt[i]), value: (v - 1) * 100})));
+  s.bh.setData(d.equity.buy_hold.map((v, i) => ({time: ct(eqt[i]), value: (v - 1) * 100})));
+  if (!state.charts.fitted || state.charts.fitted !== `${d.symbol}:${d.interval}:${state.tz}`) {
     // Show the last ~6 months; re-applied after layout settles so a late resize cannot skew it.
     const show = () => price.timeScale().setVisibleLogicalRange({from: Math.max(0, times.length - 180), to: times.length + 2});
     show(); requestAnimationFrame(show); setTimeout(show, 300);
     eq.timeScale().fitContent();
-    state.charts.fitted = `${d.symbol}:${d.interval}`;
+    state.charts.fitted = `${d.symbol}:${d.interval}:${state.tz}`;
   }
 }
 
@@ -105,7 +116,7 @@ function renderCharts(d) {
 function renderHeader(d) {
   const t = d.ticker;
   $('sym-title').textContent = d.symbol;
-  $('sym-meta').textContent = `${d.interval.toUpperCase()} · BINANCE SPOT · agent calls · paper fills`;
+  $('sym-meta').textContent = `${d.interval.toUpperCase()} · BINANCE SPOT · ${state.ccy === 'INR' && state.fx ? 'INR' : 'USDT'} · ${tzTag()} · paper fills`;
   $('src').textContent = `${d.source || ''} · ${d.bar_forming ? 'bar forming' : 'bar closed'}`;
   $('ohlc').innerHTML = `<span>O <b>${px(t.open)}</b></span><span>H <b>${px(t.high)}</b></span><span>L <b>${px(t.low)}</b></span>` +
     `<span>C <b>${px(t.close)}</b></span><span class="${cls(t.chg)}">${t.abs_chg >= 0 ? '+' : ''}${px(t.abs_chg)} (${pct(t.chg)})</span>`;
@@ -114,7 +125,7 @@ function renderHeader(d) {
     `<span>VOL ${t.vol_ratio == null ? '—' : t.vol_ratio.toFixed(2) + 'x'}</span><span class="dn">PEAK ${px(t.peak)} dd ${pct(t.dd)}</span>`;
   $('vol-label').textContent = t.vol_ratio == null ? '' : `${t.vol_ratio.toFixed(2)}x avg20`;
   $('rsi-label').textContent = t.rsi14 == null ? '' : t.rsi14.toFixed(1);
-  $('macd-label').innerHTML = `<span class="${cls(t.macd)}">${num(t.macd)}</span> <span>${num(t.macd_signal)}</span> <span class="${cls(t.macd_hist)}">${num(t.macd_hist)}</span>`;
+  $('macd-label').innerHTML = `<span class="${cls(t.macd)}">${num(t.macd * fxk())}</span> <span>${num(t.macd_signal * fxk())}</span> <span class="${cls(t.macd_hist)}">${num(t.macd_hist * fxk())}</span>`;
   $('chips').innerHTML = d.scoreboard.map(m => `<span class="chip" style="color:${COLORS[m.key]}"><b>${esc(m.label)}</b> ` +
     `${m.hit_rate == null ? '—' : Math.round(m.hit_rate * 100) + '% hit'} · n${m.n}</span>`).join('') +
     `<span class="chip">${d.bars} bars · fee ${d.fee_bps}bp/side</span>`;
@@ -156,6 +167,9 @@ function renderAI(d) {
   const card = s => {
     let detail = '';
     if (s.status !== 'OK') detail = `unavailable (${esc(s.error || s.status)})`;
+    else if (s.key === 'strategies') detail = s.signals.map(g => `<span class="sig">${esc(g.name.replace(/\s*\(.*\)$/, ''))}: <b class="act ${g.action === 'BUY' ? 'BUY' : g.action === 'SELL' ? 'SELL' : 'HOLD'}">${g.action === 'NONE' ? 'no setup' : esc(g.action)}</b></span>`).join('') +
+      (s.not_run?.length ? `<span class="sig">${s.not_run.map(esc).join(' · ')}</span>` : '');
+    else if (s.key === 'llm_panel') detail = esc(s.detail || '');
     else if (s.key === 'smc_laya') detail = `Tier 1 ${esc(s.tier1.setup)} · score ${s.tier1.score} · Laya ${esc(s.tier2.status || '')} ${s.tier2.agreed ? 'agreed' : ''}`;
     else if (s.key === 'committee') detail = `conviction ${(+s.conviction).toFixed(2)}${s.risk_veto ? ' · <span class="veto">risk veto</span>' : ''}` +
       (s.thx02 ? `<br>THX-02 <span class="act ${s.thx02.action === 'BUY' || s.thx02.action === 'LONG' ? 'BUY' : s.thx02.action === 'SELL' || s.thx02.action === 'SHORT' ? 'SELL' : 'HOLD'}">${esc(s.thx02.action)}</span> · regime ${esc(s.thx02.regime)}` : '') +
@@ -166,8 +180,16 @@ function renderAI(d) {
   const o = ai.ollama || {};
   const ollama = `<div class="ai-card"><div class="t"><span>Ollama ${esc(o.model || '')}</span><span class="${o.status === 'available' ? 'up' : 'dn'}">${esc(o.status || '?')}</span></div>` +
     `<div class="d">${esc(o.role || '')}${o.laya ? ` · Laya ${esc(o.laya.status)}` : ''}</div></div>`;
+  const L = ai.llm;
+  const llm = !L ? '' : `<div class="llm"><div class="ai-head"><span><b>LOCAL LLMs</b> <em>Ollama · one answer per model per closed bar · ${L.ready}/${L.total} ready</em></span>` +
+    `<span>${L.panel_action ? `panel <span class="act ${L.panel_action}">${L.panel_action}</span>` : ''}</span></div>` +
+    (L.models.length ? L.models.map(m => `<div class="llm-row"><span>${esc(m.model)}</span>` +
+      (m.status === 'ready' ? `<span class="act ${m.action}">${m.action} ${Math.round((m.confidence || 0) * 100)}%</span><span class="r" title="${esc(m.reason)}">${esc(m.reason)} · ${(m.latency_ms / 1000).toFixed(1)}s</span>`
+        : m.status === 'error' ? `<span class="dn">error</span><span class="r">${esc(m.error)}</span>`
+        : `<span class="muted">${esc(m.status)}</span><span class="r">waiting for the local model…</span>`) + '</div>').join('')
+      : '<div class="muted">No Ollama chat models found.</div>') + '</div>';
   $('ai').innerHTML = `<div class="ai-head"><span><b>AI LAYER</b> <em>your systems on the last closed bar</em></span><span>veto-only</span></div>` +
-    `<div class="ai-grid">${ai.systems.map(card).join('')}${ollama}</div>` +
+    `<div class="ai-grid">${ai.systems.map(card).join('')}${ollama}</div>` + llm +
     `<div class="final"><span class="muted">rule PM</span><span class="act ${ai.rule_pm}">${ai.rule_pm}</span><span class="muted">→ final</span>` +
     `<span class="act ${ai.final_action}">${ai.final_action}</span>${ai.vetoes.map(v => `<span class="veto">⚠ ${esc(v)}</span>`).join('')}</div>`;
 }
@@ -244,7 +266,7 @@ function renderBook(d) {
   const r = d.risk, e = d.equity;
   $('risk-line').innerHTML = `<b>RISK</b> ATR14 ${px(r.atr14)} · vol20 ${pct(r.vol20, 1)} · VaR95 1d ${pct(r.var95_1d)} · worst day ${pct(r.worst_day)}` +
     `<br><b style="color:var(--green)">PAPER</b> agents ${pct(e.agents_return, 1)} · hold ${pct(e.buy_hold_return, 1)} · maxDD ${pct(e.max_dd, 1)} · sharpe ${e.sharpe.toFixed(2)}`;
-  $('foot-left').textContent = `${d.symbol} · ${d.bars} × ${d.interval} bars · decision on ${date(d.decision_time)} close · updated ${new Date(d.generated_at * 1000).toLocaleTimeString()}`;
+  $('foot-left').textContent = `${d.symbol} · ${d.bars} × ${d.interval} bars · decision on ${date(d.decision_time)} close · updated ${iso(d.generated_at).slice(0, 10)} ${iso(d.generated_at).slice(11, 19)} ${tzTag()}`;
 }
 
 // ------------------------------------------------------------------ data
@@ -255,7 +277,8 @@ async function load() {
     if (d.status === 'INSUFFICIENT_DATA') throw new Error(`${d.symbol} has only ${d.bars} ${state.interval} bars (needs ${d.required})`);
     if (d.status !== 'OK') throw new Error(d.error || d.status);
     $('live-dot').className = 'dot'; $('live-label').textContent = 'LIVE';
-    renderHeader(d); renderCharts(d); renderMesh(d); renderAI(d); renderVotes(d); renderEquity(d); renderTranscript(d); renderBook(d);
+    state.last = d;
+    renderAll(d);
   } catch (err) {
     $('live-dot').className = 'dot off'; $('live-label').textContent = 'OFFLINE';
     $('foot-left').textContent = `Desk data unavailable: ${err.message}. No cached or synthetic data is shown.`;
@@ -328,6 +351,26 @@ $('kill').addEventListener('click', async () => {
   loadGovernor();
 });
 
+function renderAll(d) { renderHeader(d); renderCharts(d); renderMesh(d); renderAI(d); renderVotes(d); renderEquity(d); renderTranscript(d); renderBook(d); }
+function renderToggles() {
+  document.querySelectorAll('#tz-seg button').forEach(b => b.classList.toggle('on', b.dataset.tz === state.tz));
+  document.querySelectorAll('#ccy-seg button').forEach(b => {
+    b.classList.toggle('on', b.dataset.ccy === (state.ccy === 'INR' && !state.fx ? 'USD' : state.ccy));
+    if (b.dataset.ccy === 'INR') b.disabled = !state.fx;
+  });
+  $('fx').textContent = state.fx ? `₹${state.fx.rate.toFixed(2)}/USD${state.fx.status === 'stale' ? ' (stale)' : ''}` : 'INR rate unavailable';
+}
+async function loadFx() {
+  try {
+    const r = await (await fetch('/api/fx/rate')).json();
+    state.fx = (r.status === 'available' || r.status === 'stale') && r.rate > 0 ? r : null;
+  } catch { state.fx = null; }
+  renderToggles(); if (state.last) renderAll(state.last);
+}
+$('tz-seg').addEventListener('click', e => { const v = e.target.dataset?.tz; if (!v || v === state.tz) return;
+  state.tz = v; try { localStorage.setItem('desk.tz', v); } catch {} renderToggles(); if (state.last) renderAll(state.last); });
+$('ccy-seg').addEventListener('click', e => { const v = e.target.dataset?.ccy; if (!v || e.target.disabled) return;
+  state.ccy = v; try { localStorage.setItem('desk.ccy', v); } catch {} renderToggles(); if (state.last) renderAll(state.last); });
 function renderIntervals() {
   $('intervals').innerHTML = Object.keys(INTERVALS).map(k => `<button type="button" data-iv="${k}" class="${k === state.interval ? 'on' : ''}">${k.toUpperCase()}</button>`).join('');
 }
@@ -343,7 +386,8 @@ $('intervals').addEventListener('click', e => {
   state.interval = iv; localStorage.setItem('desk.interval', iv);
   renderIntervals(); schedule(); load();
 });
-renderIntervals();
+renderIntervals(); renderToggles();
+loadFx(); setInterval(loadFx, 600000);
 load(); loadGovernor(); loadUser(); loadSymbols(); loadFleet();
 schedule();
 })();

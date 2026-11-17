@@ -28,6 +28,7 @@ from cryptoscope.dashboard.data import DashboardData
 from cryptoscope.desk import DeskFeed
 from cryptoscope.desk.feed import SymbolDirectory
 from cryptoscope.desk.fleet import FleetManager
+from cryptoscope.desk.llm_panel import LLMPanel
 from cryptoscope.desk.system_monitor import SystemMonitor
 from cryptoscope.dashboard.collaborate_view import render_collaborations_html
 from cryptoscope.fx.rate_service import FxRateService
@@ -122,7 +123,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 "laya": {"status": st.get("status"), "checkpoint_loaded": st.get("checkpoint_loaded"),
                          "evaluations": st.get("total_evaluations")}}
 
-    desk_feed = DeskFeed(ollama_status=_ollama_status)
+    desk_feed = DeskFeed(ollama_status=_ollama_status, llm_panel=LLMPanel())
     symbol_directory = SymbolDirectory()
     fleet = FleetManager(ROOT)
 
@@ -140,7 +141,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
         return {"exchanges": out, "tickers": ticks}
 
     system_monitor = SystemMonitor(feed_status=_feed_delays,
-                                   extra_targets=(("Ollama (local)", (os.environ.get("OLLAMA_HOST") or "http://127.0.0.1:11434").rstrip("/") + "/api/version"),))
+                                   extra_targets=(("Ollama (local)", LLMPanel().host + "/api/version"),))
 
     def connection_status():
         return {**market_aggregator.get_connection_status(),

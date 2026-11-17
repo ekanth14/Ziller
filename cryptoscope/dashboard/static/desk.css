@@ -53,6 +53,14 @@ select{background:var(--panel2);color:var(--txt);border:1px solid var(--line);fo
 .equity-panel{grid-area:equity}.term-panel{grid-area:term}.book-panel{grid-area:book}
 
 .intervals{display:flex;flex-wrap:wrap;gap:2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.seg button{background:transparent;color:var(--muted);border:0;font:inherit;font-size:11px;padding:2px 8px;cursor:pointer}
+.seg button.on{background:var(--blue);color:#000;font-weight:700}
+.seg button:disabled{opacity:.35;cursor:not-allowed}
+.llm{margin-top:6px;border-top:1px solid var(--line);padding-top:6px}
+.llm-row{display:grid;grid-template-columns:150px 64px 1fr;gap:8px;font-size:11px;padding:2px 0}
+.llm-row .r{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sig{display:block;color:var(--muted)}
 .intervals button{background:transparent;color:var(--muted);border:1px solid var(--line);font:inherit;font-size:11px;padding:1px 7px;border-radius:3px;cursor:pointer}
 .intervals button:hover{color:var(--txt);border-color:var(--blue)}
 .intervals button.on{color:#000;background:var(--green);border-color:var(--green);font-weight:700}

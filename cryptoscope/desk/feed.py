@@ -41,11 +41,13 @@ def fetch_daily_klines(symbol: str, limit: int = 700, timeout: float = 8.0) -> L
 class DeskFeed:
     """Caches the computed desk per symbol for a short time so page polling stays cheap."""
 
-    def __init__(self, ttl_seconds: float = 30.0, fetcher=fetch_klines, with_ai: bool = True, ollama_status=None):
+    def __init__(self, ttl_seconds: float = 30.0, fetcher=fetch_klines, with_ai: bool = True, ollama_status=None,
+                 llm_panel=None):
         self.ttl = ttl_seconds
         self.fetcher = fetcher
         self.with_ai = with_ai
         self.ollama_status = ollama_status
+        self.llm_panel = llm_panel
         self._fast_layer = None
         self._cache: Dict[str, tuple[float, Dict[str, Any]]] = {}
         self._lock = threading.Lock()
@@ -85,6 +87,7 @@ class DeskFeed:
             from cryptoscope.desk.ai_layer import ai_overlay
             closed = candles[:-1] if forming else candles
             result["ai"] = ai_overlay(closed, symbol, result, layer=self._layer(), bar_seconds=step,
+                                      llm_panel=self.llm_panel, interval=interval,
                                       ollama_status=self.ollama_status() if self.ollama_status else None)
         result.pop("all_trades", None)
         result["source"] = f"Binance spot · {interval}"
