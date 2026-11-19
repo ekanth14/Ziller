@@ -29,19 +29,44 @@ def _scanner(**kw):
                                             _ticker("PUMPUSDT", chg=60.0), _ticker("BTCUPUSDT")]
     syms = {t["symbol"] for t in tickers}
     return MarketScanner(tickers_fetcher=lambda: tickers, live_symbols=lambda: syms,
-                         klines_fetcher=lambda s, i, n: _klines(TREND.get(s, 0.0), seed=len(s)),
+                         klines_fetcher=lambda s, i, n: _klines(TREND.get(s, 0.0), n=n, vol=0.03 if i == "1d" else 0.004, seed=len(s)),
                          testnet_symbols=lambda: {"UPAUSDT", "UPBUSDT"}, **kw)
 
 
 def test_scanner_filters_and_picks_top_uptrends():
-    r = _scanner().scan("PAPER")
+    r = _scanner(fallback=False).scan("PAPER")          # strict daily-trend tier only
     excluded = {x["symbol"]: x["excluded"] for x in r["all"] if x["excluded"]}
     assert excluded["USDCUSDT"] == "stable_or_leveraged" and excluded["BTCUPUSDT"] == "stable_or_leveraged"
     assert excluded["TINYUSDT"] == "illiquid" and excluded["PUMPUSDT"] == "spike_24h"
-    assert len(r["top"]) <= 5
     assert "DOWNXUSDT" not in r["top"] and "FLATUSDT" not in r["top"]
     assert r["top"] and all(s.startswith("UP") for s in r["top"])
+    assert set(r["top"]) == set(r["tiers"]["TREND"]) and not r["tiers"]["POTENTIAL"]
     assert r["counts"]["universe"] == len(r["all"])
+
+
+def test_scanner_fallback_fills_slots_after_trend_picks_and_skips_free_falls():
+    r = _scanner().scan("PAPER")
+    trend = r["tiers"]["TREND"]
+    assert r["top"][:len(trend)] == trend                 # trend picks always come first
+    extra = r["top"][len(trend):]
+    assert extra and "DOWNXUSDT" not in r["top"]          # a coin falling 1%/bar is never bought
+    by = {x["symbol"]: x for x in r["ranked"]}
+    for s in extra:
+        assert by[s]["tier"] in {"SHORT_TERM", "POTENTIAL"} and 0.0025 <= by[s]["intraday"]["atr1h_pct"] <= 0.03
+    assert "falling fast (1h)" in by["DOWNXUSDT"]["why_not"]
+
+
+def test_fallback_always_finds_coins_when_none_trend():
+    import math
+    tickers = [_ticker(f"ALT{i}USDT") for i in range(8)]
+    syms = {t["symbol"] for t in tickers}
+    def kl(s, interval, n):
+        drift = -0.004 if interval == "1d" else 0.0015     # daily downtrend (no TREND pick), hourly bounce
+        return _klines(drift, n=n, vol=0.01, seed=len(s) + int(s[3]))
+    sc = MarketScanner(tickers_fetcher=lambda: tickers, live_symbols=lambda: syms, klines_fetcher=kl,
+                       testnet_symbols=lambda: syms, top_n=5)
+    r = sc.scan("PAPER")
+    assert not r["tiers"]["TREND"] and len(r["top"]) == 5
 
 
 def test_scanner_testnet_mode_keeps_only_testnet_pairs():
@@ -157,3 +182,38 @@ def test_debate_model_prefers_configured_then_installed(monkeypatch):
     monkeypatch.setattr(consensus, "_RESOLVED_MODEL", None)
     monkeypatch.setenv("OLLAMA_MODEL", "my-model")                      # cannot verify: keep it, call fails closed
     assert consensus.resolve_debate_model() == "my-model"
+
+
+def test_scalp_bracket_targets_half_to_one_percent():
+    from cryptoscope.orchestrator.bots.strategy_bot import STOP_FLOOR, bracket
+    for atr in (0.0, 0.001, 0.004, 0.006, 0.02, 0.1):
+        stop, target, horizon = bracket("SCALP", atr)
+        assert 0.005 <= target <= 0.010 and STOP_FLOOR <= stop and horizon == 16
+        assert stop > 0.005                                  # never trips RiskBot's 0.50% minimum
+    assert bracket("SCALP", 0.001)[1] == 0.005               # quiet coin: 0.5% target
+    assert bracket("SCALP", 0.02)[1] == 0.010                # busy coin: capped at 1%
+    stop, target, _ = bracket("SWING", 0.01)
+    assert abs(stop - 0.015) < 1e-12 and abs(target - 0.03) < 1e-12
+
+
+def test_strategy_bot_uses_scalp_bracket_for_cheap_coins():
+    from cryptoscope.orchestrator.bots.strategy_bot import StrategyBot
+    from cryptoscope.orchestrator.event_bus import EventBus
+    from cryptoscope.orchestrator.events import Signal, TradeIntent
+
+    async def run():
+        bot = StrategyBot(EventBus(), cooldown_sec=0, profile="SCALP")
+        bot.halt_state.snapshot = lambda: {"halted": False}
+        out = []
+
+        async def emit(ev):
+            out.append(ev)
+        bot.emit = emit
+        await bot._evaluate_signal(Signal(symbol="SENTUSDT", direction="BUY", confidence=0.8, strategy_id="t",
+                                          indicators={"price": 0.02121, "atr": 0.0001}, reasons=[]))
+        return out
+
+    intent = [e for e in asyncio.run(run()) if isinstance(e, TradeIntent)][0]
+    tp = intent.take_profit / intent.entry_price - 1
+    sl = 1 - intent.stop_loss / intent.entry_price
+    assert 0.005 - 1e-6 <= tp <= 0.010 + 1e-6 and sl > 0.005 and intent.horizon_bars == 16

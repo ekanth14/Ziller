@@ -11,6 +11,27 @@ from cryptoscope.orchestrator.events import BaseEvent, MarketUpdate, Signal, Tra
 logger = logging.getLogger("cryptoscope.orchestrator.strategy_bot")
 
 
+STOP_FLOOR = 0.0052
+
+
+def bracket(profile: str, atr_pct: float):
+    """Stop and take-profit distances (fractions of entry) and holding horizon in 15m bars.
+
+    SCALP: target = clamp(1.5 x ATR%, 0.5%, 1.0%); stop = clamp(1.2 x ATR%, 0.5%, target).
+           Binance spot costs ~0.2% round trip, so a 0.5% target nets ~0.3% and a 0.5% stop
+           loses ~0.7%: the strategy needs to win more often than it loses to profit.
+    SWING: stop = max(1.5 x ATR%, 0.5%), target = 2 x stop (the original 2:1 bracket).
+    STOP_FLOOR (0.52%) sits just above RiskBot's 0.50% minimum so rounding never trips it.
+    """
+    atr_pct = max(0.0, float(atr_pct or 0.0))
+    if profile == "SWING":
+        stop = max(1.5 * atr_pct, STOP_FLOOR)
+        return stop, 2 * stop, 48
+    target = min(max(1.5 * atr_pct, 0.005), 0.010)
+    stop = min(max(1.2 * atr_pct, STOP_FLOOR), max(target, STOP_FLOOR))
+    return stop, target, 16
+
+
 class StrategyBot(BaseBot):
     """Orchestrates algorithmic strategy execution and proposes TradeIntent.
 
@@ -26,12 +47,16 @@ class StrategyBot(BaseBot):
         cooldown_sec: float = 5.0,
         spot_only: bool = True,
         repeat_window_sec: float = 900.0,
+        profile: Optional[str] = None,
     ):
         super().__init__(name, bus)
         self.min_confidence = min_confidence
         self.cooldown_sec = cooldown_sec
         self.spot_only = spot_only
         self.repeat_window_sec = repeat_window_sec
+        import os
+        # SCALP (default): take profit 0.5-1.0% sized to volatility; SWING: the original 2R bracket.
+        self.profile = (profile or os.environ.get("ZILLERS_TRADE_PROFILE", "SCALP")).upper()
         self._last_proposal: Dict[str, tuple] = {}
         self.suppressed_shorts = 0
         self.suppressed_repeats = 0
@@ -96,17 +121,12 @@ class StrategyBot(BaseBot):
             return
 
         atr = sig.indicators.get("atr", price * 0.015)
-        # Ensure minimum stop distance of 0.5%
-        risk_distance = max(atr * 1.5, price * 0.005)
-
-        if sig.direction == "BUY":
-            entry = price
-            stop = round(entry - risk_distance, 4)
-            target = round(entry + (risk_distance * 2.0), 4)  # 2:1 RR
-        else:
-            entry = price
-            stop = round(entry + risk_distance, 4)
-            target = round(entry - (risk_distance * 2.0), 4)
+        entry = price
+        stop_pct, target_pct, horizon = bracket(self.profile, atr / price if price else 0.015)
+        sign = 1 if sig.direction == "BUY" else -1
+        # 8 significant digits: cheap coins (e.g. 0.0213) lose their bracket with fixed 4-decimal rounding.
+        stop = float(f"{entry * (1 - sign * stop_pct):.8g}")
+        target = float(f"{entry * (1 + sign * target_pct):.8g}")
 
         # The same symbol/direction/price was already proposed recently (unchanged candle): skip.
         key = (sig.direction, round(entry, 8))
@@ -123,8 +143,9 @@ class StrategyBot(BaseBot):
             entry_price=entry,
             stop_loss=stop,
             take_profit=target,
-            horizon_bars=48,
-            reasons=sig.reasons + [f"Signal confidence {sig.confidence:.2f}"]
+            horizon_bars=horizon,
+            reasons=sig.reasons + [f"Signal confidence {sig.confidence:.2f}",
+                                   f"{self.profile}: target {target_pct:.2%}, stop {stop_pct:.2%}"]
         )
         self.proposed_intents_count += 1
         logger.info("[%s] Proposing %s %s @ %.4f (SL: %.4f, TP: %.4f)", self.name, intent.direction, intent.symbol, entry, stop, target)

@@ -69,8 +69,14 @@ def _load_real_candles(symbol: str = "BTCUSDT", interval: str = "5m", limit: int
         conn.close()
 
 
-def test_real_candle_replay_full_pipeline():
+def test_real_candle_replay_full_pipeline(monkeypatch):
     """Replay 50 real BTCUSDT 5m candles through the full 10-bot autonomous pipeline."""
+    from cryptoscope.agents.consensus import DeliberationConsensusEngine
+    # Offline test: the debate must not call the local LLM (a CPU model needs 60-100 s per answer).
+    monkeypatch.setattr(DeliberationConsensusEngine, "deliberate_combined",
+                        lambda self, **kw: {"verdict": "REJECT", "conviction_score": 0.0, "bull_thesis": "",
+                                            "bear_thesis": "", "reason": "offline test", "fallback_used": True})
+
     async def _test():
         real_candles = _load_real_candles("BTCUSDT", "5m", 50)
         assert len(real_candles) >= 30, "Insufficient real historical candles in DB"

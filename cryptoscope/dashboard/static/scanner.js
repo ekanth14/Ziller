@@ -15,15 +15,21 @@ const big = v => { v *= k(); const s = state.ccy === 'INR' && state.fx ? '₹' :
 const REASONS = {operator_excluded: 'excluded (BTC/ETH/SOL)', stable_or_leveraged: 'stable / leveraged', illiquid: 'low volume', spike_24h: '24h spike', not_on_testnet: 'not on testnet'};
 
 function renderTop(d) {
-  const picks = d.ranked.filter(r => d.top.includes(r.symbol));
-  $('top-meta').textContent = `${d.mode} · ${d.counts.universe} pairs scanned · ${d.counts.scored} scored · ${picks.length} eligible`;
+  const picks = d.top.map(s => d.ranked.find(r => r.symbol === s)).filter(Boolean);
+  const t = d.tiers || {};
+  $('top-meta').textContent = `${d.mode} · ${d.counts.universe} pairs scanned · ${d.counts.scored} scored · ${picks.length} picks ` +
+    `(${(t.TREND || []).length} trend · ${(t.SHORT_TERM || []).length} short-term · ${(t.POTENTIAL || []).length} potential) · targets 0.5–1%`;
   $('scan-meta').textContent = `scanned ${new Date(d.generated_at * 1000).toLocaleTimeString('en-IN', {timeZone: 'Asia/Kolkata'})} IST · ${d.took_s}s`;
-  $('top5').innerHTML = picks.length ? picks.map((r, i) => `<div class="pick"><div class="s">#${i + 1} ${esc(r.symbol)}</div>` +
-    `<div>${money(r.price)} <span class="${cls(r.chg_24h)}">${pct(r.chg_24h)}</span></div>` +
-    `<div class="k">score ${r.score.toFixed(2)} · 7d ${pct(r.factors.r7)} · 30d ${pct(r.factors.r30)}</div>` +
-    `<div class="k">RSI ${r.factors.rsi14?.toFixed(0)} · vol ${pct(r.factors.vol30, 0)} · ${big(r.quote_volume)}/24h</div></div>`).join('')
-    : `<div class="empty" style="grid-column:1/-1">No pair passes the filters right now (uptrend, RSI 45–78, drawdown under 25%, real volatility). ` +
-      `The autopilot will not buy into a falling market; it rescans every 4 h. Closest candidates are at the top of the scored list below.</div>`;
+  const TIER = {TREND: ['TREND', 'daily uptrend'], SHORT_TERM: ['SHORT-TERM', '1h uptrend'], POTENTIAL: ['POTENTIAL', 'best mover, no trend']};
+  $('top5').innerHTML = picks.length ? picks.map((r, i) => {
+    const tier = TIER[r.tier] || ['', ''], f = r.intraday;
+    const line = r.tier === 'TREND' ? `score ${r.score.toFixed(2)} · 7d ${pct(r.factors.r7)} · 30d ${pct(r.factors.r30)}`
+      : f ? `4h ${pct(f.r4h)} · 24h ${pct(f.r24h)} · moves ${pct(f.atr1h_pct)}/h · RSI1h ${f.rsi1h?.toFixed(0)}` : '';
+    return `<div class="pick"><div class="s">#${i + 1} ${esc(r.symbol)} <span class="tag2 ${r.tier === 'TREND' ? 'ok' : ''}" title="${tier[1]}">${tier[0]}</span></div>` +
+      `<div>${money(r.price)} <span class="${cls(r.chg_24h)}">${pct(r.chg_24h)}</span></div><div class="k">${line}</div>` +
+      `<div class="k">${big(r.quote_volume)}/24h · daily RSI ${r.factors.rsi14?.toFixed(0)}</div></div>`;
+  }).join('')
+    : `<div class="empty" style="grid-column:1/-1">No liquid coin can move 0.5–1% without being in free fall right now. Rescans every 4 h.</div>`;
   $('method').textContent = d.method;
 }
 
@@ -43,7 +49,7 @@ function renderTable() {
     `${th('r7', '7D', 1)}<th class="num">30D</th><th class="num">RSI</th>${th('score', 'SCORE', 1)}<th>STATUS</th></tr>` +
     rows.slice(0, 600).map(r => {
       const fct = r.factors;
-      const status = d.top.includes(r.symbol) ? '<span class="tag2 ok">TOP PICK</span>'
+      const status = d.top.includes(r.symbol) ? `<span class="tag2 ok">PICK · ${esc((r.tier || '').replace('_', '-'))}</span>`
         : r.excluded ? `<span class="tag2">${esc(REASONS[r.excluded] || r.excluded)}</span>`
         : fct ? (r.eligible ? '<span class="tag2 ok">eligible</span>' : `<span class="tag2 no">${esc(r.why_not.join(', '))}</span>`)
         : `<span class="tag2">${r.error ? 'no candles' : 'not shortlisted'}</span>`;
@@ -111,7 +117,7 @@ $('login-form').addEventListener('submit', async e => {
 $('ap-start').addEventListener('click', async () => {
   if (!state.user) return needLogin('Sign in as admin to start the autopilot.');
   const mode = $('ap-mode').value;
-  if (!confirm(`Start the autopilot in ${mode}?\nIt scans all Binance USDT pairs, starts the fleet on the eligible top 10 (BTC, ETH and SOL excluded) and rescans every 4 hours.`)) return;
+  if (!confirm(`Start the autopilot in ${mode}?\nIt scans all Binance USDT pairs, starts the fleet on the 10 best picks (trend first, then short-term movers; BTC, ETH and SOL excluded), targets 0.5–1% per trade and rescans every 4 hours.`)) return;
   $('ap-err').textContent = 'scanning…';
   try { const r = await post('/api/scanner/autopilot', {enable: true, mode}); $('ap-err').textContent = r.top.length ? `trading ${r.top.join(', ')}` : 'no eligible pairs right now — fleet not started'; }
   catch (err) { $('ap-err').textContent = err.message; }

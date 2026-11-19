@@ -16,7 +16,14 @@ Workflow
                 vol30 >= 10% (filters pegged/stable assets the name list misses).
 6. Score      - z-scored blend across the shortlist:
                 score = 0.45*z(M) + 0.25*z(r7) + 0.20*z(log quote volume) - 0.10*z(ATR14%)
-7. Pick       - top `top_n` (default 10, the fleet's maximum) eligible by score.
+7. Pick       - up to `top_n` (default 10, the fleet's maximum), filled tier by tier:
+   a. TREND      - passes every daily filter above (best, slower swing setups);
+   b. SHORT_TERM - 1h uptrend: close > EMA20(1h) > EMA50(1h) and 40 <= RSI14(1h) <= 72;
+   c. POTENTIAL  - best remaining coins able to move 0.5-1% within hours, ranked by
+                   short-term score = 0.35*z(r4h/ATR1h) + 0.25*z(r24h) + 0.25*z(log quote volume) + 0.15*z(1h volume surge).
+   Tiers b and c always need 0.25% <= ATR1h% <= 3% (a 0.5-1% target must be reachable in a few hours,
+   and hourly noise must not routinely hit a 0.5-1% stop)
+   and exclude free-falls (24h <= -8% or 4h <= -3%). Set ZILLERS_SCANNER_FALLBACK=0 to use tier a only.
 
 This chooses WHAT the fleet watches. Each entry still has to pass the fleet's own pipeline:
 signal -> strategy -> debate -> RiskBot (sizing, correlation, drawdown, daily loss) -> execution.
@@ -109,6 +116,35 @@ def factors(candles: List[Dict[str, float]]) -> Optional[Dict[str, float]]:
     }
 
 
+def _ema_last(xs, n):
+    k, e = 2 / (n + 1), xs[0]
+    for v in xs[1:]:
+        e = k * v + (1 - k) * e
+    return e
+
+
+def intraday_factors(candles: List[Dict[str, float]]) -> Optional[Dict[str, float]]:
+    """1-hour-candle factors for short-term (0.5-1%) trading; None with < 60 bars."""
+    if len(candles) < 60:
+        return None
+    closes = [c["close"] for c in candles]
+    vols = [c["volume"] for c in candles]
+    last = closes[-1]
+    trs = [max(c["high"] - c["low"], abs(c["high"] - p["close"]), abs(c["low"] - p["close"]))
+           for p, c in zip(candles[-15:-1], candles[-14:])]
+    atr = sum(trs) / len(trs)
+    ema20, ema50 = _ema_last(closes, 20), _ema_last(closes, 50)
+    base_vol = sum(vols[-27:-3]) / 24 if sum(vols[-27:-3]) else 0.0
+    return {"r4h": last / closes[-5] - 1, "r24h": last / closes[-25] - 1, "atr1h_pct": atr / last,
+            "ema20_1h": ema20, "ema50_1h": ema50, "rsi1h": _rsi(closes[-60:]),
+            "uptrend_1h": bool(last > ema20 > ema50),
+            "vol_surge_1h": (sum(vols[-3:]) / 3) / base_vol if base_vol else 1.0}
+
+
+MIN_ATR1H = 0.0025   # 0.25%/h: a 0.5-1% target is reachable within a few hours
+MAX_ATR1H = 0.03     # above 3%/h, ordinary noise hits a 0.5-1% stop most of the time
+
+
 def _z(values: List[float]) -> List[float]:
     if len(values) < 2:
         return [0.0] * len(values)
@@ -123,7 +159,7 @@ class MarketScanner:
                  tickers_fetcher: Callable[[], List[Dict[str, Any]]] = fetch_24h_tickers,
                  klines_fetcher: Callable[..., List[Dict[str, float]]] = fetch_klines,
                  testnet_symbols: Callable[[], set] = lambda: fetch_trading_usdt_symbols(TESTNET),
-                 live_symbols: Optional[Callable[[], set]] = None):
+                 live_symbols: Optional[Callable[[], set]] = None, fallback: Optional[bool] = None):
         self.min_quote_volume, self.max_24h_move = min_quote_volume, max_24h_move
         self.shortlist, self.top_n, self.ttl = shortlist, top_n, ttl_seconds
         self.tickers_fetcher, self.klines_fetcher = tickers_fetcher, klines_fetcher
@@ -131,6 +167,8 @@ class MarketScanner:
         self.live_symbols = live_symbols or (lambda: fetch_trading_usdt_symbols(ENDPOINTS[0]))
         self._cache: Dict[str, tuple] = {}
         self._lock = threading.Lock()
+        import os
+        self.fallback = (os.environ.get("ZILLERS_SCANNER_FALLBACK", "1") != "0") if fallback is None else fallback
 
     def scan(self, mode: str = "PAPER", force: bool = False) -> Dict[str, Any]:
         mode = mode.upper()
@@ -206,19 +244,72 @@ class MarketScanner:
                     why.append("pegged / no volatility")
                 r["eligible"], r["why_not"] = not why, why
         ranked = sorted(scored, key=lambda r: -r["score"])
+        for r in ranked:
+            r["tier"] = "TREND" if r["eligible"] else None
         top = [r["symbol"] for r in ranked if r["eligible"]][: self.top_n]
+        if self.fallback and len(top) < self.top_n:
+            top += self._short_term_picks([r for r in ranked if not r["eligible"]], self.top_n - len(top))
+        tiers = {t: [r["symbol"] for r in ranked if r.get("tier") == t] for t in ("TREND", "SHORT_TERM", "POTENTIAL")}
         result = {
-            "status": "OK", "mode": mode, "generated_at": now, "took_s": round(time.perf_counter() - started, 2),
+            "tiers": tiers, "status": "OK", "mode": mode, "generated_at": now, "took_s": round(time.perf_counter() - started, 2),
             "top": top, "ranked": ranked, "all": sorted(rows, key=lambda r: -r["quote_volume"]),
             "counts": {"universe": len(rows), "survivors": len(survivors), "scored": len(scored), "excluded": excluded},
             "params": {"min_quote_volume": self.min_quote_volume, "max_24h_move": self.max_24h_move,
-                       "shortlist": self.shortlist, "top_n": self.top_n,
+                       "shortlist": self.shortlist, "top_n": self.top_n, "fallback": self.fallback,
                        "excluded_symbols": sorted(blocked)},
             "method": __doc__.split("Workflow", 1)[1].split("This chooses", 1)[0].strip(),
         }
         with self._lock:
             self._cache[mode] = (now, result)
         return result
+
+    def _short_term_picks(self, rest: List[Dict[str, Any]], slots: int) -> List[str]:
+        """Tiers b/c: when too few coins pass the daily trend filter, pick the best short-term movers."""
+        def enrich(r):
+            try:
+                r["intraday"] = intraday_factors(self.klines_fetcher(r["symbol"], "1h", 72))
+            except Exception:
+                r["intraday"] = None
+            return r
+
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            rest = list(pool.map(enrich, rest))
+        usable = []
+        for r in rest:
+            f = r.get("intraday")
+            if not f:
+                continue
+            if f["atr1h_pct"] < MIN_ATR1H:
+                r["why_not"] = r["why_not"] + ["moves < 0.25%/h"]
+                continue
+            if f["r24h"] <= -0.08 or f["r4h"] <= -0.03:
+                r["why_not"] = r["why_not"] + ["falling fast (1h)"]
+                continue
+            if f["atr1h_pct"] > MAX_ATR1H:
+                r["why_not"] = r["why_not"] + ["too volatile for 0.5-1% targets"]
+                continue
+            usable.append(r)
+        picks: List[str] = []
+        ranked = _short_term_rank(usable) if usable else []
+        for tier, ok in (("SHORT_TERM", lambda f: f["uptrend_1h"] and f["rsi1h"] is not None and 40 <= f["rsi1h"] <= 72),
+                         ("POTENTIAL", lambda f: True)):
+            for r in ranked:
+                if len(picks) >= slots:
+                    return picks
+                if r["symbol"] not in picks and r.get("tier") is None and ok(r["intraday"]):
+                    r["tier"] = tier
+                    picks.append(r["symbol"])
+        return picks
+
+
+def _short_term_rank(cands):
+    zr = _z([c["intraday"]["r4h"] / c["intraday"]["atr1h_pct"] for c in cands])
+    z24 = _z([c["intraday"]["r24h"] for c in cands])
+    zv = _z([math.log(c["quote_volume"]) for c in cands])
+    zs = _z([c["intraday"]["vol_surge_1h"] for c in cands])
+    for c, a, b, d, e in zip(cands, zr, z24, zv, zs):
+        c["short_score"] = round(0.35 * a + 0.25 * b + 0.25 * d + 0.15 * e, 4)
+    return sorted(cands, key=lambda c: -c["short_score"])
 
 
 class Autopilot:
