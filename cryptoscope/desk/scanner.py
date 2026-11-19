@@ -2,10 +2,11 @@
 
 Workflow
 1. Universe   - every TRADING spot pair quoted in USDT (one /api/v3/ticker/24hr call).
-2. Filters    - drop stablecoins/fiat and leveraged tokens; require 24h quote volume >= min_quote_volume;
+2. Filters    - drop operator-excluded symbols (BTC/ETH/SOL by default, see cryptoscope.trading_universe),
+                stablecoins/fiat and leveraged tokens; require 24h quote volume >= min_quote_volume;
                 drop pairs that moved more than max_24h_move in 24h (pump/dump risk); TESTNET mode keeps
                 only pairs that exist on the Binance Spot testnet.
-3. Shortlist  - the `shortlist` most liquid survivors get 90 daily candles each.
+3. Shortlist  - up to `shortlist` (default 250, i.e. effectively every liquid pair) survivors get 90 daily candles each.
 4. Factors    - r7, r30 (returns), vol30 (annualised volatility of daily log returns),
                 risk-adjusted momentum  M = (0.4*r7 + 0.6*r30) / vol30,
                 trend  = close > SMA20 and SMA10 > SMA30,
@@ -15,7 +16,7 @@ Workflow
                 vol30 >= 10% (filters pegged/stable assets the name list misses).
 6. Score      - z-scored blend across the shortlist:
                 score = 0.45*z(M) + 0.25*z(r7) + 0.20*z(log quote volume) - 0.10*z(ATR14%)
-7. Pick       - top `top_n` eligible by score.
+7. Pick       - top `top_n` (default 10, the fleet's maximum) eligible by score.
 
 This chooses WHAT the fleet watches. Each entry still has to pass the fleet's own pipeline:
 signal -> strategy -> debate -> RiskBot (sizing, correlation, drawdown, daily loss) -> execution.
@@ -32,6 +33,7 @@ from typing import Any, Callable, Dict, List, Optional
 from urllib.request import Request, urlopen
 
 from cryptoscope.desk.feed import ENDPOINTS, fetch_klines
+from cryptoscope.trading_universe import excluded_symbols
 
 STABLE_BASES = {"USDC", "FDUSD", "TUSD", "DAI", "USDP", "BUSD", "USDD", "PYUSD", "EUR", "EURI", "AEUR", "GBP", "TRY",
                 "BRL", "ARS", "UST", "USTC", "PAXG", "XUSD", "USD1", "BFUSD", "RLUSD", "USDE", "RWUSD", "U"}
@@ -116,8 +118,8 @@ def _z(values: List[float]) -> List[float]:
 
 
 class MarketScanner:
-    def __init__(self, min_quote_volume: float = 10e6, max_24h_move: float = 0.25, shortlist: int = 60,
-                 top_n: int = 5, ttl_seconds: float = 900.0,
+    def __init__(self, min_quote_volume: float = 10e6, max_24h_move: float = 0.25, shortlist: int = 250,
+                 top_n: int = 10, ttl_seconds: float = 900.0,
                  tickers_fetcher: Callable[[], List[Dict[str, Any]]] = fetch_24h_tickers,
                  klines_fetcher: Callable[..., List[Dict[str, float]]] = fetch_klines,
                  testnet_symbols: Callable[[], set] = lambda: fetch_trading_usdt_symbols(TESTNET),
@@ -146,7 +148,8 @@ class MarketScanner:
                 testnet = self.testnet_symbols()
             except Exception:
                 testnet = set()
-        rows, excluded = [], {"stable_or_leveraged": 0, "illiquid": 0, "spike_24h": 0, "not_on_testnet": 0}
+        blocked = excluded_symbols()
+        rows, excluded = [], {"operator_excluded": 0, "stable_or_leveraged": 0, "illiquid": 0, "spike_24h": 0, "not_on_testnet": 0}
         for t in tickers:
             sym = t.get("symbol", "")
             if not sym.endswith("USDT") or sym not in tradable:
@@ -156,7 +159,9 @@ class MarketScanner:
                    "chg_24h": float(t["priceChangePercent"]) / 100, "quote_volume": float(t["quoteVolume"]),
                    "high_24h": float(t["highPrice"]), "low_24h": float(t["lowPrice"]), "trades_24h": int(t.get("count", 0))}
             reason = None
-            if base in STABLE_BASES or base.endswith(LEVERAGED):
+            if sym in blocked:
+                reason = "operator_excluded"
+            elif base in STABLE_BASES or base.endswith(LEVERAGED):
                 reason = "stable_or_leveraged"
             elif row["quote_volume"] < self.min_quote_volume:
                 reason = "illiquid"
@@ -207,7 +212,8 @@ class MarketScanner:
             "top": top, "ranked": ranked, "all": sorted(rows, key=lambda r: -r["quote_volume"]),
             "counts": {"universe": len(rows), "survivors": len(survivors), "scored": len(scored), "excluded": excluded},
             "params": {"min_quote_volume": self.min_quote_volume, "max_24h_move": self.max_24h_move,
-                       "shortlist": self.shortlist, "top_n": self.top_n},
+                       "shortlist": self.shortlist, "top_n": self.top_n,
+                       "excluded_symbols": sorted(blocked)},
             "method": __doc__.split("Workflow", 1)[1].split("This chooses", 1)[0].strip(),
         }
         with self._lock:

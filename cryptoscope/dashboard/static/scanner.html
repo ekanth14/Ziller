@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="/desk.css">
 <style>
   .scan-grid{display:grid;gap:14px;padding:16px 18px;grid-template-columns:minmax(0,1fr) 380px}
-  .top5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+  .top5{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
   .pick{border:1px solid rgba(46,230,166,.4);background:#071a14;border-radius:6px;padding:8px}
   .pick .s{font-weight:800;color:#e8f0f8;font-size:14px}
   .pick .k{color:var(--muted);font-size:11px}
@@ -51,7 +51,7 @@
     <div class="ph"><span><i class="dot"></i> <b>AUTOPILOT</b></span><span id="ap-state" class="muted"></span></div>
     <div class="tools">
       <select id="ap-mode"><option value="PAPER">PAPER</option><option value="TESTNET">TESTNET</option></select>
-      <button id="ap-start" class="btn primary">SCAN &amp; TRADE TOP 5</button><button id="ap-stop" class="btn danger">STOP AUTOPILOT</button>
+      <button id="ap-start" class="btn primary">SCAN &amp; TRADE TOP 10</button><button id="ap-stop" class="btn danger">STOP AUTOPILOT</button>
     </div>
     <p class="note muted">Scans now, starts the 10-bot fleet on the eligible top picks, rescans every 4 h and rotates only when the fleet holds no positions. Every entry still passes strategy → debate → RiskBot → execution. Admin sign-in required; refused while the kill switch is engaged. LIVE is not available.</p>
     <p id="ap-err" class="err"></p>

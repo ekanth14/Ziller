@@ -17,6 +17,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from cryptoscope.trading_universe import filter_symbols
+
 ALLOWED_MODES = {"PAPER", "TESTNET"}
 SYMBOL_RE = re.compile(r"^[A-Z0-9]{5,20}$")
 # Keys the OBSERVE-only dashboard launcher blanks; the fleet must load them from .env itself.
@@ -45,8 +47,12 @@ class FleetManager:
         mode = str(mode or "").upper()
         if mode not in ALLOWED_MODES:
             raise ValueError("Fleet can only be started in PAPER or TESTNET from the dashboard")
-        symbols = [str(s).upper() for s in symbols][:10]
-        if not symbols or not all(SYMBOL_RE.match(s) for s in symbols):
+        symbols, dropped = filter_symbols(symbols)
+        symbols = symbols[:10]
+        if not symbols:
+            raise ValueError(f"No tradable symbols: {', '.join(dropped)} excluded from autotrading" if dropped
+                             else "Provide 1-10 valid symbols")
+        if not all(SYMBOL_RE.match(s) for s in symbols):
             raise ValueError("Provide 1-10 valid symbols")
         with self._lock:
             if self._proc and self._proc.poll() is None:

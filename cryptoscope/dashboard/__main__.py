@@ -1536,7 +1536,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 except (ValueError, TypeError) as err:
                     return self.json(400, {"error": str(err)})
 
-            # Scanner autopilot: scan all USDT pairs, trade the top 5, rescan every 4 h (admin + CSRF)
+            # Scanner autopilot: scan all USDT pairs, trade the top 10 (BTC/ETH/SOL excluded), rescan every 4 h (admin + CSRF)
             if url.path == "/api/scanner/autopilot":
                 if session.get("role") != "admin":
                     return self.json(403, {"error": "Admin role required to control the autopilot"})
@@ -1563,7 +1563,9 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 if kill_switch.halted:
                     return self.json(409, {"error": "Emergency halt is engaged; resume the governor before starting the fleet"})
                 try:
-                    symbols = body.get("symbols") or ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+                    symbols = body.get("symbols") or scanner.scan(str(body.get("mode", "PAPER")))["top"]
+                    if not symbols:
+                        return self.json(409, {"error": "Scanner found no eligible coins right now; nothing to trade"})
                     return self.json(200, fleet.start(body.get("mode", "PAPER"), symbols, session.get("email", "admin")))
                 except (ValueError, RuntimeError) as err:
                     return self.json(400, {"error": str(err)})

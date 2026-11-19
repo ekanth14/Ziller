@@ -63,7 +63,7 @@
     <div class="ph"><span><i class="dot"></i> <b>AUTOTRADER FLEET</b> <em>10-bot orchestrator · data → analyst → quant → strategy → debate → risk → execution</em></span><span id="fleet-state" class="muted"></span></div>
     <div class="fleet-form">
       <select id="fleet-mode"><option value="PAPER">PAPER (simulated fills)</option><option value="TESTNET">TESTNET (Binance testnet keys from .env)</option></select>
-      <input id="fleet-symbols" value="BTCUSDT ETHUSDT SOLUSDT" aria-label="Symbols" spellcheck="false">
+      <input id="fleet-symbols" value="" placeholder="blank = scanner top picks (BTC/ETH/SOL excluded)" aria-label="Symbols" spellcheck="false">
       <button id="fleet-start" class="btn primary">START</button><button id="fleet-stop" class="btn danger">STOP</button>
     </div>
     <p class="note">Admin sign-in required. LIVE trading cannot be started here: it stays behind the five-gate governor. Start is refused while the emergency halt is engaged. Keys are read from <code>.env</code> by the fleet process and never sent to the browser.</p>

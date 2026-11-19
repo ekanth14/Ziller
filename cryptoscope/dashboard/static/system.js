@@ -117,7 +117,7 @@ $('login-form').addEventListener('submit', async e => {
 $('fleet-start').addEventListener('click', async () => {
   $('fleet-err').textContent = '';
   const mode = $('fleet-mode').value, symbols = $('fleet-symbols').value.trim().toUpperCase().split(/[\s,]+/).filter(Boolean);
-  if (!confirm(`Start the autotrader fleet in ${mode} mode for ${symbols.join(', ')}?`)) return;
+  if (!confirm(`Start the autotrader fleet in ${mode} mode for ${symbols.length ? symbols.join(', ') : 'the scanner top picks'}?`)) return;
   try { renderFleet(await post('/api/fleet/start', {mode, symbols})); } catch (err) { $('fleet-err').textContent = err.message; }
 });
 const loadGovernor = tick;

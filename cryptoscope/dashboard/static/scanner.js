@@ -12,7 +12,7 @@ const money = v => v == null ? '—' : (state.ccy === 'INR' && state.fx ? '₹' 
   (v * k()).toLocaleString(state.ccy === 'INR' ? 'en-IN' : 'en-US', {maximumFractionDigits: Math.abs(v * k()) >= 100 ? 2 : Math.abs(v * k()) >= 1 ? 4 : 8});
 const big = v => { v *= k(); const s = state.ccy === 'INR' && state.fx ? '₹' : '$';
   return v >= 1e7 && s === '₹' ? `${s}${(v / 1e7).toFixed(1)} Cr` : v >= 1e9 ? `${s}${(v / 1e9).toFixed(2)}B` : v >= 1e6 ? `${s}${(v / 1e6).toFixed(1)}M` : `${s}${(v / 1e3).toFixed(0)}K`; };
-const REASONS = {stable_or_leveraged: 'stable / leveraged', illiquid: 'low volume', spike_24h: '24h spike', not_on_testnet: 'not on testnet'};
+const REASONS = {operator_excluded: 'excluded (BTC/ETH/SOL)', stable_or_leveraged: 'stable / leveraged', illiquid: 'low volume', spike_24h: '24h spike', not_on_testnet: 'not on testnet'};
 
 function renderTop(d) {
   const picks = d.ranked.filter(r => d.top.includes(r.symbol));
@@ -111,7 +111,7 @@ $('login-form').addEventListener('submit', async e => {
 $('ap-start').addEventListener('click', async () => {
   if (!state.user) return needLogin('Sign in as admin to start the autopilot.');
   const mode = $('ap-mode').value;
-  if (!confirm(`Start the autopilot in ${mode}?\nIt scans all Binance USDT pairs, starts the fleet on the eligible top 5 and rescans every 4 hours.`)) return;
+  if (!confirm(`Start the autopilot in ${mode}?\nIt scans all Binance USDT pairs, starts the fleet on the eligible top 10 (BTC, ETH and SOL excluded) and rescans every 4 hours.`)) return;
   $('ap-err').textContent = 'scanning…';
   try { const r = await post('/api/scanner/autopilot', {enable: true, mode}); $('ap-err').textContent = r.top.length ? `trading ${r.top.join(', ')}` : 'no eligible pairs right now — fleet not started'; }
   catch (err) { $('ap-err').textContent = err.message; }
