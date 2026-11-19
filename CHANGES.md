@@ -4,12 +4,19 @@ Every modification, upgrade, fix and deletion, newest first, with date and time 
 Generated from git history by `python scripts/update_changes.py`; regenerate after each commit.
 Deleted code remains recoverable from git with `git show <hash>^:<path>`.
 
-Totals: Upgrade 96 · Fix 37 · Modification 13 · Deletion 19 · Docs 22 · Security 2 · Test 3
+Totals: Upgrade 98 · Fix 37 · Modification 13 · Deletion 19 · Docs 22 · Security 2 · Test 3
 
 Types: **Upgrade** = new feature or capability · **Fix** = bug fix · **Modification** = change/refactor/chore · **Deletion** = code or files removed · **Docs** · **Security** · **Test**.
 
 ## 2026-11-19 (Thursday)
 
+- **22:17 IST** · **Upgrade** · feat(autotrade): always pick the best tradeable coins and target 0.5-1% per trade (`c2d2b6c`, Ekanth B S)
+  - Files: +0 added · ~6 modified · −0 deleted
+  - Details: Scanner: when too few coins pass the daily uptrend filter, fill the 10 slots with SHORT_TERM: 1h uptrend (close > EMA20 > EMA50, RSI1h 40-72) POTENTIAL: best remaining short-term movers, ranked by 0.35 z(r4h/ATR) + 0.25 z(r24h) + 0.25 z(log volume) + 0.15 z(1h volume surge) Both need 0.25%-3% hourly movement and skip free-falls (24h <= -8% or 4h <= -3%). Daily-trend picks still come first; ZILLERS_SCANNER_FALLBACK=0 restores strict mode. Live scan: 10 picks (1 short-term, 9 potential); 5 coins too volatile, several falling fast. StrategyBot SCALP profile (default, ZILLERS_TRADE_PROFILE=SWING f
+- **21:39 IST** · **Upgrade** · docs: CHANGES.md dated record of every modification, upgrade, fix and deletion (`38962fc`, Ekanth B S)
+  - Files: +2 added · ~0 modified · −0 deleted
+  - Added: `CHANGES.md`, `scripts/update_changes.py`
+  - Details: Generated from git history by scripts/update_changes.py (174 commits, 27 Oct - 19 Nov 2026, times in IST); each entry lists type and the files added, modified and deleted.
 - **21:39 IST** · **Deletion** · chore(cleanup): delete old strategies, unused bots and one-off research code (`4966f74`, Ekanth B S)
   - Files: +0 added · ~10 modified · −55 deleted
   - Deleted: `core/quant/microstructure/__init__.py`, `core/quant/microstructure/market_making.py`, `core/quant/microstructure/order_flow.py`, `core/quant/microstructure/protections.py`, `cryptoscope/agents/graph.py`, `cryptoscope/agents/researchers/debate.py`, `cryptoscope/autotrader/__main__.py`, `cryptoscope/autotrader/engine.py`, `cryptoscope/autotrader/notifier.py`, `cryptoscope/autotrader/risk.py`, `cryptoscope/autotrader/settings.py`, `cryptoscope/autotrader/signals.py` … and 43 more
