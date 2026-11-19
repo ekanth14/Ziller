@@ -39,8 +39,8 @@ class FleetManager:
     def _child_env(self, mode: str) -> Dict[str, str]:
         env = {k: v for k, v in os.environ.items() if k not in _STRIP_KEYS}
         env.update(TRADING_MODE=mode, LIVE_TRADING="false", PYTHONUNBUFFERED="1", PYTHONIOENCODING="utf-8")
-        # CPU-only Ollama needs ~10-40 s per debate; 35 s made most debates time out and fail closed.
-        env.setdefault("DEBATE_TIMEOUT_SEC", "90")
+        # CPU-only Gemma 12B generates ~1 token/s here, so one debate takes ~60-100 s; 35/90 s made them all fail closed.
+        env.setdefault("DEBATE_TIMEOUT_SEC", "180")
         return env
 
     def start(self, mode: str, symbols: List[str], actor: str) -> Dict[str, Any]:

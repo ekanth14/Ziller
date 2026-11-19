@@ -83,12 +83,12 @@ class DeliberationConsensusEngine:
             "You are an institutional quantitative crypto debate committee. "
             "Deliberate the proposed trade from Bull, Bear, and Risk Moderator perspectives simultaneously. "
             "Respond STRICTLY in JSON format with exactly these keys: "
-            "bull_thesis (string, max 15 words), "
-            "bear_thesis (string, max 15 words), "
+            "bull_thesis (string, max 8 words), "
+            "bear_thesis (string, max 8 words), "
             "risk_verdict (string: APPROVE or VETO), "
             "conviction (integer 1 to 10), "
             "consensus_action (string: BUY, SELL, or STAND_ASIDE), "
-            "reason (string, max 15 words)."
+            "reason (string, max 8 words). Keep every string short; no extra keys."
         )
 
         user_prompt = (
@@ -107,12 +107,13 @@ class DeliberationConsensusEngine:
             "keep_alive": "15m",
             "options": {
                 "temperature": 0.0,
-                "num_predict": 140,
+                "num_predict": 120,  # ~60-80 tokens of JSON; CPU Gemma 12B runs ~1 token/s
             }
         }
 
         try:
-            raw_json=post_json_deadline(f'{host}/api/generate',payload,min(deadline,35.0))
+            # The caller's deadline is authoritative. A hidden 35 s cap made every CPU debate (70-100 s) time out.
+            raw_json=post_json_deadline(f'{host}/api/generate',payload,deadline)
             if raw_json.get('done') is not True or raw_json.get('done_reason')!='stop':
                 raise ValueError('Model generation incomplete')
 

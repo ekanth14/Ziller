@@ -40,6 +40,9 @@ class DebateBot(BaseBot):
         self.deliberation_engine = DeliberationConsensusEngine()
         self.debates_evaluated_count: int = 0
         self.fallbacks_count: int = 0
+        self.skipped_busy_count: int = 0
+        # Ollama answers one prompt at a time; queued debates would only time out behind each other.
+        self._busy = asyncio.Lock()
 
         self.subscribe(RiskPreApproved)
         self.subscribe(TradeIntent)
@@ -61,6 +64,18 @@ class DebateBot(BaseBot):
 
     async def _deliberate_pre_approved(self, pre: RiskPreApproved) -> None:
         """Run single combined debate call after risk pre-checks pass."""
+        if self._busy.locked():
+            self.skipped_busy_count += 1
+            logger.info("[%s] Debate model busy; skipping %s %s (it will be re-proposed).", self.name, pre.symbol, pre.intent_id)
+            await self.emit(DebateResult(intent_id=pre.intent_id, symbol=pre.symbol, conviction_score=0.0, verdict="REJECT",
+                                         bull_thesis="Skipped - debate model busy", bear_thesis="DEBATE_BUSY",
+                                         risk_summary="DEBATE_BUSY: another trade is being debated", latency_ms=0.0,
+                                         fallback_used=True))
+            return
+        async with self._busy:
+            await self._run_debate(pre)
+
+    async def _run_debate(self, pre: RiskPreApproved) -> None:
         t0 = time.time()
         self.debates_evaluated_count += 1
         intent_id = pre.intent_id
@@ -174,4 +189,5 @@ class DebateBot(BaseBot):
             "debates_evaluated": self.debates_evaluated_count,
             "fallbacks_triggered": self.fallbacks_count,
             "timeout_seconds": self.timeout_seconds,
+            "skipped_busy": self.skipped_busy_count,
         }
