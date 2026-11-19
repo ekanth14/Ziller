@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ZILLERS Markets</title>
-<link rel="icon" href="/assets/zien-emblem.png">
+<link rel="icon" href="/assets/z-app-icon.png">
 <link rel="stylesheet" href="/desk.css">
 <style>
   .mk{padding:8px}
@@ -28,7 +28,7 @@
 </head>
 <body>
 <header class="strip">
-  <span class="brand"><b>ACTION DESK</b> <i id="live-dot" class="dot"></i><span id="live-label">LIVE</span></span>
+  <a class="brand" href="/" title="ZILLERS"><img class="logo" src="/assets/z-emblem-large.png" alt="ZILLERS" width="34" height="26"><span class="word">ZILLERS</span><span class="sub">MARKETS</span><i id="live-dot" class="dot"></i><span id="live-label">LIVE</span></a>
   <nav class="nav"><a href="/">DESK</a><a href="/markets" class="on">MARKETS</a><a href="/scanner">SCANNER</a><a href="/lab">LAB</a><a href="/bots">BOTS</a><a href="/system">SYSTEM</a></nav>
   <span class="chips"></span>
   <span class="strip-right"><span class="seg" id="ccy-seg"><button data-ccy="INR">₹ INR</button><button data-ccy="USD">$ USD</button></span><span id="fx" class="muted"></span></span>
@@ -52,6 +52,7 @@
     <p class="muted" style="font-size:11px;margin:6px 0 0">Source: Binance public market data (exchangeInfo + 24h tickers), refreshed every 60 s. Prices converted to USD via each quote currency's own Binance rate; INR uses the live USD/INR rate. Names, ranks and market caps from CoinGecko where available. Click a row to see all its pairs; OPEN loads the coin in the desk.</p>
   </section>
 </main>
+<footer class="foot"><span class="foot-brand"><img src="/assets/z-emblem-large.png" alt="" width="18" height="14"> ZILLERS · quant trading terminal</span><span>Paper &amp; testnet · no investment advice</span></footer>
 <script src="/markets.js"></script>
 </body>
 </html>

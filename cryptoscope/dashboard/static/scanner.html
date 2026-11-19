@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ZILLERS Scanner</title>
-<link rel="icon" href="/assets/zien-emblem.png">
+<link rel="icon" href="/assets/z-app-icon.png">
 <link rel="stylesheet" href="/desk.css">
 <style>
   .scan-grid{display:grid;gap:8px;padding:8px;grid-template-columns:minmax(0,1fr) 380px}
@@ -27,7 +27,7 @@
 </head>
 <body>
 <header class="strip">
-  <span class="brand"><b>ACTION DESK</b> <i id="live-dot" class="dot"></i><span id="live-label">LIVE</span></span>
+  <a class="brand" href="/" title="ZILLERS"><img class="logo" src="/assets/z-emblem-large.png" alt="ZILLERS" width="34" height="26"><span class="word">ZILLERS</span><span class="sub">SCANNER</span><i id="live-dot" class="dot"></i><span id="live-label">LIVE</span></a>
   <nav class="nav"><a href="/">DESK</a><a href="/markets">MARKETS</a><a href="/scanner" class="on">SCANNER</a><a href="/lab">LAB</a><a href="/bots">BOTS</a><a href="/system">SYSTEM</a><a href="/system#fleet" id="fleet-pill" class="fleet-pill">AUTOTRADER …</a></nav>
   <span class="chips"></span>
   <span class="strip-right">
@@ -60,6 +60,7 @@
     <pre id="method" class="method"></pre>
   </section>
 </main>
+<footer class="foot"><span class="foot-brand"><img src="/assets/z-emblem-large.png" alt="" width="18" height="14"> ZILLERS · quant trading terminal</span><span>Paper &amp; testnet · no investment advice</span></footer>
 
 <dialog id="login">
   <form method="dialog" id="login-form">
