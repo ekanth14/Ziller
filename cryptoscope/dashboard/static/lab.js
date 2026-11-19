@@ -5,16 +5,16 @@ const $ = id => document.getElementById(id);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pct = (v, d = 1) => v == null ? '—' : `${v >= 0 ? '+' : ''}${(v * 100).toFixed(d)}%`;
 const cls = v => v == null ? '' : v >= 0 ? 'up' : 'dn';
-const COLORS = ['#22e39b', '#4aa8ff', '#ffb547', '#a98bff', '#ff6fb1', '#38e1ff', '#ff4d6a', '#c9d4e0', '#9be36b', '#e36bd6', '#e3b36b', '#6be3d2', '#8f9cff'];
+const COLORS = ['#22e39b', '#4aa8ff', '#ffb547', '#a98bff', '#ff6fb1', '#38e1ff', '#ff4d6a', '#c9d3ff', '#9be36b', '#e36bd6', '#e3b36b', '#6be3d2', '#8f9cff'];
 const state = {data: null, shown: new Set(), chart: null, series: {}};
 
 function chart() {
   if (state.chart) return state.chart;
   const el = $('eq');
   state.chart = LightweightCharts.createChart(el, {width: el.clientWidth, height: el.clientHeight,
-    layout: {background: {color: 'transparent'}, textColor: '#5f7186', fontFamily: 'Consolas, monospace', fontSize: 10, attributionLogo: false},
-    grid: {vertLines: {color: '#0f1822'}, horzLines: {color: '#0f1822'}}, rightPriceScale: {borderColor: '#18222f'},
-    timeScale: {borderColor: '#18222f'}});
+    layout: {background: {color: 'transparent'}, textColor: '#8a96c4', fontFamily: 'Consolas, monospace', fontSize: 10, attributionLogo: false},
+    grid: {vertLines: {color: 'rgba(130,150,255,0.08)'}, horzLines: {color: 'rgba(130,150,255,0.08)'}}, rightPriceScale: {borderColor: 'rgba(130,150,255,0.18)'},
+    timeScale: {borderColor: 'rgba(130,150,255,0.18)'}});
   new ResizeObserver(() => state.chart.applyOptions({width: el.clientWidth})).observe(el);
   return state.chart;
 }
@@ -28,7 +28,7 @@ function draw() {
     s.setData(vals.map((v, i) => ({time: d.times[i], value: (v - 1) * 100})));
     return s;
   };
-  state.series.hold = line(d.buy_hold_curve, '#5f7186', 1, 2);
+  state.series.hold = line(d.buy_hold_curve, '#8a96c4', 1, 2);
   d.results.forEach((r, i) => { if (state.shown.has(r.key) && r.curve) state.series[r.key] = line(r.curve, COLORS[i % COLORS.length], 2); });
   c.timeScale().fitContent();
 }
@@ -41,7 +41,7 @@ function render() {
   $('tbl').innerHTML = '<tr><th></th><th>STRATEGY</th><th>FAMILY</th><th class="num">RETURN</th><th class="num">CAGR</th><th class="num">SHARPE</th><th class="num">SORTINO</th>' +
     '<th class="num">MAX DD</th><th class="num">CALMAR</th><th class="num">TRADES</th><th class="num">WIN</th><th class="num">PF</th><th class="num">EXPOSURE</th>' +
     '<th class="num">IN-SAMPLE</th><th class="num">OOS</th><th class="num">p</th></tr>' +
-    `<tr><td><span class="sw" style="background:#5f7186"></span></td><td class="muted">Buy &amp; hold</td><td></td><td class="num ${cls(d.buy_hold.total_return)}">${pct(d.buy_hold.total_return)}</td>` +
+    `<tr><td><span class="sw" style="background:#8a96c4"></span></td><td class="muted">Buy &amp; hold</td><td></td><td class="num ${cls(d.buy_hold.total_return)}">${pct(d.buy_hold.total_return)}</td>` +
     `<td colspan="3"></td><td class="num dn">${pct(d.buy_hold.max_drawdown)}</td><td colspan="8"></td></tr>` +
     d.results.map((r, i) => r.error ? `<tr><td></td><td>${esc(r.label)}</td><td colspan="14" class="dn">error ${esc(r.error)}</td></tr>` :
       `<tr data-k="${r.key}" class="${state.shown.has(r.key) ? 'sel' : ''}"><td><span class="sw" style="background:${state.shown.has(r.key) ? COLORS[i % COLORS.length] : 'transparent'};border:1px solid ${COLORS[i % COLORS.length]}"></span></td>` +

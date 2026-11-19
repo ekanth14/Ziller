@@ -4,7 +4,7 @@
 const $ = id => document.getElementById(id);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const COLORS = {trend:'#ffb547', momentum:'#a98bff', volume:'#4aa8ff', drawdown:'#ff6fb1', pm:'#e8f0f8'};
-const GREEN = '#22e39b', RED = '#ff4d6a', MUTED = '#5f7186';
+const GREEN = '#22e39b', RED = '#ff4d6a', MUTED = '#8a96c4';
 const pct = (v, d = 2) => v == null ? '—' : `${v >= 0 ? '+' : ''}${(v * 100).toFixed(d)}%`;
 const num = (v, d = 2) => v == null ? '—' : Number(v).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
 const px = v => money(v);
@@ -39,8 +39,8 @@ function makeCharts() {
   const LC = window.LightweightCharts;
   const base = {
     layout: {background: {color: 'transparent'}, textColor: MUTED, fontFamily: 'Consolas, monospace', fontSize: 10, attributionLogo: false},
-    grid: {vertLines: {color: '#0f1822'}, horzLines: {color: '#0f1822'}},
-    rightPriceScale: {borderColor: '#18222f'}, timeScale: {borderColor: '#18222f', timeVisible: false},
+    grid: {vertLines: {color: 'rgba(130,150,255,0.08)'}, horzLines: {color: 'rgba(130,150,255,0.08)'}},
+    rightPriceScale: {borderColor: 'rgba(130,150,255,0.18)'}, timeScale: {borderColor: 'rgba(130,150,255,0.18)', timeVisible: false},
     crosshair: {mode: 0}, handleScroll: true, handleScale: true,
   };
   const mk = (el, extra = {}) => LC.createChart(el, {...base, ...extra, width: el.clientWidth, height: el.clientHeight});
@@ -54,7 +54,7 @@ function makeCharts() {
     sma10: price.addLineSeries({color: COLORS.trend, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false}),
     sma30: price.addLineSeries({color: COLORS.momentum, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false}),
     vol: vol.addHistogramSeries({priceFormat: {type: 'volume'}, priceLineVisible: false, lastValueVisible: false}),
-    rsi: rsi.addLineSeries({color: '#c9d4e0', lineWidth: 1, priceLineVisible: false}),
+    rsi: rsi.addLineSeries({color: '#c9d3ff', lineWidth: 1, priceLineVisible: false}),
     macdHist: macd.addHistogramSeries({priceLineVisible: false, lastValueVisible: false}),
     macd: macd.addLineSeries({color: COLORS.volume, lineWidth: 1, priceLineVisible: false, lastValueVisible: false}),
     macdSig: macd.addLineSeries({color: COLORS.trend, lineWidth: 1, priceLineVisible: false, lastValueVisible: false}),

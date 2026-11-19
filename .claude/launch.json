@@ -1,0 +1,1 @@
+{"version":"0.0.1","configurations":[{"name":"dashboard","runtimeExecutable":".venv/Scripts/python.exe","runtimeArgs":["-m","cryptoscope.dashboard","--port","8900"],"port":8900}]}
