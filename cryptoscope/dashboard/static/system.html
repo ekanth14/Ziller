@@ -25,6 +25,21 @@
   .fleet-form input{flex:1;min-width:min(220px,100%);text-transform:uppercase}
   .log{height:220px;overflow:auto;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:4px;padding:6px;font-size:11px;white-space:pre-wrap}
   .note{color:var(--muted);font-size:11px}
+  .startall{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .btn.go{font-size:15px;font-weight:800;letter-spacing:.12em;padding:10px 26px}
+  .verdict{flex:1 1 280px;font-weight:700;padding:8px 12px;border-radius:var(--radius-sm);border:1px solid var(--line)}
+  .verdict.yes{color:var(--green);border-color:rgba(46,230,166,.45);background:rgba(46,230,166,.08)}
+  .verdict.no{color:var(--red);border-color:rgba(255,93,125,.45);background:rgba(255,93,125,.08)}
+  .verdict.part{color:var(--amber);border-color:rgba(255,197,107,.45);background:rgba(255,197,107,.08)}
+  .checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;margin-top:10px}
+  .checks h4{margin:0 0 4px;font-size:10px;letter-spacing:.12em;color:var(--muted)}
+  .ck{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:2px 8px;padding:5px 0;border-bottom:1px solid rgba(220,225,235,.06);font-size:12px}
+  .ck .i{font-weight:800;text-align:center}.ck .d{grid-column:2/-1;color:var(--muted);font-size:11px;overflow-wrap:anywhere}
+  .ck .t{color:var(--muted);font-size:10.5px;font-family:var(--mono)}
+  .ck.ok .i{color:var(--green)}.ck.warn .i{color:var(--amber)}.ck.fail .i{color:var(--red)}.ck.skipped .i,.ck.pending .i{color:var(--muted)}
+  .ck.running .i{color:var(--blue);animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .crit{font-size:9.5px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 6px;margin-left:6px}
   @media (max-width:1100px){.sys-grid{grid-template-columns:minmax(0,1fr)}.sys-grid .wide{grid-column:auto}}
 </style>
 </head>
@@ -37,6 +52,17 @@
 </header>
 
 <main class="sys-grid">
+  <section class="panel full" id="startall">
+    <div class="ph"><span><i class="dot"></i> <b>START ALL</b> <em>bring every LLM, decision model and bot online · self-test · report</em></span><span id="sa-time" class="muted"></span></div>
+    <div class="startall">
+      <select id="sa-mode" aria-label="Mode"><option value="PAPER">PAPER</option><option value="TESTNET">TESTNET</option></select>
+      <button id="sa-start" class="btn primary go">&#9654; START ALL</button>
+      <div id="sa-verdict" class="verdict">Not started. Press START ALL to test every model and launch the bots.</div>
+    </div>
+    <p id="sa-err" class="err"></p>
+    <div id="sa-checks" class="checks"></div>
+    <p class="note">Order: safety &rarr; market data &rarr; decision models &rarr; every local LLM (a short test each, ~30&ndash;100 s per 12B model on this CPU) &rarr; one full fleet debate &rarr; launch paper bots and the autopilot (scanner &rarr; fleet on eligible coins). Critical checks (kill switch, risk governor, market data, Ollama, debate model) must pass before any bot is launched. Admin sign-in required. LIVE trading is never started here.</p>
+  </section>
   <section class="panel"><div class="ph"><span><i class="dot"></i> <b>DEVICE</b></span><span id="host" class="muted"></span></div><div id="device" class="kv"></div></section>
   <section class="panel"><div class="ph"><span><i class="dot"></i> <b>CPU</b></span><span id="cpu-meta" class="muted"></span></div><div id="cpu"></div><div id="cores" class="cores"></div></section>
   <section class="panel"><div class="ph"><span><i class="dot"></i> <b>MEMORY · DISK · POWER</b></span></div><div id="mem"></div></section>

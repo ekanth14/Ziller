@@ -172,6 +172,17 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
 
     autopilot = Autopilot(scanner, fleet, _fleet_positions_open, notify=fleet.notify)
 
+    from cryptoscope.desk.startup import StartupRunner, build_default_checks
+
+    def _telegram_status():
+        from cryptoscope.telegram.notify import configured as telegram_configured
+        return telegram_configured()
+
+    startup = StartupRunner(lambda mode: build_default_checks(
+        mode, kill_switch=kill_switch, risk_governor=RiskGovernor(), fleet=fleet, autopilot=autopilot, scanner=scanner,
+        paper_bots=paper_bots, llm_panel=llm_panel, laya_evaluator=laya_evaluator,
+        klines=lambda s, i, n: _klines(s, i, n), telegram_status=_telegram_status))
+
     def _feed_delays():
         out = {}
         conns = market_aggregator.get_connection_status()
@@ -441,6 +452,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
             if url.path == "/api/markets":
                 m = market_directory.markets()
                 return self.json(200 if m.get("status") in {"OK", "STALE"} else 503, m)
+            if url.path == "/api/system/startup":
+                return self.json(200, startup.status())
             if url.path == "/api/telegram/status":
                 from cryptoscope.telegram.notify import configured as telegram_configured
                 return self.json(200, telegram_configured())
@@ -1553,6 +1566,19 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     return self.json(400, {"error": str(err)})
 
             # Scanner autopilot: scan all USDT pairs, trade the top 10 (BTC/ETH/SOL excluded), rescan every 4 h (admin + CSRF)
+            # START ALL: test every LLM / decision model / safety system, then launch the bots (admin + CSRF)
+            if url.path == "/api/system/startup":
+                if session.get("role") != "admin":
+                    return self.json(403, {"error": "Admin role required to start the system"})
+                if kill_switch.halted:
+                    return self.json(409, {"error": "Emergency halt is engaged; resume the governor first"})
+                try:
+                    return self.json(202, startup.start(str(body.get("mode", "PAPER")), session.get("email", "admin")))
+                except ValueError as err:
+                    return self.json(400, {"error": str(err)})
+                except RuntimeError as err:
+                    return self.json(409, {"error": str(err)})
+
             if url.path == "/api/scanner/autopilot":
                 if session.get("role") != "admin":
                     return self.json(403, {"error": "Admin role required to control the autopilot"})

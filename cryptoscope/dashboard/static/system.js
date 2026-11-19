@@ -186,6 +186,43 @@ async function loadProtections() {
 }
 loadProtections(); setInterval(loadProtections, 15000);
 loadTelegram();
+
+// ---- START ALL: self-test every model, then launch the bots ---------------------------
+const SA_ICON = {ok: '✓', warn: '!', fail: '✕', skipped: '–', pending: '·', running: '◌'};
+let saTimer = null;
+function renderStartup(s) {
+  const steps = s.steps || [];
+  const groups = [...new Set(steps.map(x => x.group))];
+  $('sa-checks').innerHTML = groups.map(g => `<div><h4>${esc(g.toUpperCase())}</h4>` + steps.filter(x => x.group === g).map(x =>
+    `<div class="ck ${x.status}"><span class="i">${SA_ICON[x.status] || '?'}</span><span>${esc(x.label)}${x.critical ? '<span class="crit">critical</span>' : ''}</span>` +
+    `<span class="t">${x.latency_ms == null ? '' : x.latency_ms >= 1000 ? (x.latency_ms / 1000).toFixed(1) + ' s' : Math.round(x.latency_ms) + ' ms'}</span>` +
+    `${x.detail ? `<span class="d">${esc(x.detail)}</span>` : ''}</div>`).join('') + '</div>').join('');
+  const v = $('sa-verdict');
+  if (s.running) {
+    const done = steps.filter(x => !['pending', 'running'].includes(x.status)).length, cur = steps.find(x => x.status === 'running');
+    v.className = 'verdict'; v.textContent = `Testing ${done}/${steps.length}… ${cur ? 'now: ' + cur.label : ''}`;
+  } else if (s.on_board === true) { v.className = 'verdict yes'; v.textContent = '✓ ' + s.summary; }
+  else if (s.on_board === false) { v.className = 'verdict ' + ((s.critical_failed || []).length ? 'no' : 'part'); v.textContent = s.summary; }
+  $('sa-start').disabled = !!s.running;
+  if (s.started_at) $('sa-time').textContent = `${s.mode || ''} · started ${new Date(s.started_at * 1000).toLocaleTimeString()}` +
+    (s.finished_at ? ` · took ${Math.round(s.finished_at - s.started_at)} s` : '');
+}
+async function pollStartup() {
+  try {
+    const s = await (await fetch('/api/system/startup')).json();
+    renderStartup(s);
+    clearTimeout(saTimer);
+    if (s.running) saTimer = setTimeout(pollStartup, 2000); else tick();
+  } catch { saTimer = setTimeout(pollStartup, 5000); }
+}
+$('sa-start').addEventListener('click', async () => {
+  $('sa-err').textContent = '';
+  if (!state.user) { $('login-err').textContent = 'Sign in as admin to start the system.'; $('login').showModal(); return; }
+  const mode = $('sa-mode').value;
+  if (!confirm(`START ALL in ${mode}?\n\nThis tests every LLM and decision model (several minutes), then starts the paper bots and the autopilot, which launches the autotrader fleet on eligible coins.`)) return;
+  try { renderStartup(await post('/api/system/startup', {mode})); pollStartup(); } catch (err) { $('sa-err').textContent = err.message; }
+});
+pollStartup();
 loadUser(); tick();
 setInterval(tick, 3000);
 })();
