@@ -88,13 +88,10 @@ if __name__ == "__main__":
         import argparse
         from cryptoscope.backtesting.runner import evaluate, save_report
         from cryptoscope.agents.schemas import Snapshot
-        from cryptoscope.research.demo import demo_snapshot
         from cryptoscope.research.settings import load_config
         parser = argparse.ArgumentParser(description='QuantJourney verification and archived crypto baseline backtests')
         parser.add_argument('command', choices=['verify','run','walk-forward','validate'], nargs='?', default='verify')
-        source = parser.add_mutually_exclusive_group()
-        source.add_argument('--snapshot', type=Path)
-        source.add_argument('--demo', action='store_true')
+        parser.add_argument('--snapshot', type=Path)
         parser.add_argument('--strategy', choices=['ema_baseline','buy_hold_baseline'], default='ema_baseline')
         parser.add_argument('--fast', type=int, default=20)
         parser.add_argument('--slow', type=int, default=50)
@@ -106,9 +103,9 @@ if __name__ == "__main__":
         if args.command == 'verify':
             result = verify()
         else:
-            if not args.snapshot and not args.demo:
-                parser.error('run requires --snapshot or --demo')
-            snapshot = Snapshot.parse(json.loads(args.snapshot.read_text(encoding='utf-8'))) if args.snapshot else demo_snapshot()
+            if not args.snapshot:
+                parser.error('this command requires --snapshot')
+            snapshot = Snapshot.parse(json.loads(args.snapshot.read_text(encoding='utf-8')))
             config=load_config()
             if args.strategy_spec:
                 from cryptoscope.strategy import StrategySpec

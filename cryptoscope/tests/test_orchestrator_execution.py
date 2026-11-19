@@ -127,8 +127,16 @@ def test_supervisor_heartbeat_loss_triggers_emergency_protection():
                 "target_price": 110.0
             }
 
-            # Allow watchdog loop to run without supervisor heartbeat (0.1s timeout + 0.05s grace = 0.15s)
-            await asyncio.sleep(0.3)
+            # Allow watchdog loop to run without supervisor heartbeat (0.1s timeout + 0.05s grace = 0.15s).
+            # Poll instead of a fixed sleep so slow CI runners do not make this test flaky.
+            for _ in range(100):
+                await asyncio.sleep(0.05)
+                if (
+                    exec_bot.emergency_protection_active
+                    and alerts
+                    and exec_bot.active_positions["SOLUSDT"]["stop_price"] == 100.0
+                ):
+                    break
 
             # Emergency protection must be active
             assert exec_bot.emergency_protection_active is True

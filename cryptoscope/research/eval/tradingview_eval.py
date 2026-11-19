@@ -148,18 +148,11 @@ def run_tradingview_playwright_test(port: int = 8919) -> Dict[str, Any]:
             attr_text = page.inner_text("#tradingview-attribution")
             attr_href = page.get_attribute("#tradingview-attribution a", "href")
 
-            # Inject sample candles and render chart
-            page.evaluate("""() => {
-                state.candlesBySymbol['ETHUSDT'] = [
-                    { open_time: 1700000000000, close_time: 1700000300, open: 2000.0, high: 2050.0, low: 1990.0, close: 2040.0, volume: 100 },
-                    { open_time: 1700000300000, close_time: 1700000600, open: 2040.0, high: 2080.0, low: 2030.0, close: 2070.0, volume: 150 },
-                    { open_time: 1700000600000, close_time: 1700000900, open: 2070.0, high: 2090.0, low: 2050.0, close: 2060.0, volume: 120 },
-                    { open_time: 1700000900000, close_time: 1700001200, open: 2060.0, high: 2100.0, low: 2055.0, close: 2095.0, volume: 180 },
-                    { open_time: 1700001200000, close_time: 1700001500, open: 2095.0, high: 2120.0, low: 2080.0, close: 2110.0, volume: 210 }
-                ];
-                renderChart();
-            }""")
-            page.wait_for_timeout(1000)
+            # The Action Desk renders real exchange candles from /api/desk; wait for the canvas.
+            try:
+                page.wait_for_selector("#lwc-chart canvas", timeout=15000)
+            except Exception:
+                pass
 
             # Check canvas presence in #lwc-chart
             has_canvas = page.evaluate("() => document.querySelector('#lwc-chart canvas') !== null")

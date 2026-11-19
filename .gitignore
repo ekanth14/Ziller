@@ -61,3 +61,7 @@ landing/node_modules/
 landing/dist/
 
 .superpowers/
+
+# Built native kernels
+core/quant/_native/
+native/build/

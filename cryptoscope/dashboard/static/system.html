@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZILLERS System</title>
+<link rel="icon" href="/assets/z-app-icon.png">
+<link rel="stylesheet" href="/desk.css">
+<style>
+  .sys-grid{display:grid;gap:14px;padding:16px 18px;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .sys-grid .wide{grid-column:span 2}.sys-grid .full{grid-column:1/-1}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:11.5px}
+  .kv span:nth-child(odd){color:var(--muted)}
+  .gauge{margin:6px 0}.gauge .lab{display:flex;justify-content:space-between;font-size:11px}
+  .gauge .track{height:8px;border-radius:4px;background:#111b27;overflow:hidden;margin-top:3px}
+  .gauge .fill{height:100%;border-radius:4px;background:var(--green)}
+  .gauge .fill.warn{background:var(--amber)}.gauge .fill.hot{background:var(--red)}
+  .cores{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-top:6px}
+  .cores i{display:block;height:34px;border-radius:3px;background:#111b27;position:relative;overflow:hidden}
+  .cores i b{position:absolute;left:0;right:0;bottom:0;background:var(--blue)}
+  .spark{width:110px;height:22px;vertical-align:middle}
+  .ok{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--amber)}
+  .fleet-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}
+  .fleet-form input,.fleet-form select{background:var(--panel2);color:var(--txt);border:1px solid var(--line);font:inherit;padding:4px 6px;border-radius:3px}
+  .fleet-form input{flex:1;min-width:min(220px,100%);text-transform:uppercase}
+  .log{height:220px;overflow:auto;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:4px;padding:6px;font-size:11px;white-space:pre-wrap}
+  .note{color:var(--muted);font-size:11px}
+  @media (max-width:1100px){.sys-grid{grid-template-columns:minmax(0,1fr)}.sys-grid .wide{grid-column:auto}}
+</style>
+</head>
+<body>
+<header class="strip">
+  <a class="brand" href="/" title="ZILLERS"><img class="logo" src="/assets/z-emblem-large.png" alt="ZILLERS" width="34" height="26"><span class="word">ZILLERS</span><span class="sub">SYSTEM</span><i id="live-dot" class="dot"></i><span id="live-label">LIVE</span></a>
+  <nav class="nav"><a href="/">DESK</a><a href="/markets">MARKETS</a><a href="/scanner">SCANNER</a><a href="/lab">LAB</a><a href="/bots">BOTS</a><a href="/system" class="on">SYSTEM</a><a href="#fleet" id="fleet-pill" class="fleet-pill">AUTOTRADER …</a></nav>
+  <span class="chips"></span>
+  <span class="strip-right"><span id="gov" class="gov">GOVERNOR …</span><button id="resume" class="btn primary" hidden title="Admin: clear the emergency halt">RESUME</button><button id="kill" class="btn kill" title="Stop trading, the fleet and every AI model">■ KILL SWITCH</button><button id="signin" class="btn">SIGN IN</button></span>
+</header>
+
+<main class="sys-grid">
+  <section class="panel"><div class="ph"><span><i class="dot"></i> <b>DEVICE</b></span><span id="host" class="muted"></span></div><div id="device" class="kv"></div></section>
+  <section class="panel"><div class="ph"><span><i class="dot"></i> <b>CPU</b></span><span id="cpu-meta" class="muted"></span></div><div id="cpu"></div><div id="cores" class="cores"></div></section>
+  <section class="panel"><div class="ph"><span><i class="dot"></i> <b>MEMORY · DISK · POWER</b></span></div><div id="mem"></div></section>
+
+  <section class="panel wide"><div class="ph"><span><i class="dot"></i> <b>NETWORK LATENCY</b> <em>HTTPS round-trip incl. TLS · every 5 s</em></span><span id="clock" class="muted"></span></div><div class="tbl-wrap"><table id="ping" class="tbl"></table></div></section>
+  <section class="panel"><div class="ph"><span><i class="dot"></i> <b>NETWORK I/O · PROCESS</b></span></div><div id="net" class="kv"></div></section>
+
+  <section class="panel wide"><div class="ph"><span><i class="dot"></i> <b>MARKET DATA DELAY</b> <em>live feeds in this server</em></span></div><div class="tbl-wrap"><table id="feeds" class="tbl"></table></div><div class="tbl-wrap"><table id="ticks" class="tbl" style="margin-top:8px"></table></div></section>
+  <section class="panel"><div class="ph"><span><i class="dot"></i> <b>AI SYSTEMS</b></span></div><div id="ai" class="kv"></div><p class="note">The desk runs SMC + Laya, the hedge-fund committee and THX-02 on every refresh; Ollama is used as an explainer only.</p></section>
+
+  <section class="panel full" id="protections">
+    <div class="ph"><span><i class="dot"></i> <b>PROTECTIONS</b> <em>cooldown · stop-loss guard · low-profit pairs · closed-trade drawdown (fleet)</em></span><span id="prot-state" class="muted"></span></div>
+    <div class="tbl-wrap"><table id="prot" class="tbl"></table></div>
+    <p class="note" id="prot-cfg"></p>
+  </section>
+
+  <section class="panel full" id="telegram">
+    <div class="ph"><span><i class="dot"></i> <b>TELEGRAM ALERTS</b> <em>bot fills · closed positions · halts · fleet start/stop</em></span><span id="tg-state" class="muted"></span></div>
+    <div class="fleet-form"><button id="tg-test" class="btn primary">SEND TEST MESSAGE</button><span id="tg-result" class="note"></span></div>
+    <p class="note">Uses TELEGRAM_BOT_TOKEN and TELEGRAM_OWNER_CHAT_ID from <code>.env</code>. Messages are sent by the fleet process (and a short-lived sender for tests/stops); the token never reaches this page or the dashboard process. Times are in IST; values also shown in INR when the rate is available.</p>
+  </section>
+
+  <section class="panel full" id="fleet">
+    <div class="ph"><span><i class="dot"></i> <b>AUTOTRADER FLEET</b> <em>10-bot orchestrator · data → analyst → quant → strategy → debate → risk → execution</em></span><span id="fleet-state" class="muted"></span></div>
+    <div class="fleet-form">
+      <select id="fleet-mode"><option value="PAPER">PAPER (simulated fills)</option><option value="TESTNET">TESTNET (Binance testnet keys from .env)</option></select>
+      <input id="fleet-symbols" value="BTCUSDT ETHUSDT SOLUSDT" aria-label="Symbols" spellcheck="false">
+      <button id="fleet-start" class="btn primary">START</button><button id="fleet-stop" class="btn danger">STOP</button>
+    </div>
+    <p class="note">Admin sign-in required. LIVE trading cannot be started here: it stays behind the five-gate governor. Start is refused while the emergency halt is engaged. Keys are read from <code>.env</code> by the fleet process and never sent to the browser.</p>
+    <p id="fleet-err" class="err"></p>
+    <div id="fleet-log" class="log"></div>
+  </section>
+</main>
+<footer class="foot"><span class="foot-brand"><img src="/assets/z-emblem-large.png" alt="" width="18" height="14"> ZILLERS · quant trading terminal</span><span>Paper &amp; testnet · no investment advice</span></footer>
+
+<dialog id="login">
+  <form method="dialog" id="login-form">
+    <h3>Sign in</h3>
+    <label>Email <input type="email" id="email" autocomplete="username" required></label>
+    <label>Password <input type="password" id="password" autocomplete="current-password" required></label>
+    <p id="login-err" class="err"></p>
+    <div class="row"><button type="button" class="btn" id="login-cancel">Cancel</button><button class="btn primary">Sign in</button></div>
+  </form>
+</dialog>
+<dialog id="resume-dlg">
+  <form method="dialog" id="resume-form">
+    <h3>Resume from emergency halt</h3>
+    <p class="note">Admin only, from this computer. Re-enter your password. The AI layer restarts automatically; the autotrader fleet does not — start it again yourself if you want it.</p>
+    <label>Admin password <input type="password" id="resume-password" autocomplete="current-password" required></label>
+    <p id="resume-err" class="err"></p>
+    <div class="row"><button type="button" class="btn" id="resume-cancel">Cancel</button><button class="btn primary">Resume</button></div>
+  </form>
+</dialog>
+<script src="/system.js"></script>
+</body>
+</html>

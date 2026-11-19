@@ -15,7 +15,7 @@
 </p>
 
 
-> **ZILLERS** is an institutional quantitative trading, multi-source crypto market aggregation, and autonomous decision terminal engineered for 24/7 continuous digital asset markets. Built with zero unpinned external runtime dependencies, deterministic risk gating, Smart Money Concept (SMC) order block analytics, and strictly grounded local AI deliberation via Ollama.
+> **ZILLERS** is an institutional quantitative trading, multi-source crypto market aggregation, and autonomous decision terminal engineered for 24/7 continuous digital asset markets. Built with pinned runtime dependencies (`requirements.txt`; research extras in `requirements-research.txt`), deterministic risk gating, Smart Money Concept (SMC) order block analytics, and strictly grounded local AI deliberation via Ollama.
 >
 > 📐 **Master Quantitative Architecture & Mathematical Specifications**: For an exhaustive, institutional breakdown of the core directory structure, technical multi-tier architecture, and all mathematical trading formulas (OLS Beta, Engle-Granger Cointegration, Ornstein-Uhlenbeck Mean Reversion, Parkinson / Garman-Klass / Yang-Zhang Volatility, CVD Order Flow, and Fractional Kelly Sizing), consult **[ZILLERS_QUANT_ARCHITECTURE.md](ZILLERS_QUANT_ARCHITECTURE.md)**.
 
@@ -190,7 +190,7 @@ The containerized terminal will run on port `8900` as a non-root user with autom
 | `HOST` | `127.0.0.1` | Network interface binding. |
 | `TRUST_PROXY` | `false` | Set to `true` only when running behind trusted reverse proxies (e.g. Nginx). |
 | `SIGNUP_MODE` | `open` | Set to `invite` to restrict new registrations to invite codes. |
-| `INVITE_CODE` | `ZILLERS-INVITE-2026` | Required registration code if `SIGNUP_MODE=invite`. |
+| `INVITE_CODE` | *(unset)* | Required registration code if `SIGNUP_MODE=invite`. Set your own secret value. |
 | `LIVE_TRADING` | `false` | Gate 1 flag for live trading. Must be explicitly set to `true` to enable live execution. |
 | `EXCHANGE_API_KEY` | `""` | Exchange API key for live execution (withdrawal permissions MUST be disabled). |
 | `EXCHANGE_API_SECRET` | `""` | Exchange API secret. |
@@ -230,7 +230,7 @@ Or via unittest runner:
 python -m unittest discover -s cryptoscope/tests -p "test_*.py"
 ```
 
-The 108 test cases cover:
+The suite (400+ tests across `cryptoscope/tests` and `tests/`) covers, among others:
 - `test_governor.py`: 5-gate live trading governor, emergency kill switch, risk limits, stale feed halts, cross-feed divergence halts.
 - `test_backtest_costs.py`: Slippage, maker/taker fees, Indian tax model (Section 115BBH & 194S), Deflated Sharpe Ratio, Schedule VDA CSV export.
 - `test_fx.py`: Real FX rate fetching, unavailable state handling, staleness transitions.

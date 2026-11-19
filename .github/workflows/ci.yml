@@ -2,9 +2,9 @@ name: CI / Production Build Verification
 
 on:
   push:
-    branches: [ main, feat/crypto-only ]
+    branches: [ main, feat/crypto-only, feat/quant-engine-terminal ]
   pull_request:
-    branches: [ main, feat/crypto-only ]
+    branches: [ main, feat/crypto-only, feat/quant-engine-terminal ]
 
 jobs:
   test:
@@ -29,7 +29,9 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 mypy pytest pytest-cov pip-audit
+          pip install --upgrade setuptools
+          pip install -r requirements.txt -r requirements-ci.txt flake8 mypy pytest-cov pip-audit
+          python -m playwright install --with-deps chromium
 
       - name: Security Audit (pip-audit)
         run: |
@@ -38,13 +40,16 @@ jobs:
       - name: Code Linting (Flake8)
         run: |
           # Stop build if syntax errors or undefined names exist
-          flake8 cryptoscope --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 cryptoscope core --count --select=E9,F63,F7,F82 --show-source --statistics
           # Non-blocking stylistic linting
           flake8 cryptoscope --count --exit-zero --max-complexity=15 --max-line-length=140 --statistics
 
       - name: Type Checking (mypy)
         run: |
           mypy cryptoscope/auth cryptoscope/fx cryptoscope/market_data --ignore-missing-imports || true
+
+      - name: Build native kernels (C++)
+        run: python native/build.py
 
       - name: Run Test Suite (pytest)
         env:
@@ -53,3 +58,33 @@ jobs:
           DATA_DIR: test_data
         run: |
           pytest -v --durations=10
+
+  ocaml-risk-gate:
+    name: OCaml risk gate (differential vs Python governor)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: "5.2"
+
+      - name: Build OCaml risk gate
+        working-directory: ocaml/risk_gate
+        run: |
+          opam install dune --yes
+          opam exec -- dune build
+
+      - name: Differential tests (OCaml vs Python)
+        env:
+          ZILLERS_RISK_GATE_BIN: ${{ github.workspace }}/ocaml/risk_gate/_build/default/bin/main.exe
+        run: |
+          python -m pip install pytest
+          python -m pytest tests/test_shadow_risk_gate.py -v

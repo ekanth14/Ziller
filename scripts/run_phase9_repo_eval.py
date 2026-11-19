@@ -118,7 +118,7 @@ def run_full_phase9_evaluation():
 | :--- | :--- | :--- | :--- | :--- |
 | `https://github.com/duckdb/duckdb` | 1.1.3 | MIT | **18.47x mean speedup** on Parquet scans; 41.48x on predicate pushdown | **ADOPT** |
 | `https://github.com/ranaroussi/quantstats` | 0.0.64 | Apache 2.0 | Sharpe 2.12 (365d) vs 1.76 (252d); MaxDD 20.04% | **ADOPT_LATER** |
-| `https://github.com/TA-Lib/ta-lib-python` | 0.4.32 | BSD | C compiler failed (`ta_libc.h` missing); pure Python converges $\epsilon < 0.01$ | **SKIP** |
+| `https://github.com/TA-Lib/ta-lib-python` | 0.4.32 | BSD | C compiler failed (`ta_libc.h` missing); pure Python converges $\\epsilon < 0.01$ | **SKIP** |
 | `https://github.com/tradingview/lightweight-charts` | 4.2.1 | Apache 2.0 | Self-hosted 163 kB bundle, 0 CDN calls, Playwright 0 console errors | **ADOPT** |
 | `https://github.com/agronholm/apscheduler` | 3.10.4 | MIT | Hourly backfill + 00:00 UTC Telegram; dual-ID whitelist enforced | **ADOPT** |
 | `https://github.com/nace-ai/drex-decision-models` | v1.5 | Open RAIL-M | CPU p95: 0.159ms (<50ms); Acc 47.51% (Laya 48.96%); DLM CC BY-NC excluded | **SKIP** |

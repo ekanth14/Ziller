@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZILLERS Scanner</title>
+<link rel="icon" href="/assets/z-app-icon.png">
+<link rel="stylesheet" href="/desk.css">
+<style>
+  .scan-grid{display:grid;gap:14px;padding:16px 18px;grid-template-columns:minmax(0,1fr) 380px}
+  .top5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+  .pick{border:1px solid rgba(46,230,166,.4);background:#071a14;border-radius:6px;padding:8px}
+  .pick .s{font-weight:800;color:#e8f0f8;font-size:14px}
+  .pick .k{color:var(--muted);font-size:11px}
+  .empty{border:1px dashed var(--line);border-radius:6px;padding:12px;color:var(--amber)}
+  .tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}
+  .tools input,.tools select{background:var(--panel2);color:var(--txt);border:1px solid var(--line);font:inherit;padding:4px 6px;border-radius:3px}
+  .tbl-wrap{max-height:62vh;overflow:auto;border:1px solid var(--line);border-radius:4px}
+  .tbl th{position:sticky;top:0;background:var(--panel);cursor:pointer}
+  tr.top td{background:#071a14}
+  .tag2{font-size:10px;border:1px solid var(--line);border-radius:3px;padding:0 4px;color:var(--muted)}
+  .tag2.ok{color:var(--green);border-color:rgba(46,230,166,.4)}.tag2.no{color:var(--amber)}
+  pre.method{white-space:pre-wrap;font-size:11px;color:var(--muted);margin:0}
+  .ok{color:var(--green)}.bad{color:var(--red)}
+  @media (max-width:1100px){.scan-grid{grid-template-columns:minmax(0,1fr)}.top5{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<header class="strip">
+  <a class="brand" href="/" title="ZILLERS"><img class="logo" src="/assets/z-emblem-large.png" alt="ZILLERS" width="34" height="26"><span class="word">ZILLERS</span><span class="sub">SCANNER</span><i id="live-dot" class="dot"></i><span id="live-label">LIVE</span></a>
+  <nav class="nav"><a href="/">DESK</a><a href="/markets">MARKETS</a><a href="/scanner" class="on">SCANNER</a><a href="/lab">LAB</a><a href="/bots">BOTS</a><a href="/system">SYSTEM</a><a href="/system#fleet" id="fleet-pill" class="fleet-pill">AUTOTRADER …</a></nav>
+  <span class="chips"></span>
+  <span class="strip-right">
+    <span class="seg" id="ccy-seg"><button data-ccy="INR">₹ INR</button><button data-ccy="USD">$ USD</button></span>
+    <span id="gov" class="gov">GOVERNOR …</span><button id="kill" class="btn kill">■ KILL SWITCH</button><button id="signin" class="btn">SIGN IN</button>
+  </span>
+</header>
+
+<main class="scan-grid">
+  <section class="panel">
+    <div class="ph"><span><i class="dot"></i> <b>TOP PERFORMERS</b> <em id="top-meta"></em></span><span id="scan-meta" class="muted"></span></div>
+    <div id="top5" class="top5"></div>
+    <div class="ph sub"><span><b>ALL BINANCE USDT PAIRS</b> <em id="all-meta"></em></span>
+      <span class="tools"><input id="q" placeholder="search symbol" spellcheck="false">
+        <select id="filter"><option value="all">all pairs</option><option value="scored">scored shortlist</option><option value="eligible">eligible only</option></select>
+        <button id="rescan" class="btn">RESCAN</button></span></div>
+    <div class="tbl-wrap"><table id="tbl" class="tbl"></table></div>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><span><i class="dot"></i> <b>AUTOPILOT</b></span><span id="ap-state" class="muted"></span></div>
+    <div class="tools">
+      <select id="ap-mode"><option value="PAPER">PAPER</option><option value="TESTNET">TESTNET</option></select>
+      <button id="ap-start" class="btn primary">SCAN &amp; TRADE TOP 5</button><button id="ap-stop" class="btn danger">STOP AUTOPILOT</button>
+    </div>
+    <p class="note muted">Scans now, starts the 10-bot fleet on the eligible top picks, rescans every 4 h and rotates only when the fleet holds no positions. Every entry still passes strategy → debate → RiskBot → execution. Admin sign-in required; refused while the kill switch is engaged. LIVE is not available.</p>
+    <p id="ap-err" class="err"></p>
+    <div id="ap-last" class="muted"></div>
+    <div class="ph sub"><span><b>METHOD</b></span></div>
+    <pre id="method" class="method"></pre>
+  </section>
+</main>
+<footer class="foot"><span class="foot-brand"><img src="/assets/z-emblem-large.png" alt="" width="18" height="14"> ZILLERS · quant trading terminal</span><span>Paper &amp; testnet · no investment advice</span></footer>
+
+<dialog id="login">
+  <form method="dialog" id="login-form">
+    <h3>Sign in</h3>
+    <label>Email <input type="email" id="email" autocomplete="username" required></label>
+    <label>Password <input type="password" id="password" autocomplete="current-password" required></label>
+    <p id="login-err" class="err"></p>
+    <div class="row"><button type="button" class="btn" id="login-cancel">Cancel</button><button class="btn primary">Sign in</button></div>
+  </form>
+</dialog>
+<script src="/scanner.js"></script>
+</body>
+</html>

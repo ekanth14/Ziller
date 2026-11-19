@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 from cryptoscope.dashboard.data import DashboardData
 from cryptoscope.dashboard.__main__ import handler_for
 from cryptoscope.execution.paper_broker import PaperBroker
-from cryptoscope.research.demo import demo_snapshot
+from cryptoscope.tests.demo_fixtures import demo_snapshot
 from cryptoscope.research.settings import load_config
 from cryptoscope.storage.research_store import ResearchStore
 
@@ -45,16 +45,15 @@ class DashboardTests(unittest.TestCase):
         with patch('cryptoscope.dashboard.data.LayaProvider.models',side_effect=ConnectionRefusedError('offline')):
             self.assertEqual(data.model_health()['status'],'unreachable')
 
-    def test_research_and_demo_are_separate_and_reads_do_not_mutate(self):
+    def test_reads_do_not_mutate_and_demo_workspace_is_rejected(self):
         real = self.make_run(self.root / "work/research-agent")
-        demo = self.make_run(self.root / "work/research-demo/session", "DEMO_FIXTURE_NOT_LAYA")
         path = self.root / "work/research-agent/research.sqlite3"
         original = path.read_bytes()
         state = self.data.overview("research")
         self.assertEqual(state["runs"][0]["run_id"], real["run_id"])
         self.assertEqual(state["portfolio"]["cash"], 10000)
-        self.assertEqual(self.data.overview("demo")["runs"][0]["run_id"], demo["run_id"])
-        self.assertIsNone(self.data.run("demo", real["run_id"]))
+        with self.assertRaises(ValueError):
+            self.data.overview("demo")
         self.assertEqual(path.read_bytes(), original)
 
     def test_validation_and_missing_runs(self):
@@ -87,14 +86,14 @@ class DashboardTests(unittest.TestCase):
         handler = self.handler("/")
         handler.do_GET()
         self.assertEqual(handler.send.call_args.args[0], 200)
-        self.assertIn(b"Research overview", handler.send.call_args.args[1])
+        self.assertIn(b"ACTION DESK", handler.send.call_args.args[1])
         body = self.make_run(self.root / "work/research-agent")
         handler = self.handler(f"/api/runs/{body['run_id']}?download=1")
         handler.do_GET()
         self.assertEqual(handler.json.call_args.args[0], 200)
         self.assertEqual(handler.json.call_args.args[2], f"zien-{body['run_id']}.json")
 
-    def test_forecast_and_strategy_artifacts_are_read_only_and_separate_from_demo(self):
+    def test_forecast_and_strategy_artifacts_are_read_only(self):
         run_id='f'*32
         for kind,body in [('forecasts',{'status':'completed','symbol':'BTCUSDT','source':'binance_spot',
             'available_at':100,'parameters':{'steps':2},'forecast':[]}),
@@ -112,11 +111,8 @@ class DashboardTests(unittest.TestCase):
             bad.do_GET()
             self.assertEqual(bad.json.call_args.args[0],400)
         real=self.data.overview('research')
-        demo=self.data.overview('demo')
         self.assertEqual(real['forecast']['run_id'],run_id)
         self.assertIsNotNone(real['strategy'])
-        self.assertIsNone(demo['forecast'])
-        self.assertIsNone(demo['strategy'])
 
     def test_strategy_links_to_matching_backtest_without_changing_the_original_draft(self):
         draft_id='a'*32

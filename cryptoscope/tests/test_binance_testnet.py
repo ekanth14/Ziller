@@ -89,7 +89,7 @@ def test_binance_testnet_client_request_construction():
 
     captured_requests = []
 
-    def mock_request(method, path, params=None, signed=False):
+    def mock_request(method, path, params=None, signed=False, critical=False):
         captured_requests.append({
             "method": method,
             "path": path,

@@ -9,7 +9,7 @@ Tests every feature and function:
 6. QuantOrb On-Chain Token Safety Audit & AMM slippage model
 7. Quantitative Alpha Strategies (Volume Breakout, Shrink Pullback, Box Oscillation)
 8. 5-Gate Pre-Trade Risk Governor with Token Safety check
-9. Static production assets integrity (index.html, app.js, style.css)
+9. Static production assets integrity (desk.html, desk.js, desk.css)
 10. CoinGecko listings filter: strictly excludes delisted/unlisted tokens (XMR, WBT, LEO) and includes real prices
 """
 import json
@@ -186,30 +186,17 @@ class TestLiveTerminalE2E(unittest.TestCase):
         self.assertTrue(any("ONCHAIN_SAFETY_FAIL" in r for r in reasons_d))
 
     def test_08_production_static_assets_integrity(self):
-        """Verify index.html and app.js have no fake PID or hardcoded mock stats."""
+        """The Action Desk ships no hardcoded market numbers; everything comes from /api/desk."""
         static_dir = Path(__file__).resolve().parents[1] / "dashboard/static"
-        index_html = (static_dir / "index.html").read_text(encoding="utf-8")
-        app_js = (static_dir / "app.js").read_text(encoding="utf-8")
-
-        # No fake hardcoded PID
-        self.assertNotIn("PID: 22240", index_html)
-        self.assertIn('id="auto-pid"', index_html)
-
-        # No fake 14.2 GB hardcoded memory pool
-        self.assertNotIn('<span class="val">14.2 GB</span>', index_html)
-
-        # No hardcoded demo sandbox option in workspace select
-        self.assertNotIn('<option value="demo">', index_html)
-
-        # Integration widgets present
-        self.assertIn('btn-run-delib', index_html)
-        self.assertIn('btn-run-token-audit', index_html)
-        self.assertIn('btn-open-mc', index_html)
-        self.assertIn('quant-desk', index_html)
-        self.assertIn('initDeliberationDesk', app_js)
-        self.assertIn('initTokenAuditTool', app_js)
-        self.assertIn('initMonteCarloModal', app_js)
-        self.assertIn('initQuantDesk', app_js)
+        desk_html = (static_dir / "desk.html").read_text(encoding="utf-8")
+        desk_js = (static_dir / "desk.js").read_text(encoding="utf-8")
+        for old in ("index.html", "app.js", "style.css"):
+            self.assertFalse((static_dir / old).exists(), f"legacy UI file {old} should be removed")
+        self.assertIn('id="lwc-chart"', desk_html)
+        self.assertIn('id="tradingview-attribution"', desk_html)
+        self.assertNotIn("<option value=\"demo\">", desk_html)
+        self.assertIn("/api/desk?symbol=", desk_js)
+        self.assertIn("No cached or synthetic data is shown", desk_js)
 
     def test_09_listings_filter_unlisted_tokens(self):
         """Verify CoinGecko listings filter strictly excludes unlisted tokens and includes real prices."""

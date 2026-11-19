@@ -201,7 +201,7 @@ def test_notifier_bot_formatting_and_offline_spool():
         await asyncio.sleep(0.05)
         assert len(delivered_messages) >= 1
         entry_alert = delivered_messages[0]
-        assert "EXECUTION ENTRY: SOLUSDT" in entry_alert
+        assert "BOT TRADE · SOLUSDT BUY" in entry_alert
         assert "$150.2000" in entry_alert
         assert "VolatilityBreakout" in entry_alert
         assert "Exchange Gated" in entry_alert
@@ -224,7 +224,7 @@ def test_notifier_bot_formatting_and_offline_spool():
 
         assert len(delivered_messages) >= 2
         exit_alert = delivered_messages[1]
-        assert "POSITION CLOSED: SOLUSDT (TAKE_PROFIT)" in exit_alert
+        assert "POSITION CLOSED · SOLUSDT (TAKE_PROFIT)" in exit_alert
         assert "+$296.00" in exit_alert
         assert "120m 0s" in exit_alert
 

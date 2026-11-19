@@ -11,6 +11,8 @@ Formulas:
 import math
 from typing import Sequence, Tuple
 import numpy as np
+
+from core.quant import native as _native
 from scipy import stats
 
 
@@ -300,6 +302,25 @@ class GaussianRegimeHMM:
         means = np.array(self.means, dtype=float)
         stds = np.array(self.stds, dtype=float)
 
+        fast = _native.hmm_em(x, means, stds, a, pi, self.max_iter, self.tol)
+        if fast is not None:
+            f_means, f_stds, f_a, f_pi = fast
+            means, stds = np.array(f_means), np.array(f_stds)
+            a, pi = np.array(f_a), np.array(f_pi)
+        else:
+            pi, a, means, stds = self._em_python(x, t, k, a, pi, means, stds)
+
+        # Re-sort states so state 0 is lower volatility
+        order = np.argsort(stds)
+        self.means = [float(means[i]) for i in order]
+        self.stds = [float(stds[i]) for i in order]
+        self.priors = [float(pi[i]) for i in order]
+        self.transition_matrix = [[float(a[i, j]) for j in order] for i in order]
+
+        return self
+
+    def _em_python(self, x, t, k, a, pi, means, stds):
+        """Pure-Python/numpy EM loop (reference implementation and fallback)."""
         # EM loop
         for _ in range(self.max_iter):
             # Compute Gaussian emission probabilities B[t, s] = N(x_t; mu_s, sigma_s)
@@ -373,15 +394,7 @@ class GaussianRegimeHMM:
 
             if mean_shift < self.tol and std_shift < self.tol:
                 break
-
-        # Re-sort states so state 0 is lower volatility
-        order = np.argsort(stds)
-        self.means = [float(means[i]) for i in order]
-        self.stds = [float(stds[i]) for i in order]
-        self.priors = [float(pi[i]) for i in order]
-        self.transition_matrix = [[float(a[i, j]) for j in order] for i in order]
-
-        return self
+        return pi, a, means, stds
 
     def predict(self, returns: Sequence[float]) -> list[int]:
         """Decode most likely sequence of hidden states using Viterbi algorithm."""
@@ -391,6 +404,10 @@ class GaussianRegimeHMM:
             return []
         if t < self.n_states:
             return [0] * t
+
+        fast_path = _native.hmm_viterbi(x, self.means, self.stds, self.transition_matrix, self.priors)
+        if fast_path is not None:
+            return fast_path
 
         k = self.n_states
         a = np.array(self.transition_matrix, dtype=float)

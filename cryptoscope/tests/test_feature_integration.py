@@ -6,7 +6,7 @@ import unittest
 from cryptoscope.dashboard.data import DashboardData
 from cryptoscope.execution.paper_broker import PaperBroker
 from cryptoscope.agents.schemas import Proposal
-from cryptoscope.research.demo import demo_snapshot, DemoProvider
+from cryptoscope.tests.demo_fixtures import demo_snapshot, DemoProvider
 from cryptoscope.research.settings import load_config
 
 
@@ -35,7 +35,7 @@ class FeatureIntegrationTests(unittest.TestCase):
         close = Proposal.parse({**proposal.to_dict(), 'action': 'CLOSE'}, snapshot.symbol)
         self.assertEqual(restarted.execute('exit', close, snapshot, quote)['status'], 'filled')
 
-    def test_backtests_and_risk_are_filtered_by_workspace(self):
+    def test_synthetic_backtests_are_excluded_from_the_dashboard(self):
         for index, source in enumerate(('binance_spot', 'synthetic_demo')):
             run_id = str(index)*32
             path = self.root/'reports/backtests'/run_id
@@ -44,7 +44,7 @@ class FeatureIntegrationTests(unittest.TestCase):
                 'created_at':index, 'risk':{'status':'completed'}, 'metrics':{}}))
         data = DashboardData(self.root, self.config)
         self.assertEqual(len(data.backtests('research')), 1)
-        self.assertEqual(data.backtests('demo')[0]['source'], 'synthetic_demo')
+        self.assertTrue(all(b['source'] != 'synthetic_demo' for b in data.backtests('research')))
         self.assertEqual(data.risk_reports('research')['status'], 'available')
         with self.assertRaises(ValueError):
             data.backtest('../../config/research')

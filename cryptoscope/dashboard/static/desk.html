@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZILLERS Action Desk</title>
+<link rel="icon" href="/assets/z-app-icon.png">
+<link rel="stylesheet" href="/desk.css">
+</head>
+<body>
+<header class="strip">
+  <a class="brand" href="/" title="ZILLERS"><img class="logo" src="/assets/z-emblem-large.png" alt="ZILLERS" width="34" height="26"><span class="word">ZILLERS</span><span class="sub">ACTION DESK</span><i id="live-dot" class="dot"></i><span id="live-label">LIVE</span></a>
+  <nav class="nav"><a href="/" class="on">DESK</a><a href="/markets">MARKETS</a><a href="/scanner">SCANNER</a><a href="/lab">LAB</a><a href="/bots">BOTS</a><a href="/system">SYSTEM</a><a href="/system#fleet" id="fleet-pill" class="fleet-pill">AUTOTRADER …</a></nav>
+  <span id="chips" class="chips"></span>
+  <span class="strip-right">
+    <input id="symbol" list="symbol-list" aria-label="Symbol" spellcheck="false" autocomplete="off" placeholder="Search any Binance pair">
+    <datalist id="symbol-list"></datalist>
+    <span id="sym-count" class="muted"></span>
+    <span class="seg" id="tz-seg" title="Time zone"><button data-tz="IST">IST</button><button data-tz="UTC">UTC</button></span>
+    <span class="seg" id="ccy-seg" title="Price currency"><button data-ccy="INR">₹ INR</button><button data-ccy="USD">$ USD</button></span>
+    <span id="fx" class="muted"></span>
+    <span id="gov" class="gov" title="Emergency governor">GOVERNOR …</span>
+    <button id="kill" class="btn kill" title="Stop trading, the fleet and every AI model">■ KILL SWITCH</button>
+    <button id="signin" class="btn">SIGN IN</button>
+  </span>
+</header>
+
+<main class="grid">
+  <!-- price chart -->
+  <section class="panel chart-panel">
+    <div class="ph"><span><b id="sym-title">BTCUSDT</b> <em id="sym-meta">1D · BINANCE SPOT · agent calls · paper fills</em></span><span class="intervals" id="intervals" role="group" aria-label="Chart interval"></span><span id="src" class="muted"></span></div>
+    <div id="ohlc" class="ohlc"></div>
+    <div id="ind" class="ind"></div>
+    <div id="lwc-chart" class="chart price"></div>
+    <div class="sub-label">VOL <span id="vol-label"></span></div>
+    <div id="vol-chart" class="chart small"></div>
+    <div class="sub-label">RSI 14 <span id="rsi-label"></span></div>
+    <div id="rsi-chart" class="chart small"></div>
+    <div class="sub-label">MACD 12 26 9 <span id="macd-label"></span></div>
+    <div id="macd-chart" class="chart small"></div>
+  </section>
+
+  <!-- agent mesh + PM -->
+  <section class="panel mesh-panel">
+    <div class="ph"><span><i class="dot"></i> <b>AGENT MESH</b> <em>rule models as roles</em></span><span class="muted">paper</span></div>
+    <div class="mesh-top"><span class="pill blue" id="mesh-source">● Binance bars</span><span class="pill" id="mesh-ind">● indicator map</span></div>
+    <div id="models" class="models"></div>
+    <div class="mesh-row">
+      <span id="bull-node" class="node bull">BULL +0.00</span>
+      <span class="wire"></span><span class="node trader">● TRADER</span><span class="wire"></span>
+      <span id="bear-node" class="node bear">BEAR 0.00</span>
+    </div>
+    <div class="mesh-row"><span id="risk-node" class="node risk">● RISK</span></div>
+    <div id="pm" class="pm"></div>
+    <div id="ai" class="ai"></div>
+    <div id="journal" class="ai"></div>
+  </section>
+
+  <!-- model votes heatmap -->
+  <section class="panel votes-panel">
+    <div class="ph"><span><i class="dot"></i> <b>MODEL VOTES</b> <em>last 90 sessions · one column per session</em></span>
+      <span class="legend"><i class="sq bull"></i>bull <i class="sq bear"></i>bear <i class="sq flat"></i>flat</span></div>
+    <div id="heat" class="heat"></div>
+  </section>
+
+  <!-- equity -->
+  <section class="panel equity-panel">
+    <div class="ph"><span><i class="dot"></i> <b>EQUITY</b> <em>agents vs buy &amp; hold</em></span><span id="eq-meta" class="muted"></span></div>
+    <div class="eq-wrap">
+      <div class="eq-stats" id="eq-stats"></div>
+      <div id="eq-chart" class="chart eq"></div>
+    </div>
+  </section>
+
+  <!-- transcript terminal -->
+  <section class="panel term-panel">
+    <div class="term-bar"><span class="lights"><i></i><i></i><i></i></span><b>action-desk</b><span class="muted" id="term-meta">agents@desk:~/action-desk</span></div>
+    <div class="term-sub"><span>agents · transcript</span><span class="muted" id="term-count"></span></div>
+    <div id="transcript" class="term"></div>
+  </section>
+
+  <!-- orders, position, scoreboard -->
+  <section class="panel book-panel">
+    <div class="ph"><span><b>1</b> orders · position</span><span class="muted" id="book-meta"></span></div>
+    <div id="position" class="position"></div>
+    <div class="tbl-wrap"><table id="trades" class="tbl"></table></div>
+    <div id="book-stats" class="book-stats"></div>
+    <div class="ph sub"><span><b>2</b> models · scoreboard</span><span class="muted">votes scored vs next 5 sessions</span></div>
+    <div class="tbl-wrap"><table id="score" class="tbl"></table></div>
+    <div id="risk-line" class="risk-line"></div>
+    <div class="ph sub"><span><b>3</b> market structure</span><span class="muted"><a href="#" id="lab-link">open in Strategy Lab →</a></span></div>
+    <div id="mstruct" class="mstruct"></div>
+  </section>
+</main>
+
+<footer class="foot"><span class="foot-brand"><img src="/assets/z-emblem-large.png" alt="" width="18" height="14"> ZILLERS · <span id="foot-left"></span></span><span>Paper only · rule-based models · no investment advice · <span id="tradingview-attribution">Charts by <a href="https://www.tradingview.com/" target="_blank" rel="noopener">TradingView Lightweight Charts</a></span></span></footer>
+
+<dialog id="login">
+  <form method="dialog" id="login-form">
+    <h3>Sign in</h3>
+    <label>Email <input type="email" id="email" autocomplete="username" required></label>
+    <label>Password <input type="password" id="password" autocomplete="current-password" required></label>
+    <p id="login-err" class="err"></p>
+    <div class="row"><button type="button" class="btn" id="login-cancel">Cancel</button><button class="btn primary" id="login-go">Sign in</button></div>
+  </form>
+</dialog>
+
+<script src="/assets/lightweight-charts.standalone.production.js"></script>
+<script src="/desk.js"></script>
+</body>
+</html>

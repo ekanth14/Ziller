@@ -12,7 +12,7 @@ from cryptoscope.backtesting.validation import bootstrap, performance
 from cryptoscope.execution.paper_broker import PaperBroker
 from cryptoscope.forecasting import snapshot_hash, validate_forecast
 from cryptoscope.providers.contracts import role_schema
-from cryptoscope.research.demo import demo_snapshot, DemoProvider
+from cryptoscope.tests.demo_fixtures import demo_snapshot, DemoProvider
 from cryptoscope.research.settings import ROOT, load_config
 from cryptoscope.storage.research_store import ResearchStore
 from cryptoscope.strategy import StrategySpec, draft
