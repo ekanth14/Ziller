@@ -87,7 +87,10 @@ let render (v : verdict) =
 let () =
   try
     while true do
-      let line = input_line stdin in
+      (* Windows callers may send CRLF; a trailing \r would break the last numeric field. *)
+      let raw = input_line stdin in
+      let n = String.length raw in
+      let line = if n > 0 && raw.[n - 1] = '\r' then String.sub raw 0 (n - 1) else raw in
       if String.trim line <> "" then begin
         let out =
           try

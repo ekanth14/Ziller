@@ -133,3 +133,20 @@ def test_randomized_equivalence():
         if not res.match:
             mismatches.append((i, res.differences))
     assert not mismatches, mismatches[:5]
+
+
+# ---------------------------------------------------------------- WSL routing (always run)
+def test_wsl_path_and_command(tmp_path, monkeypatch):
+    elf, exe = tmp_path / "gate", tmp_path / "gate.exe"
+    elf.write_bytes(b"\x7fELF" + b"\0" * 16)
+    exe.write_bytes(b"MZ" + b"\0" * 16)
+    if sg.sys.platform.startswith("win"):
+        p = sg.wsl_path(elf)
+        assert p.startswith("/mnt/") and p.endswith("/gate") and "\\" not in p
+        monkeypatch.delenv("ZILLERS_WSL_DISTRO", raising=False)
+        assert sg.gate_command(elf) == ["wsl.exe", "--exec", p]
+        monkeypatch.setenv("ZILLERS_WSL_DISTRO", "Ubuntu")
+        assert sg.gate_command(elf)[:3] == ["wsl.exe", "-d", "Ubuntu"]
+        assert sg.gate_command(exe) == [str(exe)]
+    else:
+        assert sg.gate_command(elf) == [str(elf)]

@@ -7,7 +7,10 @@ verdict so divergences between the two implementations are caught early.
 
 The binary is optional. Build it with:
     cd ocaml/risk_gate && dune build
-or point ZILLERS_RISK_GATE_BIN at a built executable.
+or, on Windows hosts where Application Control blocks native compilers, inside WSL:
+    wsl -d Ubuntu --exec sh ocaml/risk_gate/build_wsl.sh      (needs `sudo apt install ocaml`)
+or point ZILLERS_RISK_GATE_BIN at a built executable. A Linux (ELF) binary found on Windows is
+run through `wsl.exe --exec`; ZILLERS_WSL_DISTRO picks the distribution (default: WSL's default).
 """
 from __future__ import annotations
 
@@ -30,11 +33,34 @@ def find_binary() -> Optional[Path]:
     candidates = [Path(env)] if env else []
     for n in names:
         candidates.append(_ROOT / "ocaml" / "risk_gate" / "_build" / "default" / "bin" / n)
+    candidates.append(_ROOT / "ocaml" / "risk_gate" / "_build" / "wsl" / "zillers-risk-gate")
     for c in candidates:
         if c.is_file():
             return c
     found = shutil.which("zillers-risk-gate")
     return Path(found) if found else None
+
+
+def _is_elf(path: Path) -> bool:
+    try:
+        with open(path, "rb") as fh:
+            return fh.read(4) == b"\x7fELF"
+    except OSError:
+        return False
+
+
+def wsl_path(path: Path) -> str:
+    r"""C:\Users\x y\f -> /mnt/c/Users/x y/f (WSL's default automount)."""
+    p = Path(path).resolve()
+    return f"/mnt/{p.drive.rstrip(':').lower()}/" + "/".join(p.parts[1:])
+
+
+def gate_command(binary: Path) -> List[str]:
+    """argv that runs the gate. A Linux binary on Windows runs via WSL with --exec (no shell, so no quoting)."""
+    if sys.platform.startswith("win") and _is_elf(binary):
+        distro = os.environ.get("ZILLERS_WSL_DISTRO")
+        return ["wsl.exe", *(["-d", distro] if distro else []), "--exec", wsl_path(binary)]
+    return [str(binary)]
 
 
 def _num(x: float) -> str:
@@ -116,16 +142,19 @@ def parse_output(line: str) -> GateVerdict:
     return GateVerdict(parts[0] == "ALLOW", codes, kv.get("halted") == "1", float(kv["peak"]))
 
 
-def run_gate(lines: List[str], binary: Optional[Path] = None, timeout: float = 10.0) -> List[GateVerdict]:
+def run_gate(lines: List[str], binary: Optional[Path] = None, timeout: float = 30.0) -> List[GateVerdict]:
     binary = binary or find_binary()
     if binary is None:
         raise FileNotFoundError("OCaml risk gate binary not found (see module docstring)")
+    # Bytes, not text mode: on Windows text mode turns "\n" into "\r\n" on the way in.
     proc = subprocess.run(
-        [str(binary)], input="\n".join(lines) + "\n", capture_output=True, text=True, timeout=timeout, check=False
+        gate_command(binary), input=("\n".join(lines) + "\n").encode("utf-8"), capture_output=True,
+        timeout=timeout, check=False,
     )
-    out = [parse_output(x) for x in proc.stdout.splitlines() if x.strip()]
+    stdout, stderr = proc.stdout.decode("utf-8", "replace"), proc.stderr.decode("utf-8", "replace")
+    out = [parse_output(x) for x in stdout.splitlines() if x.strip()]
     if len(out) != len(lines):
-        raise RuntimeError(f"gate returned {len(out)} lines for {len(lines)} requests: {proc.stderr[:200]}")
+        raise RuntimeError(f"gate returned {len(out)} lines for {len(lines)} requests: {stderr[:200]}")
     return out
 
 
