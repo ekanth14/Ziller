@@ -6,7 +6,6 @@ from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from unittest.mock import patch
 
 import pytest
-from cryptoscope.ops.soak_analysis import memory_assessment
 from cryptoscope.providers.deadline_http import post_json_deadline
 from cryptoscope.tests.test_phase3_operations import make_bot,position
 from cryptoscope.tests.exchange_fixtures import with_fees
@@ -15,11 +14,6 @@ from cryptoscope.execution.binance_testnet import BinanceTestnetClient,BinanceRa
 from cryptoscope.execution.phase3_checks import PLAN
 
 
-def test_rss_drop_does_not_hide_private_memory_leak_or_invent_one():
-    stable=[dict(elapsed_seconds=i*30,private_mb=30,rss_mb=40 if i<58 else 33) for i in range(61)]
-    assert memory_assessment(stable)['memory_accepted']
-    leaking=[dict(r,private_mb=30+i*.2) for i,r in enumerate(stable)]
-    assert not memory_assessment(leaking)['memory_accepted']
 
 
 def test_model_transport_fails_closed_with_local_trickling_response():

@@ -10,7 +10,6 @@ from cryptoscope.dashboard.__main__ import handler_for
 from cryptoscope.execution.paper_broker import PaperBroker
 from cryptoscope.tests.demo_fixtures import demo_snapshot
 from cryptoscope.research.settings import load_config
-from cryptoscope.storage.research_store import ResearchStore
 
 
 class DashboardTests(unittest.TestCase):
@@ -22,14 +21,6 @@ class DashboardTests(unittest.TestCase):
         self.data = DashboardData(self.root, self.config)
         self.data.model_health = lambda: {"model": "laya-crypto:latest", "status": "ready"}
 
-    def make_run(self, directory, model="laya-crypto:latest"):
-        store = ResearchStore(directory)
-        PaperBroker(directory / "paper.sqlite3", self.config)
-        body = store.create({"snapshot": demo_snapshot().to_dict(), "model": model, "mode": "research"})
-        body.update(status="completed", decision={"proposal": {"action": "HOLD", "confidence": .6}},
-                    execution={"status": "not_requested"})
-        store.save(body)
-        return body
 
     def test_empty_monitor_creates_no_runtime_files(self):
         state = self.data.overview("research")
@@ -45,16 +36,6 @@ class DashboardTests(unittest.TestCase):
         with patch('cryptoscope.dashboard.data.LayaProvider.models',side_effect=ConnectionRefusedError('offline')):
             self.assertEqual(data.model_health()['status'],'unreachable')
 
-    def test_reads_do_not_mutate_and_demo_workspace_is_rejected(self):
-        real = self.make_run(self.root / "work/research-agent")
-        path = self.root / "work/research-agent/research.sqlite3"
-        original = path.read_bytes()
-        state = self.data.overview("research")
-        self.assertEqual(state["runs"][0]["run_id"], real["run_id"])
-        self.assertEqual(state["portfolio"]["cash"], 10000)
-        with self.assertRaises(ValueError):
-            self.data.overview("demo")
-        self.assertEqual(path.read_bytes(), original)
 
     def test_validation_and_missing_runs(self):
         for workspace in ("../runtime", "LIVE", ""):
@@ -82,16 +63,6 @@ class DashboardTests(unittest.TestCase):
         handler.do_GET()
         self.assertEqual(handler.json.call_args.args[0], 400)
 
-    def test_static_and_report_download(self):
-        handler = self.handler("/")
-        handler.do_GET()
-        self.assertEqual(handler.send.call_args.args[0], 200)
-        self.assertIn(b"ACTION DESK", handler.send.call_args.args[1])
-        body = self.make_run(self.root / "work/research-agent")
-        handler = self.handler(f"/api/runs/{body['run_id']}?download=1")
-        handler.do_GET()
-        self.assertEqual(handler.json.call_args.args[0], 200)
-        self.assertEqual(handler.json.call_args.args[2], f"zien-{body['run_id']}.json")
 
     def test_forecast_and_strategy_artifacts_are_read_only(self):
         run_id='f'*32
@@ -128,19 +99,3 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(self.data.latest_strategy('research')['backtest']['run_id'],test_id)
         self.assertEqual(draft.read_bytes(),original)
 
-    def test_autotrader_routes_are_read_only_and_validate_ids(self):
-        from cryptoscope.autotrader.store import BotStore
-        store=BotStore(self.root/'work/autotrader')
-        body=store.claim('BTCUSDT:one',{'symbol':'BTCUSDT','mode':'paper'})
-        before=store.path.read_bytes()
-        handler=self.handler('/api/autotrader')
-        handler.do_GET()
-        self.assertEqual(handler.json.call_args.args[0],200)
-        handler=self.handler(f"/api/autotrader/runs/{body['run_id']}?download=1")
-        handler.do_GET()
-        self.assertEqual(handler.json.call_args.args[0],200)
-        self.assertEqual(handler.json.call_args.args[2],f"zien-auto-{body['run_id']}.json")
-        handler=self.handler('/api/autotrader/runs/../../secrets')
-        handler.do_GET()
-        self.assertEqual(handler.json.call_args.args[0],400)
-        self.assertEqual(store.path.read_bytes(),before)

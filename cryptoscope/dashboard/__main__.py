@@ -916,14 +916,6 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     return self.json(200, res)
                 if url.path == '/api/features':
                     return self.json(200, data.feature_catalog())
-                if url.path == '/api/autotrader':
-                    return self.json(200, data.autotrader())
-                if url.path.startswith('/api/autotrader/runs/'):
-                    run_id = url.path.removeprefix('/api/autotrader/runs/')
-                    report = data.autotrader_run(run_id)
-                    if report is None:
-                        return self.json(404, {'error': 'Autonomous decision not found'})
-                    return self.json(200, report, f'zien-auto-{run_id}.json' if 'download' in query else None)
                 for kind in ('forecasts', 'strategies'):
                     if url.path.startswith(f'/api/{kind}/'):
                         run_id = url.path.removeprefix(f'/api/{kind}/')

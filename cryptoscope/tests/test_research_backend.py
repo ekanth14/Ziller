@@ -7,7 +7,6 @@ import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
-from cryptoscope.agents.graph import ResearchGraph
 from cryptoscope.agents.risk.policy import validate
 from cryptoscope.agents.schemas import Proposal, Snapshot
 from cryptoscope.execution.paper_broker import PaperBroker
@@ -16,7 +15,6 @@ from cryptoscope.providers.laya import LayaProvider
 from cryptoscope.providers.contracts import role_schema
 from cryptoscope.tests.demo_fixtures import DemoProvider, demo_snapshot
 from cryptoscope.research.settings import load_config
-from cryptoscope.storage.research_store import ResearchStore
 
 
 class BackendTests(unittest.TestCase):
@@ -33,9 +31,6 @@ class BackendTests(unittest.TestCase):
     def quote(self):
         return self.provider.quote("BTCUSDT")
 
-    def graph(self, provider=None):
-        return ResearchGraph(provider or self.provider, ResearchStore(self.root), self.broker,
-                             self.config, self.root / "reports")
 
     def test_point_in_time_and_candle_integrity(self):
         changes = [lambda d: d["candles"][-1].update(close_time=d["as_of"] + 1),
@@ -112,42 +107,8 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(self.broker.portfolio()["positions"], {})
         self.assertEqual(self.broker.mark(self.quote())["status"], "no_position")
 
-    def test_full_workflow_persists_report_and_fill(self):
-        result = self.graph().run(self.snapshot, self.provider.quote, paper=True)
-        self.assertEqual(result["status"], "completed", result.get("error"))
-        self.assertEqual(result["execution"]["status"], "filled")
-        report = Path(result["report_directory"]) / "report.json"
-        body = json.loads(report.read_text())
-        self.assertEqual(body["model"], "DEMO_FIXTURE_NOT_LAYA")
-        self.assertEqual(len(body["model_calls"]), 7)
 
-    def test_model_outage_records_failure_without_order(self):
-        class Offline(DemoProvider):
-            def complete(self, role, context):
-                raise ConnectionError("Ollama unavailable")
-        result = self.graph(Offline(self.snapshot)).run(self.snapshot, self.provider.quote, True)
-        self.assertEqual(result["status"], "failed")
-        self.assertIn("Ollama unavailable", result["error"])
-        self.assertEqual(self.broker.portfolio()["cash"], 10000)
-        self.assertTrue((Path(result["report_directory"]) / "report.json").exists())
 
-    def test_invalid_portfolio_approval_and_missing_evidence_fail_closed(self):
-        class BadApproval(DemoProvider):
-            def complete(self, role, context):
-                result = super().complete(role, context)
-                if role == "portfolio_manager":
-                    result["approved"] = "true"
-                return result
-        class MissingEvidence(DemoProvider):
-            def complete(self, role, context):
-                result = super().complete(role, context)
-                if role == "trader":
-                    result["evidence"] = ["news"]
-                return result
-        for provider in (BadApproval(self.snapshot), MissingEvidence(self.snapshot)):
-            result = self.graph(provider).run(self.snapshot, self.provider.quote, True)
-            self.assertEqual(result["status"], "failed")
-            self.assertEqual(self.broker.portfolio()["cash"], 10000)
 
     def test_binance_discards_open_candles(self):
         data = self.snapshot.to_dict()

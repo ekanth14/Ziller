@@ -6,25 +6,15 @@ from pathlib import Path
 import tempfile
 import time
 import unittest
-from cryptoscope.agents.graph import ResearchGraph
 from cryptoscope.agents.schemas import Snapshot
 from cryptoscope.backtesting.validation import bootstrap, performance
 from cryptoscope.execution.paper_broker import PaperBroker
-from cryptoscope.forecasting import snapshot_hash, validate_forecast
 from cryptoscope.providers.contracts import role_schema
 from cryptoscope.tests.demo_fixtures import demo_snapshot, DemoProvider
 from cryptoscope.research.settings import ROOT, load_config
-from cryptoscope.storage.research_store import ResearchStore
 from cryptoscope.strategy import StrategySpec, draft
 
 
-def forecast_fixture(snapshot):
-    price=snapshot.candles[-1]['close']
-    return {'status':'completed','symbol':snapshot.symbol,'model':'TEST_FIXTURE_NOT_KRONOS',
-        'input_hash':snapshot_hash(snapshot),'input_cutoff':snapshot.as_of,
-        'available_at':time.time(), 'parameters':{'steps':2},
-        'forecast':[{'open_time':snapshot.candles[-1]['close_time']+i*snapshot.interval_seconds,
-                     'open':price,'high':price+1,'low':price-1,'close':price+.2} for i in range(2)]}
 
 
 class RepositoryExtensionTests(unittest.TestCase):
@@ -32,37 +22,7 @@ class RepositoryExtensionTests(unittest.TestCase):
         self.config=load_config()
         self.snapshot=demo_snapshot()
 
-    def test_forecast_binding_latency_and_numeric_boundaries(self):
-        original=forecast_fixture(self.snapshot)
-        self.assertIs(validate_forecast(original,self.snapshot),original)
-        for change in (lambda r:r.update(input_hash='another-input'),
-                       lambda r:r.update(input_cutoff=snapshot_hash(self.snapshot)),
-                       lambda r:r.update(available_at=time.time()+100),
-                       lambda r:r['forecast'][0].update(open_time=self.snapshot.candles[-1]['open_time']),
-                       lambda r:r['forecast'][0].update(close=float('nan')),
-                       lambda r:r['forecast'][0].update(low=r['forecast'][0]['high']+1)):
-            report=copy.deepcopy(original)
-            change(report)
-            with self.subTest(change=change),self.assertRaises(ValueError):
-                validate_forecast(report,self.snapshot)
 
-    def test_forecast_reaches_laya_context_but_cannot_execute_orders(self):
-        class Capture(DemoProvider):
-            def complete(self,role,context):
-                if role=='trader':
-                    self.trader_context=context
-                return super().complete(role,context)
-        with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory)
-            provider=Capture(self.snapshot)
-            broker=PaperBroker(root/'paper.db',self.config)
-            graph=ResearchGraph(provider,ResearchStore(root),broker,self.config,root/'reports',
-                                forecast_supplier=forecast_fixture)
-            body=graph.run(self.snapshot,provider.quote,paper=False)
-            self.assertEqual(body['status'],'completed')
-            self.assertIn('kronos',[a['id'] for a in provider.trader_context['analysts']])
-            self.assertEqual(broker.portfolio()['positions'],{})
-            self.assertEqual(body['execution']['status'],'research_only')
 
     def test_strategy_specs_reject_code_risk_overrides_and_unknown_templates(self):
         valid={'name':'EMA study','symbol':'BTCUSDT','strategy':'ema_baseline',

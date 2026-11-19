@@ -129,7 +129,6 @@ class DashboardData:
         except Exception:
             pass
         return {"workspace": workspace, "server_time": time.time(), "model": self.model_health(),
-                'autotrader':self.autotrader() if workspace=='research' else None,
                 'forecast': self.latest_forecast(workspace, bodies), 'strategy': self.latest_strategy(workspace),
                 "backtests": self.backtests(workspace), "risk_reports": self.risk_reports(workspace),
                 "portfolio": portfolio, "controls": controls, "fills": fills, "runs": [self.summary(b) for b in bodies],
@@ -168,29 +167,6 @@ class DashboardData:
     def feature_catalog(self):
         path = self.root/'config/features.json'
         return json.loads(path.read_text(encoding='utf-8')) if path.exists() else {'features': [], 'repositories': []}
-
-    def autotrader(self):
-        path=self.root/'work/autotrader/autotrader.sqlite3'
-        if not path.is_file():
-            return {'available':False,'runtime':{'state':'not_started'},'decisions':[],'fills':[]}
-        rows=self.query(path,'SELECT body FROM runtime WHERE id=1')
-        runtime=json.loads(rows[0][0]) if rows else {'state':'stopped'}
-        if runtime.get('state') in {'running','stopping'} and time.time()-runtime.get('heartbeat_at',0)>90:
-            runtime={**runtime,'state':'heartbeat_overdue'}
-        decisions=[]
-        for row in self.query(path,'SELECT body FROM decisions ORDER BY created DESC LIMIT 12'):
-            body=json.loads(row[0])
-            decisions.append({k:body.get(k) for k in ('run_id','created_at','finished_at','symbol','status',
-                'decision','decision_source','execution','latency_seconds','error')})
-        fills=[json.loads(row[0]) for row in self.query(self.root/'work/autotrader/paper.sqlite3',
-               'SELECT body FROM fills ORDER BY rowid DESC LIMIT 12')]
-        return {'available':True,'runtime':runtime,'decisions':decisions,'fills':fills}
-
-    def autotrader_run(self,run_id):
-        if not re.fullmatch(r'[a-f0-9]{32}',run_id):
-            raise ValueError('Invalid autonomous decision ID')
-        rows=self.query(self.root/'work/autotrader/autotrader.sqlite3','SELECT body FROM decisions WHERE id=?',(run_id,))
-        return json.loads(rows[0][0]) if rows else None
 
     def artifact(self, kind, run_id):
         if kind not in {'forecasts','strategies'} or not re.fullmatch(r'[a-f0-9]{32}',run_id):
