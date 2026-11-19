@@ -128,8 +128,32 @@ def test_strategy_bot_drops_spot_shorts_and_repeated_proposals():
 def test_debate_model_prefers_configured_then_installed(monkeypatch):
     from cryptoscope.agents import consensus
 
-    monkeypatch.setenv("OLLAMA_DEBATE_MODEL", "my-model")
-    assert consensus.resolve_debate_model() == "my-model"
+    import io
+    import json
+
+    tags = {"models": [{"name": "laya-quant:latest", "details": {"family": "gemma4"}},
+                       {"name": "gemma4-quant:12b", "details": {"family": "gemma4"}},
+                       {"name": "laya:latest", "details": {"family": "modern-bert"}}]}
+
+    class _Resp(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+    monkeypatch.setattr("urllib.request.urlopen", lambda *a, **k: _Resp(json.dumps(tags).encode()))
+    monkeypatch.setattr(consensus, "_RESOLVED_MODEL", None)
+    monkeypatch.setenv("OLLAMA_DEBATE_MODEL", "laya-quant:latest")      # configured + installed: honoured
+    assert consensus.resolve_debate_model() == "laya-quant:latest"
+    monkeypatch.setenv("OLLAMA_DEBATE_MODEL", "my-model")               # configured but not installed: replaced
+    assert consensus.resolve_debate_model() == "laya-quant:latest"
     monkeypatch.delenv("OLLAMA_DEBATE_MODEL")
-    monkeypatch.setenv("OLLAMA_MODEL", "gemma4-quant:12b")
+    monkeypatch.setenv("OLLAMA_MODEL", "gemma4:12b")                    # the .env value on this machine
     assert consensus.resolve_debate_model() == "gemma4-quant:12b"
+
+    def down(*a, **k):
+        raise OSError("ollama down")
+    monkeypatch.setattr("urllib.request.urlopen", down)
+    monkeypatch.setattr(consensus, "_RESOLVED_MODEL", None)
+    monkeypatch.setenv("OLLAMA_MODEL", "my-model")                      # cannot verify: keep it, call fails closed
+    assert consensus.resolve_debate_model() == "my-model"

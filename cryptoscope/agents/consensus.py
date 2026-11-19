@@ -14,33 +14,56 @@ from cryptoscope.providers.deadline_http import post_json_deadline
 _RESOLVED_MODEL = None
 
 
-def resolve_debate_model():
-    """OLLAMA_DEBATE_MODEL > OLLAMA_MODEL > first installed gemma chat model > gemma4:12b.
+def pick_debate_model(requested, installed_chat):
+    """Choose the debate model from what Ollama actually has installed.
 
-    The old hard default (gemma4:12b) is not installed on this machine, which made every debate
-    fail with HTTP 404 and every trade get vetoed.
+    1. the requested model (OLLAMA_DEBATE_MODEL or OLLAMA_MODEL) if it is installed;
+    2. otherwise an installed model of the same base name (gemma4:12b -> gemma4-quant:12b);
+    3. otherwise the first installed 'quant' chat model, then any installed chat model;
+    4. the requested name (or gemma4:12b) when nothing is installed, so the call fails closed.
+
+    .env asked for gemma4:12b, which is not installed here: every debate got HTTP 404 and every
+    trade was vetoed. Using an installed model instead is safe because the debate still fails
+    closed on any error and only ever vetoes or approves a trade the risk gates already allow.
     """
+    requested = (requested or "").strip()
+    names = list(installed_chat)
+    if requested and requested in names:
+        return requested
+    if requested:
+        base = requested.split(":", 1)[0].lower()
+        same = [n for n in names if n.lower().startswith(base)]
+        if same:
+            return sorted(same, key=lambda n: ("quant" not in n, n))[0]
+    preferred = [n for n in names if "quant" in n] + names
+    if preferred:
+        return preferred[0]
+    return requested or "gemma4:12b"
+
+
+def resolve_debate_model():
+    """OLLAMA_DEBATE_MODEL > OLLAMA_MODEL > installed gemma chat model, always checked against Ollama."""
     global _RESOLVED_MODEL
-    import os, json, urllib.request
-    explicit = (os.environ.get("OLLAMA_DEBATE_MODEL") or os.environ.get("OLLAMA_MODEL") or "").strip()
-    if explicit:
-        return explicit
-    if _RESOLVED_MODEL:
-        return _RESOLVED_MODEL
+    import os, json, logging, urllib.request
+    requested = (os.environ.get("OLLAMA_DEBATE_MODEL") or os.environ.get("OLLAMA_MODEL") or "").strip()
+    if _RESOLVED_MODEL and _RESOLVED_MODEL[0] == requested:
+        return _RESOLVED_MODEL[1]
     host = (os.environ.get("OLLAMA_HOST") or "http://127.0.0.1:11434").strip().rstrip("/")
     if not host.startswith(("http://", "https://")):
         host = "http://" + host
     try:
         with urllib.request.urlopen(host + "/api/tags", timeout=3) as resp:
             tags = json.loads(resp.read()).get("models", [])
-        chat = [m["name"] for m in tags if "gemma" in str(m.get("details", {}).get("family", "")).lower()]
-        preferred = [n for n in chat if "quant" in n] + chat
-        if preferred:
-            _RESOLVED_MODEL = preferred[0]
-            return _RESOLVED_MODEL
     except Exception:
-        pass
-    return "gemma4:12b"
+        return requested or "gemma4:12b"   # Ollama down: nothing to verify against; the call fails closed
+    chat = [m["name"] for m in tags if "gemma" in str(m.get("details", {}).get("family", "")).lower()]
+    chosen = pick_debate_model(requested, chat)
+    if requested and chosen != requested:
+        logging.getLogger("cryptoscope.agents.consensus").warning(
+            "Debate model %s is not installed in Ollama; using %s instead.", requested, chosen)
+    if chosen in chat:
+        _RESOLVED_MODEL = (requested, chosen)
+    return chosen
 
 
 class DeliberationConsensusEngine:

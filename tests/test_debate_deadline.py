@@ -63,3 +63,13 @@ def test_debate_skips_instead_of_queueing_while_busy():
     assert by_id["i2"].verdict == "REJECT" and "DEBATE_BUSY" in by_id["i2"].risk_summary
     assert by_id["i1"].verdict == "APPROVE"
     assert bot.skipped_busy_count == 1 and bot.get_health_details()["skipped_busy"] == 1
+
+
+def test_debate_model_falls_back_to_an_installed_model():
+    from cryptoscope.agents.consensus import pick_debate_model
+    installed = ["laya-crypto:latest", "laya-quant:latest", "gemma4-quant:12b"]
+    assert pick_debate_model("gemma4-quant:12b", installed) == "gemma4-quant:12b"      # installed: honoured
+    assert pick_debate_model("gemma4:12b", installed) == "gemma4-quant:12b"            # missing: same base model
+    assert pick_debate_model("llama3:8b", installed) == "laya-quant:latest"            # unrelated: first quant model
+    assert pick_debate_model("", installed) == "laya-quant:latest"
+    assert pick_debate_model("gemma4:12b", []) == "gemma4:12b"                          # nothing installed: fail closed
