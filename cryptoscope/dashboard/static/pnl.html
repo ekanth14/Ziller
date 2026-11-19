@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZILLERS P&amp;L</title>
+<link rel="icon" href="/assets/z-app-icon.png">
+<link rel="stylesheet" href="/desk.css">
+<style>
+  .pnl{display:grid;gap:14px;padding:16px 18px;grid-template-columns:repeat(12,minmax(0,1fr))}
+  .pnl>.panel{grid-column:span 6}
+  .pnl>.span12{grid-column:1/-1}.pnl>.span8{grid-column:span 8}.pnl>.span4{grid-column:span 4}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+  .kpi{border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 12px;background:var(--panel2)}
+  .kpi .k{color:var(--muted);font-size:10px;letter-spacing:.08em}
+  .kpi{min-width:0}
+  .kpi .v{font:800 clamp(15px,1.45vw,21px)/1.25 var(--mono);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .kpi .s{color:var(--muted);font-size:11px;font-family:var(--mono)}
+  .kpi.hero{background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(20,21,25,.6))}
+  .kpi.hero .v{font-size:clamp(18px,1.9vw,28px)}
+  .periods{display:flex;flex-wrap:wrap;gap:8px}
+  .periods div{flex:1 1 110px;border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px 10px}
+  .periods span{display:block;color:var(--muted);font-size:10px;letter-spacing:.08em}
+  .periods b{font:700 16px var(--mono)}
+  #eq,#daily{height:240px}
+  .funnel{display:grid;gap:6px}
+  .frow{display:grid;grid-template-columns:130px minmax(0,1fr) 60px;gap:8px;align-items:center;font-size:12px}
+  .frow .track{height:10px;border-radius:999px;background:rgba(220,225,235,.07);overflow:hidden}
+  .frow .fill{height:100%;border-radius:999px;background:var(--chrome)}
+  .frow .n{text-align:right;font-family:var(--mono)}
+  .empty{color:var(--muted);padding:14px 0;text-align:center}
+  .note{color:var(--muted);font-size:11px}
+  .statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px 14px;font-size:12px}
+  .statgrid span{display:block;color:var(--muted);font-size:10px;letter-spacing:.06em}
+  .statgrid b{font-family:var(--mono)}
+  @media (max-width:1100px){.pnl>.panel,.pnl>.span8,.pnl>.span4{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<header class="strip">
+  <a class="brand" href="/" title="ZILLERS"><img class="logo" src="/assets/z-emblem-large.png" alt="ZILLERS" width="34" height="26"><span class="word">ZILLERS</span><span class="sub">P&amp;L</span><i id="live-dot" class="dot"></i><span id="live-label">LIVE</span></a>
+  <nav class="nav"><a href="/">DESK</a><a href="/markets">MARKETS</a><a href="/scanner">SCANNER</a><a href="/lab">LAB</a><a href="/bots">BOTS</a><a href="/pnl" class="on">P&amp;L</a><a href="/system">SYSTEM</a></nav>
+  <span class="chips"></span>
+  <span class="strip-right">
+    <span class="seg" id="tz-seg" title="Time zone"><button data-tz="IST">IST</button><button data-tz="UTC">UTC</button></span>
+    <span class="seg" id="ccy-seg" title="Currency"><button data-ccy="INR">₹ INR</button><button data-ccy="USD">$ USD</button></span>
+    <span id="fx" class="muted"></span>
+    <span id="fleet" class="gov">FLEET …</span>
+    <span id="updated" class="muted"></span>
+  </span>
+</header>
+<main class="pnl">
+  <section class="panel span12">
+    <div class="ph"><span><i class="dot"></i> <b>PROFIT &amp; LOSS</b> <em>autotrader fleet + paper bots · paper / testnet money only</em></span><span id="halt" class="muted"></span></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="ph sub"><span><b>BY PERIOD</b> <em>closed fleet trades</em></span></div>
+    <div class="periods" id="periods"></div>
+  </section>
+
+  <section class="panel span8">
+    <div class="ph"><span><b>EQUITY CURVE</b> <em id="eq-meta">starting NAV + realised P&amp;L</em></span></div>
+    <div id="eq"></div><p class="empty" id="eq-empty" hidden>No closed fleet trades yet — the curve starts with the first exit.</p>
+  </section>
+  <section class="panel span4">
+    <div class="ph"><span><b>TRADE STATS</b></span></div>
+    <div class="statgrid" id="stats"></div>
+    <div class="ph sub"><span><b>DAILY P&amp;L</b></span></div>
+    <div id="daily"></div><p class="empty" id="daily-empty" hidden>No closed trades.</p>
+  </section>
+
+  <section class="panel span12">
+    <div class="ph"><span><b>OPEN POSITIONS</b> <em>marked to live Binance price</em></span></div>
+    <div class="tbl-wrap"><table class="tbl" id="open"></table></div>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><span><b>P&amp;L BY COIN</b></span></div>
+    <div class="tbl-wrap"><table class="tbl" id="bysym"></table></div>
+    <div class="ph sub"><span><b>BY EXIT REASON</b></span></div>
+    <div class="tbl-wrap"><table class="tbl" id="byreason"></table></div>
+  </section>
+  <section class="panel">
+    <div class="ph"><span><b>PAPER BOTS</b> <em>grid / DCA</em></span><a href="/bots" class="muted">manage →</a></div>
+    <div class="tbl-wrap"><table class="tbl" id="bots"></table></div>
+  </section>
+
+  <section class="panel span12">
+    <div class="ph"><span><b>RECENT CLOSED TRADES</b></span></div>
+    <div class="tbl-wrap"><table class="tbl" id="trades"></table></div>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><span><b>DECISION FUNNEL</b> <em>how many ideas survive each gate</em></span><span id="last-sig" class="muted"></span></div>
+    <div class="funnel" id="funnel"></div>
+  </section>
+  <section class="panel">
+    <div class="ph"><span><b>WHY TRADES WERE BLOCKED</b> <em>top risk vetoes</em></span></div>
+    <div class="tbl-wrap"><table class="tbl" id="vetoes"></table></div>
+    <div class="ph sub"><span><b>RECENT FILLS</b></span></div>
+    <div class="tbl-wrap"><table class="tbl" id="fills"></table></div>
+  </section>
+</main>
+<footer class="foot"><span class="foot-brand"><img src="/assets/z-emblem-large.png" alt="" width="18" height="14"> ZILLERS · quant trading terminal</span><span>Paper &amp; testnet P&amp;L · refreshes every 15 s · no investment advice</span></footer>
+<script src="/assets/lightweight-charts.standalone.production.js"></script>
+<script src="/pnl.js"></script>
+</body>
+</html>

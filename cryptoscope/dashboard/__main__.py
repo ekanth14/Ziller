@@ -304,6 +304,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 "/bots.js": ("bots.js", "text/javascript"),
                 "/lab": ("lab.html", "text/html"),
                 "/lab.js": ("lab.js", "text/javascript"),
+                "/pnl": ("pnl.html", "text/html"),
+                "/pnl.js": ("pnl.js", "text/javascript"),
             }
             if url.path in assets:
                 name, kind = assets[url.path]
@@ -388,6 +390,20 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
             if url.path == "/api/protections":
                 from cryptoscope.execution.protections import read_status
                 return self.json(200, read_status(str(ROOT / "work" / "runtime" / "protections.json")))
+            if url.path == "/api/pnl":
+                from cryptoscope.desk.pnl import build_pnl
+                marks = {}
+
+                def _mark(sym):
+                    if sym not in marks:
+                        marks[sym] = _last_price(sym)
+                    return marks[sym]
+                try:
+                    bots_now = paper_bots.list()
+                except Exception:
+                    bots_now = []
+                return self.json(200, {**build_pnl(ROOT / "work" / "runtime", bots_now, _mark),
+                                       "halted": kill_switch.halted, "fleet": fleet.status()})
             if url.path == "/api/bots":
                 return self.json(200, {"bots": paper_bots.list(), "halted": kill_switch.halted})
             if url.path.startswith("/api/bots/") and url.path.count("/") == 3:
