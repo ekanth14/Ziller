@@ -263,3 +263,9 @@ img,canvas,svg{max-width:100%}
 }
 .chip,.gov,.btn,.seg button,#sym-count,#fx,.brand>*{white-space:nowrap;flex:none}
 .chips{flex:1 1 0}
+/* model-score chips: their own full-width row so none is ever cut off */
+.chips{display:flex;order:10;flex:1 1 100%;flex-wrap:wrap;gap:6px;overflow:visible}
+.chips:empty{display:none}
+@media (max-width:1400px){.chips{display:flex}}
+@media (max-width:600px){.chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}}
+@media (max-width:900px){.strip{position:static}}
