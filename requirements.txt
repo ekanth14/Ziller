@@ -16,6 +16,9 @@ scipy==1.18.1; python_version >= "3.12"
 scipy==1.17.1; python_version < "3.12"
 statsmodels==0.15.0
 
+# Indicator catalog for the Strategy Lab (pure Python; pulls numpy>=2 and pandas>=2)
+pandas-ta-classic==0.9.0
+
 # End-to-End Browser Driving & Automated QA (Chromium)
 playwright==1.64.1
 

@@ -1,4 +1,4 @@
-"""Strategy Lab (13 strategies, shared backtest) and market-structure maths. Offline."""
+"""Strategy Lab (classic + research candidates, shared backtest) and market-structure maths. Offline."""
 import math
 
 import pytest
@@ -28,7 +28,7 @@ def test_every_strategy_runs_and_is_causal():
 
 def test_lab_reports_metrics_for_all_and_buy_hold():
     r = run_lab(_candles(), "1d", 10)
-    assert r["status"] == "OK" and len([x for x in r["results"] if "error" not in x]) == 13
+    assert r["status"] == "OK" and len([x for x in r["results"] if "error" not in x]) == len(STRATEGIES)
     for x in r["results"]:
         assert {"total_return", "sharpe", "max_drawdown", "trades", "p_value", "out_of_sample_return"} <= set(x)
         assert x["max_drawdown"] <= 0

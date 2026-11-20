@@ -191,7 +191,11 @@ Order-flow inputs are passed neutral on daily bars rather than invented.
    * Risk-adjusted momentum `M = (0.4·r7 + 0.6·r30) / vol30`
    * Trend = `close > SMA20 and SMA10 > SMA30`; RSI14; ATR14%; drawdown from 90-day high
 5. **Eligibility:** trend true, 45 ≤ RSI14 ≤ 78, drawdown ≥ −25%, `vol30 ≥ 10%`.
-6. **Score:** `0.45·z(M) + 0.25·z(r7) + 0.20·z(ln quote volume) − 0.10·z(ATR%)`
+6. **Score:** `0.45·z(M) + 0.25·z(r7) + 0.20·z(ln quote volume) − 0.10·z(ATR%) + W_MOM·z(r21) + W_SIZE·z(−ln quote volume)`
+   * **Liu–Tsyvinski–Wu factors** are shown as columns on the Scanner page. Each is a cross-sectional percentile rank (0 = weakest, 1 = strongest):
+     * `mom_rank` ranks the 3-week return `r21` (CMOM factor).
+     * `size_rank` ranks `−ln(24h quote volume)` (CSMB factor). Binance gives no market cap, so traded value stands in for size, and smaller coins rank higher.
+   * `FACTOR_WEIGHTS` sets **W_MOM = W_SIZE = 0**, so the ranking is unchanged until the Strategy Lab validates these factors (§6.6). A test pins both weights at 0.
 7. **Pick:** top 5 eligible. If none qualify (e.g. a broad bear market) the autopilot deliberately does not trade.
 
 The Autopilot feeds the picks to the fleet; each entry must still pass the full pipeline in §2.1.
@@ -235,7 +239,7 @@ horizon = 48 bars
 | **Volatility Compression Breakout** (波动率压缩突破) | Compression < 0.70, close beyond consolidation bounds, volume and CVD confirm | stop `max(1.5·ATR, 1.2·body)`, target 2.5R; confidence `min(0.95, 0.70 + (0.70−cr)·0.4 + (vol_factor−1)·0.05)` |
 | **Stat-Arb Pairs** (统计套利) | OLS hedge ratio, ADF stationarity on spread, OU half-life ≤ 200, entry |z| ≥ 2.0 | exit |z| ≤ 0.25, stop |z| ≥ 3.5 |
 
-### 6.4 Strategy Lab — 13 classic long-only strategies (`desk/strategy_lab.py`, page `/lab`)
+### 6.4 Strategy Lab — 13 classic long-only strategies (`desk/strategy_lab.py`, page `/lab`; 11 research candidates in §6.6)
 
 Each decides at close of bar `t`, fills at open of `t+1`, pays a per-side fee; no parameter is fitted.
 
@@ -255,13 +259,70 @@ Each decides at close of bar `t`, fills at open of `t+1`, pays a per-side fee; n
 | Mean reversion | RSI-2 (Connors) | enter RSI(2) < 10 and close > SMA100; exit RSI(2) > 70 or close > SMA5 |
 | Momentum | Time-series momentum | 30-bar ROC > 0 and close > SMA50 |
 
-**Metrics per strategy:** total return, CAGR, annualised volatility, Sharpe, Sortino, max drawdown, Calmar, trade count, win rate, profit factor, exposure, in-sample (first 70%) vs out-of-sample (last 30%) return, and a permutation p-value (same exposure placed at random, 1,000 shuffles) **Bonferroni-corrected across 13**. Equity curves are compared with buy-and-hold.
+**Metrics per strategy:** total return, CAGR, annualised volatility, Sharpe, Sortino, max drawdown, Calmar, trade count, win rate, profit factor, exposure, in-sample (first 70%) vs out-of-sample (last 30%) return, and a permutation p-value (same exposure placed at random, 1,000 shuffles) **Bonferroni-corrected across every candidate tested (24 with §6.6)**. Equity curves are compared with buy-and-hold.
 
 ### 6.5 Grid and DCA paper bots — `desk/paperbots.py`
 
 * **GRID:** evenly spaced levels `L₀ < … < Lₙ` in `[lower, upper]`, equal quote per grid. Buy filled at `Lᵢ` → rest sell at `Lᵢ₊₁`; each round trip earns `qty·(Lᵢ₊₁ − Lᵢ)` minus fees.
 * **DCA:** base order at market; safety order `k` at `entry·(1 − step·Σⱼ<ₖ step_scaleʲ)` with size `base·volume_scaleᵏ`; take profit at `avg_entry·(1 + tp)`; optional stop below last safety; new cycle after each take-profit.
 * Paper only, 0.1% per fill, advance on real 1-minute candles, pause while the kill switch is engaged.
+
+### 6.6 Research candidates, indicator catalog and the promotion gate
+
+The research review found that **time-series momentum** and the **size and momentum factors** are the best-documented crypto effects, and that testing many indicators at once mostly produces false winners. So every new rule is only a *candidate*: it is shown in the Lab, but it is promoted only if it passes an out-of-sample gate after fees. Nothing here places orders.
+
+**Indicator catalog** — `cryptoscope/desk/indicator_catalog.py`, library `pandas-ta-classic==0.9.0` (pinned in `requirements.txt`).
+
+* Every indicator in every category except `math` (≈ 183 indicators → ≈ 365 feature columns on 1,000 bars), computed per coin and timeframe.
+* **No lookahead:** the value at bar `t` uses bars `≤ t` only. `audit_lookahead()` recomputes the catalog on truncated histories and checks that no earlier value changes; `tests/test_indicator_catalog.py` runs it on the whole catalog.
+* **Excluded** because they look ahead or are not per-bar series: `dpo` (centred), `tos_stdevall` (regression fitted on the whole series), the Ichimoku chikou span `ICS_*` (close shifted 26 bars back), `vp` (price bins), and `mavp`, `beta`, `correl`, `long_run`, `short_run`, `tsignals`, `xsignals` (need extra inputs).
+* The Lab page lists counts per category, the exclusions and every feature's latest value.
+
+**New Lab candidates** — `desk/strategy_lab.py`; all long-only, decided on bar `t`'s close and filled at `t+1`'s open.
+
+| Family | Strategy | Rule |
+|---|---|---|
+| Momentum | Vol-scaled TS momentum | `z = ln(Cₜ / Cₜ₋₃₀) / (σ₃₀ · √30)` with σ₃₀ the sd of 1-bar log returns; enter `z > 1`, exit `z < 0` |
+| Breakout | Keltner squeeze | squeeze = Bollinger(20, 2σ) inside Keltner(EMA20 ± 1.5·ATR20); enter on the first bar out of a squeeze with close > SMA20 and rising; exit close < EMA20 |
+| Mean reversion | VWAP reversion | `VWAP20 = Σ(typical·vol) / Σvol`; enter `close − VWAP20 < −2·sd(close − VWAP20, 20)`; exit close ≥ VWAP20 |
+| Trend | ADX + DI | long while ADX(14) > 25 and +DI > −DI |
+| Trend | Aroon | long while Aroon-up(14) > 70 and up > down |
+| Mean reversion | Stoch-RSI cross | enter %K crosses above %D below 20; exit %K > 80 |
+| Mean reversion | CCI reversion | enter CCI(14) crosses back above −100; exit CCI > 0 |
+| Mean reversion | MFI reversion | enter MFI(14) < 20; exit MFI > 50 |
+| Trend | Hull MA | long while close > HMA(55) and HMA rising |
+| Trend | KAMA | long while close > KAMA(10, 2, 30) and KAMA rising |
+| Trend | Vortex | long while VI+(14) > VI−(14) |
+
+Donchian/Turtle, Bollinger reversion, Keltner breakout, Supertrend, Ichimoku and 30-bar TS momentum were already among the 13 classics (§6.4); they go through the same gate. The Lab now tests 24 candidates, and the Bonferroni correction and the DSR use that count.
+
+**Validation** — `core/quant/validation.py`
+
+* **Triple-barrier labels.** Each entry (position 0 → 1) becomes the trade `StrategyBot` would place: `bracket("SCALP", ATR14 / close)` gives the target and stop (§6.2), and the 16 × 15 m = **4 h** time limit is converted to the Lab's interval (at least one bar). The first barrier touched decides the label. If one bar touches both, the stop is assumed first; a gap through a barrier fills at the open for stops and at the target for targets. Net return = `exit/entry · (1 − fee)² − 1`, fee = max(selected fee, **10 bp**) per side. One position at a time per coin.
+* **CPCV.** The bars are split into N contiguous groups; every choice of k test groups gives one split (C(N, k) splits). A training observation is **purged** when its label window `[signal, exit]` overlaps a test group. An **embargo** of max(time-limit bars, 1% of bars) after each test group is also dropped.
+* **PBO** (Bailey, Borwein, López de Prado & Zhu, CSCV). Build a `T × N` matrix of net trade returns, one column per candidate, each return booked on its signal bar. Take every half of 10 groups as in-sample: C(10, 5) = 252 purged and embargoed splits. In each split, pick the best in-sample Sharpe, find its out-of-sample relative rank ω, and compute `λ = ln(ω / (1 − ω))`. `PBO = P(λ ≤ 0)`. Known-answer tests: 20 pure-noise columns give PBO ≈ 0.5, and one planted edge among 19 noise columns gives PBO < 0.1.
+* **Deflated Sharpe** — reused from `level10_research.compute_deflated_sharpe_ratio`. Inputs: per-trade Sharpe, trials = number of candidates, and the cross-candidate variance of Sharpe. `p = 1 − DSR`.
+
+**Promotion gate** (per candidate, per symbol and interval)
+
+| Test | Threshold |
+|---|---|
+| Out-of-sample trades: trades whose signal and exit fall inside one CPCV group | ≥ 100 |
+| Deflated-Sharpe p | < 0.05 |
+| PBO of the candidate set | < 0.3 |
+| Expectancy (mean net trade return after fees) | > 0 |
+
+* The Lab page shows a **GATE** column per candidate: OOS trades, expectancy, DSR p and PROMOTED, or the first failed test (hover for all of them). The warning line shows the set's PBO.
+* Every `/api/lab` run rewrites the entries for that symbol and interval in `work/runtime/promoted_strategies.json`, so a strategy that stops passing is demoted. The write is atomic.
+* `load_promoted_strategies()` reads the file and returns `[]` when it is missing or unreadable.
+* **The bots do not read the file yet.** Wiring promoted strategies into `StrategyBot` is a separate, deliberate step.
+
+**Limits, stated plainly**
+
+* The Lab rules use fixed textbook parameters and never fit them to the data. So "out of sample" here guards against picking the luckiest of many candidates (DSR, PBO), not against parameter fitting.
+* One Lab run sees at most 1,000 bars. On 15 m candles that is about 10 days, so most candidates cannot reach 100 OOS trades yet. On real BTCUSDT 15 m data (Nov 2026), no candidate passed.
+* Bar data cannot show the order of moves inside a bar, so the labeller takes the conservative order. On 4 h or longer intervals, the 4 h time limit becomes a single bar.
+* PBO is a property of the whole candidate set: adding more noise candidates moves it towards 0.5 for all of them.
 
 ---
 

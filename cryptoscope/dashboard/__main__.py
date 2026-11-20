@@ -156,7 +156,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
     paper_bots.ensure_running()
 
     from cryptoscope.desk.market_structure import MarketStructure
-    from cryptoscope.desk.strategy_lab import run_lab
+    from cryptoscope.desk.strategy_lab import record_promotions, run_lab
     market_structure = MarketStructure()
     _lab_cache = {}
 
@@ -448,6 +448,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 try:
                     candles = _klines(sym, iv, 1000)
                     result = {**run_lab(candles, iv, fee), "symbol": sym}
+                    record_promotions(result, sym)   # gate passes -> work/runtime/promoted_strategies.json
                 except ValueError as err:
                     return self.json(400, {"error": str(err)})
                 except Exception as err:

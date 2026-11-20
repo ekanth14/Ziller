@@ -41,12 +41,14 @@ function renderTable() {
   if (q) rows = rows.filter(r => r.symbol.includes(q));
   if (f === 'scored') rows = rows.filter(r => r.factors);
   if (f === 'eligible') rows = rows.filter(r => r.eligible);
-  const val = r => state.sort === 'score' ? (r.score ?? -99) : state.sort === 'r7' ? (r.factors?.r7 ?? -99) : r[state.sort];
+  const val = r => state.sort === 'score' ? (r.score ?? -99) : state.sort === 'r7' ? (r.factors?.r7 ?? -99) : (r[state.sort] ?? -99);
   rows.sort((a, b) => (val(a) > val(b) ? 1 : val(a) < val(b) ? -1 : 0) * state.dir);
   $('all-meta').textContent = `${rows.length} shown`;
   const th = (key, label, num) => `<th data-k="${key}" class="${num ? 'num' : ''}">${label}${state.sort === key ? (state.dir < 0 ? ' ▼' : ' ▲') : ''}</th>`;
   $('tbl').innerHTML = `<tr>${th('symbol', 'PAIR')}${th('price', 'PRICE', 1)}${th('chg_24h', '24H', 1)}${th('quote_volume', '24H VOLUME', 1)}` +
-    `${th('r7', '7D', 1)}<th class="num">30D</th><th class="num">RSI</th>${th('score', 'SCORE', 1)}<th>STATUS</th></tr>` +
+    `${th('r7', '7D', 1)}<th class="num">30D</th><th class="num">RSI</th>${th('score', 'SCORE', 1)}` +
+    `${th('mom_rank', '<span title="Liu-Tsyvinski-Wu 3-week momentum rank (1 = strongest). Weight 0 until the Lab validates it.">MOM RK</span>', 1)}` +
+    `${th('size_rank', '<span title="Liu-Tsyvinski-Wu size rank by 24h traded value (1 = smallest). Weight 0 until the Lab validates it.">SIZE RK</span>', 1)}<th>STATUS</th></tr>` +
     rows.slice(0, 600).map(r => {
       const fct = r.factors;
       const status = d.top.includes(r.symbol) ? `<span class="tag2 ok">PICK · ${esc((r.tier || '').replace('_', '-'))}</span>`
@@ -56,7 +58,8 @@ function renderTable() {
       return `<tr class="${d.top.includes(r.symbol) ? 'top' : ''}"><td>${esc(r.symbol)}</td><td class="num">${money(r.price)}</td>` +
         `<td class="num ${cls(r.chg_24h)}">${pct(r.chg_24h)}</td><td class="num">${big(r.quote_volume)}</td>` +
         `<td class="num ${cls(fct?.r7)}">${fct ? pct(fct.r7) : '—'}</td><td class="num ${cls(fct?.r30)}">${fct ? pct(fct.r30) : '—'}</td>` +
-        `<td class="num">${fct?.rsi14 != null ? fct.rsi14.toFixed(0) : '—'}</td><td class="num">${r.score != null ? r.score.toFixed(2) : '—'}</td><td>${status}</td></tr>`;
+        `<td class="num">${fct?.rsi14 != null ? fct.rsi14.toFixed(0) : '—'}</td><td class="num">${r.score != null ? r.score.toFixed(2) : '—'}</td>` +
+        `<td class="num muted">${r.mom_rank != null ? r.mom_rank.toFixed(2) : '—'}</td><td class="num muted">${r.size_rank != null ? r.size_rank.toFixed(2) : '—'}</td><td>${status}</td></tr>`;
     }).join('');
 }
 

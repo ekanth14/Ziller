@@ -16,7 +16,13 @@ Workflow
                 vol30 >= 10% (filters pegged/stable assets the name list misses).
 6. Score      - z-scored blend across the shortlist:
                 score = 0.45*z(M) + 0.25*z(r7) + 0.20*z(log quote volume) - 0.10*z(ATR14%)
-7. Pick       - up to `top_n` (default 10, the fleet's maximum), filled tier by tier:
+                        + W_MOM*z(r21) + W_SIZE*z(-log quote volume)
+                Liu-Tsyvinski-Wu factors, shown as cross-sectional ranks (0 = weakest, 1 = strongest):
+                mom_rank  = rank of the 3-week return r21 (their CMOM factor: winners keep winning);
+                size_rank = rank of -log 24h quote volume (their CSMB factor: small coins earn more;
+                            Binance gives no market cap, so traded value stands in for size).
+                W_MOM = W_SIZE = 0 until the Strategy Lab validates them: they are columns, not ranking.
+7. Pick      - up to `top_n` (default 10, the fleet's maximum), filled tier by tier:
    a. TREND      - passes every daily filter above (best, slower swing setups);
    b. SHORT_TERM - 1h uptrend: close > EMA20(1h) > EMA50(1h) and 40 <= RSI14(1h) <= 72;
    c. POTENTIAL  - best remaining coins able to move 0.5-1% within hours, ranked by
@@ -148,13 +154,14 @@ def factors(candles: List[Dict[str, float]]) -> Optional[Dict[str, float]]:
     vol30 = math.sqrt(sum((r - m) ** 2 for r in window) / (len(window) - 1)) * math.sqrt(365)
     r7 = last / closes[-8] - 1
     r30 = last / closes[-31] - 1
-    trs = [max(c["high"] - c["low"], abs(c["high"] - p["close"]), abs(c["low"] - p["close"]))
+    r21 = last / closes[-22] - 1
+    trs =[max(c["high"] - c["low"], abs(c["high"] - p["close"]), abs(c["low"] - p["close"]))
            for p, c in zip(candles[-15:-1], candles[-14:])]
     atr_pct = (sum(trs) / len(trs)) / last
     sma10, sma20, sma30 = _sma(closes, 10), _sma(closes, 20), _sma(closes, 30)
     peak = max(c["high"] for c in candles[-90:])
     return {
-        "r7": r7, "r30": r30, "vol30": vol30,
+        "r7": r7, "r21": r21, "r30": r30, "vol30": vol30,
         "momentum": (0.4 * r7 + 0.6 * r30) / vol30 if vol30 > 0 else 0.0,
         "trend": bool(last > sma20 and sma10 > sma30), "rsi14": _rsi(closes[-60:]),
         "atr_pct": atr_pct, "drawdown": last / peak - 1, "sma20": sma20,
@@ -192,6 +199,28 @@ MAX_SPREAD = float(os.environ.get("ZILLERS_MAX_SPREAD", "0.0015"))          # 0.
 MIN_DEPTH_USD = float(os.environ.get("ZILLERS_MIN_DEPTH_USD", "5000"))   # within 0.2% of mid, thinner side
 MIN_ATR1H = 0.0025 # 0.25%/h: a 0.5-1% target is reachable within a few hours
 MAX_ATR1H = 0.03     # above 3%/h, ordinary noise hits a 0.5-1% stop most of the time
+
+
+# Liu-Tsyvinski-Wu momentum and size factor weights in the score. Zero until the Strategy Lab's
+# promotion gate validates them; changing these changes which coins the fleet trades.
+FACTOR_WEIGHTS = {"ltw_momentum": 0.0, "ltw_size": 0.0}
+
+
+def _rank(values: List[float]) -> List[float]:
+    """Cross-sectional percentile rank in [0, 1] (ties share their average rank)."""
+    n = len(values)
+    if n < 2:
+        return [0.5] * n
+    order = sorted(range(n), key=lambda i: values[i])
+    out, i = [0.0] * n, 0
+    while i < n:
+        j = i
+        while j + 1 < n and values[order[j + 1]] == values[order[i]]:
+            j += 1
+        for k in range(i, j + 1):
+            out[order[k]] = ((i + j) / 2) / (n - 1)
+        i = j + 1
+    return out
 
 
 def _z(values: List[float]) -> List[float]:
@@ -310,9 +339,15 @@ class MarketScanner:
             z7 = _z([r["factors"]["r7"] for r in scored])
             zv = _z([math.log(r["quote_volume"]) for r in scored])
             za = _z([r["factors"]["atr_pct"] for r in scored])
-            for r, a, b, c, d in zip(scored, zm, z7, zv, za):
+            r21 = [r["factors"].get("r21", 0.0) for r in scored]
+            neg_size = [-math.log(r["quote_volume"]) for r in scored]
+            z21, zs = _z(r21), _z(neg_size)
+            w_mom, w_size = FACTOR_WEIGHTS["ltw_momentum"], FACTOR_WEIGHTS["ltw_size"]
+            for r, mr, sr in zip(scored, _rank(r21), _rank(neg_size)):
+                r["mom_rank"], r["size_rank"] = round(mr, 4), round(sr, 4)
+            for r, a, b, c, d, e, g in zip(scored, zm, z7, zv, za, z21, zs):
                 f = r["factors"]
-                r["score"] = round(0.45 * a + 0.25 * b + 0.20 * c - 0.10 * d, 4)
+                r["score"] = round(0.45 * a + 0.25 * b + 0.20 * c - 0.10 * d + w_mom * e + w_size * g, 4)
                 why = []
                 if not f["trend"]:
                     why.append("no uptrend")
@@ -342,7 +377,8 @@ class MarketScanner:
             "params": {"min_quote_volume": self.min_quote_volume, "max_24h_move": self.max_24h_move,
                        "shortlist": self.shortlist, "top_n": self.top_n, "fallback": self.fallback,
                        "excluded_symbols": sorted(blocked), "max_spread": MAX_SPREAD,
-                       "min_depth_usd": MIN_DEPTH_USD, "book_error": book_error},
+                       "min_depth_usd": MIN_DEPTH_USD, "book_error": book_error,
+                       "factor_weights": dict(FACTOR_WEIGHTS)},
             "method": __doc__.split("Workflow", 1)[1].split("This chooses", 1)[0].strip(),
         }
         with self._lock:

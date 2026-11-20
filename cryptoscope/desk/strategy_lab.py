@@ -18,6 +18,29 @@ Strategies and formulas
   Heikin-Ashi      long after 2 consecutive bullish HA candles; exit on the first bearish HA candle
   Parabolic SAR    (0.02 / 0.2) long while SAR is below price
   Golden cross     long while SMA(50) > SMA(200)
+Candidates added from the research review (all long-only, same backtest):
+  Vol-scaled TSMOM enter when 30-bar log return / (sd of 1-bar log returns(30) * sqrt(30)) > 1; exit < 0
+  Keltner squeeze  squeeze = Bollinger(20, 2sd) inside Keltner(EMA20 +/- 1.5*ATR20); enter on the first bar
+                   out of a squeeze with close > SMA20 and rising; exit close < EMA20
+  VWAP reversion   VWAP20 = sum(typical price * volume) / sum(volume) over 20 bars; enter when
+                   close - VWAP20 < -2 sd(close - VWAP20, 20); exit close >= VWAP20
+  ADX trend        long while ADX(14) > 25 and +DI > -DI
+  Aroon trend      long while Aroon up(14) > 70 and up > down
+  Stoch-RSI cross  enter %K crosses above %D below 20; exit %K > 80
+  CCI reversion    enter CCI(14) crosses back above -100; exit CCI > 0
+  MFI reversion    enter MFI(14) < 20; exit MFI > 50
+  Hull MA trend    long while close > HMA(55) and HMA rising
+  KAMA trend       long while close > KAMA(10, 2, 30) and KAMA rising
+  Vortex           long while VI+(14) > VI-(14)
+  (Donchian, Bollinger, Keltner, Supertrend, Ichimoku and TS momentum above are gate candidates too.)
+
+Promotion gate (per candidate, same candles):
+  every entry (position 0 -> 1) becomes a bracket trade from StrategyBot.bracket("SCALP", ATR14%):
+  target / stop / 4 h time limit, fee max(fee, 10 bp) per side, labelled with the triple barrier.
+  OOS trades  trades whose signal and exit sit inside one CPCV group (10 groups)
+  DSR p       1 - Deflated Sharpe of per-trade returns, trials = candidates tested
+  PBO         CSCV over all candidates (C(10,5) splits, purged + embargoed)
+  PASS        OOS trades >= 100, DSR p < 0.05, PBO < 0.3 and expectancy after fees > 0
 
 Metrics: total return, CAGR, annualised volatility, Sharpe, Sortino, max drawdown, Calmar,
 trades, win rate, profit factor, average trade, exposure, buy-and-hold comparison, in-sample vs
@@ -26,10 +49,21 @@ random, 1,000 shuffles).
 """
 from __future__ import annotations
 
+import json
 import math
-from typing import Callable, Dict, List, Optional, Sequence
+import os
+import threading
+import time
+import warnings
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
+import numpy as np
+
+from core.quant.validation import (deflated_sharpe, group_bounds, probability_of_backtest_overfitting,
+                                   triple_barrier_labels)
 from cryptoscope.desk.engine import INTERVALS, YEAR_SECONDS, significance
+from cryptoscope.orchestrator.bots.strategy_bot import bracket
 
 Candles = Sequence[Dict[str, float]]
 
@@ -238,6 +272,100 @@ def s_golden_cross(c):
     return [1 if i >= 200 and f[i] > s[i] else 0 for i in range(len(c))]
 
 
+# --------------------------------------------------------------------------- research candidates
+def s_vol_tsmom(c, look=30, vol_n=30, enter_z=1.0):
+    """Time-series momentum scaled by volatility: the lookback return in units of its own noise."""
+    cl = [b["close"] for b in c]
+    lr = [0.0] + [math.log(cl[i] / cl[i - 1]) for i in range(1, len(cl))]
+    sd = stdev(lr, vol_n)
+
+    def z(i):
+        return math.log(cl[i] / cl[i - look]) / (sd[i] * math.sqrt(look)) if sd[i] else 0.0
+    return _hold(lambda i: z(i) > enter_z, lambda i: z(i) < 0, len(c), max(look, vol_n) + 1)
+
+
+def s_keltner_squeeze(c):
+    cl = [b["close"] for b in c]
+    m, sd, e, a = sma(cl, 20), stdev(cl, 20), ema(cl, 20), atr(c, 20)
+
+    def squeeze(i):
+        return m[i] + 2 * sd[i] < e[i] + 1.5 * a[i] and m[i] - 2 * sd[i] > e[i] - 1.5 * a[i]
+    return _hold(lambda i: squeeze(i - 1) and not squeeze(i) and cl[i] > m[i] and cl[i] > cl[i - 1],
+                 lambda i: cl[i] < e[i], len(c), 21)
+
+
+def s_vwap_revert(c, n=20, k=2.0):
+    cl = [b["close"] for b in c]
+    pv = [(b["high"] + b["low"] + b["close"]) / 3 * b["volume"] for b in c]
+    vol = [b["volume"] for b in c]
+    vw = [None] * len(c)
+    for i in range(n - 1, len(c)):
+        v = sum(vol[i - n + 1:i + 1])
+        vw[i] = sum(pv[i - n + 1:i + 1]) / v if v > 0 else cl[i]
+    dev = [cl[i] - vw[i] if vw[i] is not None else 0.0 for i in range(len(c))]
+    sd = stdev(dev, n)
+    return _hold(lambda i: bool(sd[i]) and dev[i] < -k * sd[i], lambda i: cl[i] >= vw[i], len(c), 2 * n)
+
+
+def _ta(c, name, **kw):
+    """One pandas-ta-classic indicator (from the catalog) as row tuples; NaN becomes None."""
+    from cryptoscope.desk.indicator_catalog import candles_frame
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        out = getattr(candles_frame(c).ta, name)(**kw)
+    if not hasattr(out, "columns"):
+        out = out.to_frame()
+    return [tuple(None if v != v else float(v) for v in row) for row in out.itertuples(index=False)]
+
+
+def _ok(*vals):
+    return all(v is not None for v in vals)
+
+
+def s_adx_trend(c):
+    x = _ta(c, "adx", length=14)  # ADX, +DI, -DI
+    return [1 if _ok(*x[i]) and x[i][0] > 25 and x[i][1] > x[i][2] else 0 for i in range(len(c))]
+
+
+def s_aroon(c):
+    x = _ta(c, "aroon", length=14)  # down, up, oscillator
+    return [1 if _ok(*x[i]) and x[i][1] > 70 and x[i][1] > x[i][0] else 0 for i in range(len(c))]
+
+
+def s_stochrsi(c):
+    x = _ta(c, "stochrsi")  # %K, %D
+    return _hold(lambda i: _ok(*x[i], *x[i - 1]) and x[i - 1][0] <= x[i - 1][1] and x[i][0] > x[i][1] and x[i][0] < 20,
+                 lambda i: _ok(x[i][0]) and x[i][0] > 80, len(c), 1)
+
+
+def s_cci_revert(c):
+    x = [r[0] for r in _ta(c, "cci", length=14)]
+    return _hold(lambda i: _ok(x[i], x[i - 1]) and x[i - 1] < -100 <= x[i], lambda i: _ok(x[i]) and x[i] > 0, len(c), 1)
+
+
+def s_mfi_revert(c):
+    x = [r[0] for r in _ta(c, "mfi", length=14)]
+    return _hold(lambda i: _ok(x[i]) and x[i] < 20, lambda i: _ok(x[i]) and x[i] > 50, len(c), 1)
+
+
+def _above_rising(c, ma):
+    cl = [b["close"] for b in c]
+    return [1 if i > 0 and _ok(ma[i], ma[i - 1]) and cl[i] > ma[i] > ma[i - 1] else 0 for i in range(len(c))]
+
+
+def s_hma_trend(c):
+    return _above_rising(c, [r[0] for r in _ta(c, "hma", length=55)])
+
+
+def s_kama_trend(c):
+    return _above_rising(c, [r[0] for r in _ta(c, "kama", length=10, fast=2, slow=30)])
+
+
+def s_vortex(c):
+    x = _ta(c, "vortex", length=14)  # VI+, VI-
+    return [1 if _ok(*x[i]) and x[i][0] > x[i][1] else 0 for i in range(len(c))]
+
+
 STRATEGIES: Dict[str, tuple] = {
     "ema_cross": ("EMA cross 12/26", "trend", s_ema_cross),
     "macd_trend": ("MACD + EMA100 filter", "trend", s_macd_trend),
@@ -252,6 +380,18 @@ STRATEGIES: Dict[str, tuple] = {
     "heikin_ashi": ("Heikin-Ashi trend", "trend", s_heikin_ashi),
     "psar": ("Parabolic SAR", "trend", s_psar),
     "golden_cross": ("Golden cross SMA 50/200", "trend", s_golden_cross),
+    # research candidates: volatility-scaled momentum, squeeze, VWAP and pandas-ta-classic catalog rules
+    "vol_tsmom": ("Vol-scaled TS momentum 30", "momentum", s_vol_tsmom),
+    "keltner_squeeze": ("Keltner squeeze breakout", "breakout", s_keltner_squeeze),
+    "vwap_revert": ("VWAP reversion 20", "mean reversion", s_vwap_revert),
+    "adx_trend": ("ADX + DI trend", "trend", s_adx_trend),
+    "aroon": ("Aroon trend", "trend", s_aroon),
+    "stochrsi": ("Stoch-RSI cross", "mean reversion", s_stochrsi),
+    "cci_revert": ("CCI reversion", "mean reversion", s_cci_revert),
+    "mfi_revert": ("MFI reversion", "mean reversion", s_mfi_revert),
+    "hma_trend": ("Hull MA 55 trend", "trend", s_hma_trend),
+    "kama_trend": ("KAMA trend", "trend", s_kama_trend),
+    "vortex": ("Vortex 14", "trend", s_vortex),
 }
 
 
@@ -308,7 +448,8 @@ def backtest(c: Candles, pos: Sequence[int], fee_bps: float, bars_per_year: floa
     }
 
 
-def run_lab(c: Candles, interval: str = "1d", fee_bps: float = 10.0, only: Optional[List[str]] = None) -> Dict[str, object]:
+def run_lab(c: Candles, interval: str = "1d", fee_bps: float = 10.0, only: Optional[List[str]] = None,
+            catalog: bool = True) -> Dict[str, object]:
     if interval not in INTERVALS:
         raise ValueError("Unsupported interval")
     if len(c) < 150:
@@ -317,26 +458,161 @@ def run_lab(c: Candles, interval: str = "1d", fee_bps: float = 10.0, only: Optio
     bh_curve = [b["close"] / c[0]["open"] for b in c]
     bh = {"total_return": c[-1]["close"] / c[0]["open"] - 1,
           "max_drawdown": min(v / max(bh_curve[:i + 1]) - 1 for i, v in enumerate(bh_curve))}
-    rows = []
+    rows, positions = [], {}
     for key, (label, family, fn) in STRATEGIES.items():
         if only and key not in only:
             continue
         try:
-            m = backtest(c, fn(c), fee_bps, bpy)
+            pos = fn(c)
+            m = backtest(c, pos, fee_bps, bpy)
         except Exception as exc:  # one broken strategy never takes the lab down
             rows.append({"key": key, "label": label, "family": family, "error": type(exc).__name__})
             continue
+        positions[key] = pos
         m["beats_hold"] = m["total_return"] > bh["total_return"]
         rows.append({"key": key, "label": label, "family": family, **m})
     ok = [r for r in rows if "error" not in r]
     m_tests = max(1, len(ok))
     for r in ok:  # Bonferroni across all strategies tested on the same data
         r["significant"] = r["p_value"] is not None and r["p_value"] < 0.05 / m_tests
+    try:
+        gate = gate_candidates(c, positions, interval, fee_bps)
+    except Exception as exc:  # the gate failing must never look like a pass
+        gate = {"status": "ERROR", "error": type(exc).__name__, "candidates": {}}
+    for r in ok:
+        r["gate"] = gate["candidates"].get(r["key"]) or {"passed": False, "reasons": ["not evaluated"]}
     ok.sort(key=lambda r: -r["sharpe"])
     step = max(1, len(c) // 300)
-    return {"status": "OK", "interval": interval, "bars": len(c), "fee_bps": fee_bps,
-            "from": c[0]["open_time"], "to": c[-1]["open_time"], "buy_hold": bh,
-            "times": [int(b["open_time"]) for b in c[::step]],
-            "buy_hold_curve": bh_curve[::step],
-            "results": [{**r, "curve": r["curve"][::step]} for r in ok] + [r for r in rows if "error" in r],
-            "method": __doc__.split("Strategies and formulas", 1)[1].strip()}
+    out = {"status": "OK", "interval": interval, "bars": len(c), "fee_bps": fee_bps,
+           "from": c[0]["open_time"], "to": c[-1]["open_time"], "buy_hold": bh,
+           "times": [int(b["open_time"]) for b in c[::step]],
+           "buy_hold_curve": bh_curve[::step],
+           "results": [{**r, "curve": r["curve"][::step]} for r in ok] + [r for r in rows if "error" in r],
+           "gate": {k: v for k, v in gate.items() if k != "candidates"},
+           "method": __doc__.split("Strategies and formulas", 1)[1].strip()}
+    if catalog:
+        out["catalog"] = _catalog(c)
+    return out
+
+
+def _catalog(c: Candles) -> Dict[str, object]:
+    try:
+        from cryptoscope.desk.indicator_catalog import catalog_summary, compute_catalog
+        return catalog_summary(compute_catalog(c))
+    except Exception as exc:  # the catalog is informational; the lab still runs without it
+        return {"status": "UNAVAILABLE", "error": type(exc).__name__}
+
+
+# --------------------------------------------------------------------------- promotion gate
+GATE = {"min_oos_trades": 100, "max_dsr_p": 0.05, "max_pbo": 0.30, "min_expectancy": 0.0,
+        "min_fee_bps": 10.0, "profile": "SCALP", "cpcv_groups": 10}
+
+
+def gate_candidates(c: Candles, positions: Dict[str, Sequence[int]], interval: str, fee_bps: float) -> Dict[str, Any]:
+    """Out-of-sample gate for every candidate (see the module docstring, "Promotion gate").
+
+    Entries are the bars where a candidate's position turns 0 -> 1. Each becomes the bracket trade the
+    bot would place: StrategyBot.bracket(profile, ATR14 / close) for target and stop, the profile's
+    time limit converted to this interval's bars, fee >= 10 bp per side. One PBO is computed for the
+    whole candidate set (the selection process is what overfits), and the DSR is deflated by the
+    number of candidates tried.
+    """
+    n, iv = len(c), INTERVALS[interval]
+    fee = max(float(fee_bps), GATE["min_fee_bps"]) / 10000
+    o, h, lo, cl = ([b[k] for b in c] for k in ("open", "high", "low", "close"))
+    a = atr(c, 14)
+    stops, targets, has_atr = [0.0] * n, [0.0] * n, [False] * n
+    horizon15 = bracket(GATE["profile"], 0.01)[2]
+    for i in range(n):
+        if a[i] is not None and cl[i] > 0:
+            stops[i], targets[i], _ = bracket(GATE["profile"], a[i] / cl[i])
+            has_atr[i] = True
+    hbars = max(1, round(horizon15 * 900 / iv))
+    groups = group_bounds(n, GATE["cpcv_groups"])
+    group_of = np.zeros(n, dtype=int)
+    for g, (s, e) in enumerate(groups):
+        group_of[s:e] = g
+    keys = list(positions)
+    mat = np.zeros((n, max(1, len(keys))))
+    label_end = np.arange(n)
+    per: Dict[str, Dict[str, Any]] = {}
+    for j, key in enumerate(keys):
+        pos = positions[key]
+        sig = [1 if t > 0 and pos[t] == 1 and pos[t - 1] == 0 and has_atr[t] else 0 for t in range(n)]
+        trades = triple_barrier_labels(o, h, lo, cl, sig, stops, targets, hbars, fee=fee)
+        oos = [t for t in trades if group_of[t["signal"]] == group_of[t["exit"]]]
+        for t in trades:
+            mat[t["signal"], j] = t["ret"]
+            label_end[t["signal"]] = max(label_end[t["signal"]], t["exit"])
+        rets = [t["ret"] for t in oos]
+        per[key] = {"trades": len(trades), "oos_trades": len(oos), "rets": rets,
+                    "expectancy": float(np.mean(rets)) if rets else None,
+                    "win_rate": (sum(r > 0 for r in rets) / len(rets)) if rets else None,
+                    "targets": sum(t["barrier"] == 1 for t in oos), "stops": sum(t["barrier"] == -1 for t in oos),
+                    "timeouts": sum(t["barrier"] == 0 for t in oos)}
+    pbo = None
+    splits = 0
+    if len(keys) >= 2:
+        res = probability_of_backtest_overfitting(mat, n_groups=GATE["cpcv_groups"], label_end=label_end,
+                                                  embargo=max(hbars, math.ceil(0.01 * n)))
+        pbo, splits = res["pbo"], res["splits"]
+    srs = [float(np.mean(p["rets"]) / np.std(p["rets"], ddof=1)) for p in per.values()
+           if len(p["rets"]) >= 4 and np.std(p["rets"], ddof=1) > 1e-12]
+    var_sr = float(np.var(srs, ddof=1)) if len(srs) >= 2 else None
+    out: Dict[str, Dict[str, Any]] = {}
+    for key, p in per.items():
+        d = deflated_sharpe(p.pop("rets"), n_trials=len(keys), var_sharpe=var_sr)
+        reasons = []
+        if p["oos_trades"] < GATE["min_oos_trades"]:
+            reasons.append(f"{p['oos_trades']} OOS trades < {GATE['min_oos_trades']}")
+        if d["p_value"] >= GATE["max_dsr_p"]:
+            reasons.append(f"DSR p {d['p_value']:.2f} >= {GATE['max_dsr_p']}")
+        if pbo is None or pbo >= GATE["max_pbo"]:
+            reasons.append("PBO n/a" if pbo is None else f"PBO {pbo:.2f} >= {GATE['max_pbo']}")
+        if p["expectancy"] is None or p["expectancy"] <= GATE["min_expectancy"]:
+            reasons.append("expectancy after fees <= 0")
+        out[key] = {**p, "sharpe_per_trade": d["sharpe"], "dsr": d["dsr"], "dsr_p": d["p_value"], "pbo": pbo,
+                    "passed": not reasons, "reasons": reasons}
+    return {"status": "OK", "candidates": out, "pbo": pbo, "pbo_splits": splits, "n_candidates": len(keys),
+            "horizon_bars": hbars, "fee_bps": round(fee * 10000, 4), "thresholds": {k: GATE[k] for k in
+            ("min_oos_trades", "max_dsr_p", "max_pbo", "min_expectancy", "profile")}}
+
+
+PROMOTED_PATH = Path(__file__).resolve().parents[2] / "work" / "runtime" / "promoted_strategies.json"
+_promo_lock = threading.Lock()
+
+
+def record_promotions(result: Dict[str, Any], symbol: str, path: Optional[Path] = None) -> Dict[str, Any]:
+    """Write this run's gate passes to promoted_strategies.json, replacing earlier entries for the same
+    symbol and interval (a strategy that stops passing is demoted). Returns the file's new content."""
+    path = Path(path or PROMOTED_PATH)
+    if result.get("status") != "OK" or result.get("gate", {}).get("status") != "OK":
+        return {"promoted": load_promoted_strategies(path)}
+    interval = result["interval"]
+    passed = [{"symbol": symbol, "interval": interval, "strategy": r["key"], "label": r["label"],
+               "family": r["family"], "fee_bps": result["gate"]["fee_bps"], "bars": result["bars"],
+               "from": result["from"], "to": result["to"], "promoted_at": time.time(),
+               **{k: r["gate"][k] for k in ("oos_trades", "expectancy", "win_rate", "dsr_p", "pbo")}}
+              for r in result.get("results", []) if r.get("gate", {}).get("passed")]
+    with _promo_lock:
+        keep = [e for e in load_promoted_strategies(path)
+                if not (e.get("symbol") == symbol and e.get("interval") == interval)]
+        doc = {"updated_at": time.time(), "gate": result["gate"]["thresholds"], "promoted": keep + passed}
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(doc, indent=2), encoding="utf-8")
+            os.replace(tmp, path)
+        except OSError as exc:  # a read-only disk must not take the Lab page down
+            return {**doc, "error": type(exc).__name__}
+    return doc
+
+
+def load_promoted_strategies(path: Optional[Path] = None) -> List[Dict[str, Any]]:
+    """Promoted strategies (symbol, interval, strategy key, gate metrics); [] when none or unreadable."""
+    try:
+        doc = json.loads(Path(path or PROMOTED_PATH).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    items = doc.get("promoted") if isinstance(doc, dict) else None
+    return [e for e in items if isinstance(e, dict) and e.get("strategy") in STRATEGIES] if isinstance(items, list) else []
