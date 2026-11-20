@@ -4,12 +4,18 @@ Every modification, upgrade, fix and deletion, newest first, with date and time 
 Generated from git history by `python scripts/update_changes.py`; regenerate after each commit.
 Deleted code remains recoverable from git with `git show <hash>^:<path>`.
 
-Totals: Upgrade 101 · Fix 38 · Modification 13 · Deletion 19 · Docs 26 · Security 2 · Test 3
+Totals: Upgrade 102 · Fix 38 · Modification 13 · Deletion 19 · Docs 27 · Security 2 · Test 3
 
 Types: **Upgrade** = new feature or capability · **Fix** = bug fix · **Modification** = change/refactor/chore · **Deletion** = code or files removed · **Docs** · **Security** · **Test**.
 
 ## 2026-11-20 (Friday)
 
+- **07:38 IST** · **Upgrade** · feat(lab): indicator catalog, 11 new candidate strategies, CPCV/PBO/DSR promotion gate (`77cc381`, Ekanth B S)
+  - Files: +6 added · ~9 modified · −0 deleted
+  - Added: `core/quant/validation.py`, `cryptoscope/desk/indicator_catalog.py`, `tests/test_indicator_catalog.py`, `tests/test_quant_validation.py`, `tests/test_scanner_factors.py`, `tests/test_strategy_lab_gate.py`
+  - Details: cryptoscope/desk/indicator_catalog.py: pandas-ta-classic catalog as no-lookahead features (truncation test proves earlier values never change). Strategy Lab: vol-scaled time-series momentum, Donchian/turtle, Bollinger and VWAP reversion, Keltner squeeze, Supertrend, Ichimoku and other catalog rules; long-only, our bracket, net of fees. core/quant/validation.py: triple-barrier labels, CPCV with purge/embargo, PBO (Bailey et al.), reusing the Deflated Sharpe Ratio. Known-answer tests: noise -> PBO ~0.5, planted edge -> low PBO. Promotion gate: >= 100 OOS trades, DSR p < 0.05, PBO < 0.3, positive
+- **07:36 IST** · **Docs** · docs: update CHANGES.md (`2919971`, Ekanth B S)
+  - Files: +0 added · ~1 modified · −0 deleted
 - **07:36 IST** · **Upgrade** · feat(models): real THX-02 + Laya as a veto-only meta-label filter; VPIN/regime risk sizing (`317212a`, Ekanth B S)
   - Files: +7 added · ~16 modified · −0 deleted
   - Added: `cryptoscope/agents/decision_models.py`, `cryptoscope/models_sidecar/server.py`, `cryptoscope/quant/flow_risk.py`, `requirements-models.txt`, `scripts/download_decision_models.py`, `tests/test_flow_risk.py`, `tests/test_meta_label_filter.py`
