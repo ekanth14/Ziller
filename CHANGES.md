@@ -4,12 +4,17 @@ Every modification, upgrade, fix and deletion, newest first, with date and time 
 Generated from git history by `python scripts/update_changes.py`; regenerate after each commit.
 Deleted code remains recoverable from git with `git show <hash>^:<path>`.
 
-Totals: Upgrade 100 · Fix 37 · Modification 13 · Deletion 19 · Docs 24 · Security 2 · Test 3
+Totals: Upgrade 100 · Fix 38 · Modification 13 · Deletion 19 · Docs 25 · Security 2 · Test 3
 
 Types: **Upgrade** = new feature or capability · **Fix** = bug fix · **Modification** = change/refactor/chore · **Deletion** = code or files removed · **Docs** · **Security** · **Test**.
 
 ## 2026-11-20 (Friday)
 
+- **07:12 IST** · **Fix** · fix(scanner): measure depth within 0.2% of mid instead of the single best level (`3a1396a`, Ekanth B S)
+  - Files: +0 added · ~2 modified · −0 deleted
+  - Details: The best bid/ask level alone flagged BNB ($68) and SUI ($16) as thin although they hold $527k and $186k within 0.2%. Depth now sums the order book (limit 100) within +/-0.2% of mid on the thinner side; minimum $5,000 (ZILLERS_MIN_DEPTH_USD). Unknown depth keeps the coin.
+- **07:08 IST** · **Docs** · docs: update CHANGES.md (`d787882`, Ekanth B S)
+  - Files: +0 added · ~1 modified · −0 deleted
 - **07:08 IST** · **Upgrade** · feat(risk): spread/depth filter, daily new-position cap, P&L split by scanner tier (`5ec7b3c`, Ekanth B S)
   - Files: +1 added · ~9 modified · −0 deleted
   - Added: `tests/test_daily_trade_cap.py`
