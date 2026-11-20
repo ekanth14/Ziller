@@ -4,12 +4,21 @@ Every modification, upgrade, fix and deletion, newest first, with date and time 
 Generated from git history by `python scripts/update_changes.py`; regenerate after each commit.
 Deleted code remains recoverable from git with `git show <hash>^:<path>`.
 
-Totals: Upgrade 98 · Fix 37 · Modification 13 · Deletion 19 · Docs 22 · Security 2 · Test 3
+Totals: Upgrade 99 · Fix 37 · Modification 13 · Deletion 19 · Docs 23 · Security 2 · Test 3
 
 Types: **Upgrade** = new feature or capability · **Fix** = bug fix · **Modification** = change/refactor/chore · **Deletion** = code or files removed · **Docs** · **Security** · **Test**.
 
+## 2026-11-20 (Friday)
+
+- **07:02 IST** · **Upgrade** · feat(llm): switch local LLM to qwen3:8b; add risk-off market filter and break-even win-rate stats (`6c21bb2`, Ekanth B S)
+  - Files: +1 added · ~13 modified · −0 deleted
+  - Added: `tests/test_trade_quality_stats.py`
+  - Details: Replaced the five ~8 GB laya/gemma4 chat models with qwen3:8b (~10 tok/s on CPU vs ~1). Scanner skips the weak fallback tiers when the median coin is down 3%+ in 24h. P&L page shows break-even win rate and per-trade Sharpe.
+
 ## 2026-11-19 (Thursday)
 
+- **22:17 IST** · **Docs** · docs: update CHANGES.md (`756d16a`, Ekanth B S)
+  - Files: +0 added · ~1 modified · −0 deleted
 - **22:17 IST** · **Upgrade** · feat(autotrade): always pick the best tradeable coins and target 0.5-1% per trade (`c2d2b6c`, Ekanth B S)
   - Files: +0 added · ~6 modified · −0 deleted
   - Details: Scanner: when too few coins pass the daily uptrend filter, fill the 10 slots with SHORT_TERM: 1h uptrend (close > EMA20 > EMA50, RSI1h 40-72) POTENTIAL: best remaining short-term movers, ranked by 0.35 z(r4h/ATR) + 0.25 z(r24h) + 0.25 z(log volume) + 0.15 z(1h volume surge) Both need 0.25%-3% hourly movement and skip free-falls (24h <= -8% or 4h <= -3%). Daily-trend picks still come first; ZILLERS_SCANNER_FALLBACK=0 restores strict mode. Live scan: 10 picks (1 short-term, 9 potential); 5 coins too volatile, several falling fast. StrategyBot SCALP profile (default, ZILLERS_TRADE_PROFILE=SWING f
