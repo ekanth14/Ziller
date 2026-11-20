@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -141,7 +142,8 @@ def intraday_factors(candles: List[Dict[str, float]]) -> Optional[Dict[str, floa
             "vol_surge_1h": (sum(vols[-3:]) / 3) / base_vol if base_vol else 1.0}
 
 
-MIN_ATR1H = 0.0025   # 0.25%/h: a 0.5-1% target is reachable within a few hours
+RISK_OFF_MEDIAN_24H = float(os.environ.get("ZILLERS_RISK_OFF_MEDIAN", "-0.03"))  # median coin down >=3%/24h
+MIN_ATR1H = 0.0025  # 0.25%/h: a 0.5-1% target is reachable within a few hours
 MAX_ATR1H = 0.03     # above 3%/h, ordinary noise hits a 0.5-1% stop most of the time
 
 
@@ -247,12 +249,17 @@ class MarketScanner:
         for r in ranked:
             r["tier"] = "TREND" if r["eligible"] else None
         top = [r["symbol"] for r in ranked if r["eligible"]][: self.top_n]
-        if self.fallback and len(top) < self.top_n:
-            top += self._short_term_picks([r for r in ranked if not r["eligible"]], self.top_n - len(top))
+        # Market-regime filter: when most liquid coins are down hard, buying weak "potential" coins is
+        # catching a falling market, so only coins passing the strict daily-trend test are allowed.
+        chg = sorted(r["chg_24h"] for r in survivors)
+        market_chg = chg[len(chg) // 2] if chg else 0.0
+        risk_off = market_chg <= RISK_OFF_MEDIAN_24H
+        if self.fallback and not risk_off and len(top) < self.top_n:
+            top +=self._short_term_picks([r for r in ranked if not r["eligible"]], self.top_n - len(top))
         tiers = {t: [r["symbol"] for r in ranked if r.get("tier") == t] for t in ("TREND", "SHORT_TERM", "POTENTIAL")}
         result = {
             "tiers": tiers, "status": "OK", "mode": mode, "generated_at": now, "took_s": round(time.perf_counter() - started, 2),
-            "top": top, "ranked": ranked, "all": sorted(rows, key=lambda r: -r["quote_volume"]),
+            "top": top, "market": {"median_24h": round(market_chg, 4), "risk_off": risk_off}, "ranked": ranked, "all": sorted(rows, key=lambda r: -r["quote_volume"]),
             "counts": {"universe": len(rows), "survivors": len(survivors), "scored": len(scored), "excluded": excluded},
             "params": {"min_quote_volume": self.min_quote_volume, "max_24h_move": self.max_24h_move,
                        "shortlist": self.shortlist, "top_n": self.top_n, "fallback": self.fallback,

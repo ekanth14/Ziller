@@ -16,5 +16,5 @@ def test_online_dashboard_launch_excludes_execution_settings_without_editing_par
     assert child['TRADING_MODE'] == 'OBSERVE'
     assert child['LIVE_TRADING'] == 'false'
     assert child['SIGNUP_MODE'] == 'invite'
-    assert child['OLLAMA_MODEL'] == 'gemma4-quant:12b'
+    assert child['OLLAMA_MODEL'] == 'qwen3:8b'
     assert dict(os.environ) == parent

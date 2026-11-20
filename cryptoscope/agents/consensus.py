@@ -14,6 +14,9 @@ from cryptoscope.providers.deadline_http import post_json_deadline
 _RESOLVED_MODEL = None
 
 
+DEFAULT_DEBATE_MODEL = "qwen3:8b"   # ~10 tok/s on this CPU (the old 12B gave ~1 tok/s)
+
+
 def pick_debate_model(requested, installed_chat):
     """Choose the debate model from what Ollama actually has installed.
 
@@ -38,7 +41,7 @@ def pick_debate_model(requested, installed_chat):
     preferred = [n for n in names if "quant" in n] + names
     if preferred:
         return preferred[0]
-    return requested or "gemma4:12b"
+    return requested or DEFAULT_DEBATE_MODEL
 
 
 def resolve_debate_model():
@@ -55,8 +58,9 @@ def resolve_debate_model():
         with urllib.request.urlopen(host + "/api/tags", timeout=3) as resp:
             tags = json.loads(resp.read()).get("models", [])
     except Exception:
-        return requested or "gemma4:12b"   # Ollama down: nothing to verify against; the call fails closed
-    chat = [m["name"] for m in tags if "gemma" in str(m.get("details", {}).get("family", "")).lower()]
+        return requested or DEFAULT_DEBATE_MODEL   # Ollama down: nothing to verify against; the call fails closed
+    chat = [m["name"] for m in tags
+            if not any(x in str(m.get("details", {}).get("family", "")).lower() for x in ("bert", "embed"))]
     chosen = pick_debate_model(requested, chat)
     if requested and chosen != requested:
         logging.getLogger("cryptoscope.agents.consensus").warning(

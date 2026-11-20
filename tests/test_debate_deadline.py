@@ -67,9 +67,9 @@ def test_debate_skips_instead_of_queueing_while_busy():
 
 def test_debate_model_falls_back_to_an_installed_model():
     from cryptoscope.agents.consensus import pick_debate_model
-    installed = ["laya-crypto:latest", "laya-quant:latest", "gemma4-quant:12b"]
-    assert pick_debate_model("gemma4-quant:12b", installed) == "gemma4-quant:12b"      # installed: honoured
-    assert pick_debate_model("gemma4:12b", installed) == "gemma4-quant:12b"            # missing: same base model
-    assert pick_debate_model("llama3:8b", installed) == "laya-quant:latest"            # unrelated: first quant model
-    assert pick_debate_model("", installed) == "laya-quant:latest"
-    assert pick_debate_model("gemma4:12b", []) == "gemma4:12b"                          # nothing installed: fail closed
+    installed = ["qwen3:8b", "qwen3:4b"]
+    assert pick_debate_model("qwen3:4b", installed) == "qwen3:4b"      # installed: honoured
+    assert pick_debate_model("qwen3:14b", installed) == "qwen3:4b"     # missing: same base model
+    assert pick_debate_model("gemma4:12b", installed) == "qwen3:8b"    # unrelated: first installed chat model
+    assert pick_debate_model("", installed) == "qwen3:8b"
+    assert pick_debate_model("gemma4:12b", []) == "gemma4:12b"         # nothing installed: fail closed

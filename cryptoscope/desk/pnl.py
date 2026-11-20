@@ -71,7 +71,15 @@ def trade_stats(closed: List[Dict[str, Any]], start_nav: float) -> Dict[str, Any
             kind, streak = k, streak + 1
         else:
             break
+    avg_w = gross_win / len(wins) if wins else 0.0
+    avg_l = -gross_loss / len(losses) if losses else 0.0
+    # Win rate needed to break even given the average win/loss size (below this the bot loses money).
+    breakeven = avg_l / (avg_w + avg_l) if (avg_w + avg_l) > 0 else None
+    mean = sum(pnls) / len(pnls) if pnls else 0.0
+    sd = (sum((p - mean) ** 2 for p in pnls) / (len(pnls) - 1)) ** 0.5 if len(pnls) > 1 else 0.0
     return {
+        "breakeven_win_rate": breakeven,
+        "sharpe_per_trade": mean / sd if sd > 0 else None,   # per-trade, not annualised
         "trades": len(pnls), "wins": len(wins), "losses": len(losses),
         "realized": gross_win + gross_loss, "gross_win": gross_win, "gross_loss": gross_loss,
         "win_rate": len(wins) / len(pnls) if pnls else None,

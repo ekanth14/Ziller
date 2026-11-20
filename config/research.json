@@ -1,7 +1,7 @@
 {
   "symbols": ["BTCUSDT", "ETHUSDT"],
   "interval": "15m",
-  "model": "gemma4:12b",
+  "model": "qwen3:8b",
   "ollama_url": "http://127.0.0.1:11434",
   "model_timeout_seconds": 120,
   "model_max_output_tokens": 512,

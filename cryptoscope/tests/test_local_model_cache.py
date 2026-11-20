@@ -68,7 +68,7 @@ def test_cache_job_checkpoints_and_stops_after_three_failures(tmp_path,monkeypat
         monkeypatch.setenv(name,'fixture')
     monkeypatch.setattr(logging,'disable',lambda _:None)
     monkeypatch.setattr(module.urllib.request,'install_opener',lambda _:None)
-    monkeypatch.setattr(argparse.ArgumentParser,'parse_args',lambda _:argparse.Namespace(model='gemma4-quant:12b',max_requests=100))
+    monkeypatch.setattr(argparse.ArgumentParser,'parse_args',lambda _:argparse.Namespace(model='qwen3:8b',max_requests=100))
     requests={}
     for entry in (100,101,102,103):
         request=dict(symbol='BTCUSDT',direction='BUY',entry=entry,stop=98,target=110,indicators={})

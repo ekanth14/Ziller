@@ -53,7 +53,8 @@ function render() {
     ['UNREALISED', money(t.fleet_unrealized, true), `${d.open_positions.length} open · exposure ${money(t.exposure)}`, cls(t.fleet_unrealized)],
     ['PAPER BOTS', money(t.paper_bots, true), t.bots_invested ? `${pct(t.bots_return)} on ${money(t.bots_invested)}` : 'no bots', cls(t.paper_bots)],
     ['FEES PAID', money(t.fees), 'fleet fills', ''],
-    ['WIN RATE', s.win_rate == null ? '—' : Math.round(s.win_rate * 100) + '%', `${s.wins} W · ${s.losses} L`, ''],
+    ['WIN RATE', s.win_rate == null ? '—' : Math.round(s.win_rate * 100) + '%', `${s.wins} W · ${s.losses} L · break-even ${s.breakeven_win_rate == null ? '—' : Math.round(s.breakeven_win_rate * 100) + '%'}`,
+     s.win_rate != null && s.breakeven_win_rate != null ? (s.win_rate >= s.breakeven_win_rate ? 'up' : 'dn') : ''],
     ['MAX DRAWDOWN', pct(s.max_drawdown), 'realised equity curve', s.max_drawdown < 0 ? 'dn' : ''],
   ].map(([k1, v, sub, c, extra]) => `<div class="kpi ${extra || ''}"><div class="k">${k1}</div><div class="v ${c}">${v}</div><div class="s">${sub}</div></div>`).join('');
 

@@ -300,7 +300,7 @@ class LayaTier2Evaluator:
         self.checkpoint_loaded = False
         self.checkpoint_path: Optional[str] = None
         self.ollama_available = False
-        self.ollama_model = os.environ.get("OLLAMA_MODEL", "gemma4:12b")
+        self.ollama_model = os.environ.get("OLLAMA_MODEL", "qwen3:8b")
         self._measured_p95_ms = 0.0
         self.total_evaluations = 0
         self.agreed_count = 0

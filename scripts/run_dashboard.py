@@ -23,7 +23,7 @@ def dashboard_environment():
         env[key] = ''
     env.update(TRADING_MODE='OBSERVE', LIVE_TRADING='false', SIGNUP_MODE='invite',
                ALLOW_OPEN_SIGNUP='false', BINANCE_TESTNET_BASE_URL='https://testnet.binance.vision',
-               OLLAMA_HOST='http://127.0.0.1:11434', OLLAMA_MODEL='gemma4-quant:12b',
+               OLLAMA_HOST='http://127.0.0.1:11434', OLLAMA_MODEL='qwen3:8b',
                PYTHONDONTWRITEBYTECODE='1', PYTHONIOENCODING='utf-8')
     return env
 
