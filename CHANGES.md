@@ -4,12 +4,18 @@ Every modification, upgrade, fix and deletion, newest first, with date and time 
 Generated from git history by `python scripts/update_changes.py`; regenerate after each commit.
 Deleted code remains recoverable from git with `git show <hash>^:<path>`.
 
-Totals: Upgrade 99 · Fix 37 · Modification 13 · Deletion 19 · Docs 23 · Security 2 · Test 3
+Totals: Upgrade 100 · Fix 37 · Modification 13 · Deletion 19 · Docs 24 · Security 2 · Test 3
 
 Types: **Upgrade** = new feature or capability · **Fix** = bug fix · **Modification** = change/refactor/chore · **Deletion** = code or files removed · **Docs** · **Security** · **Test**.
 
 ## 2026-11-20 (Friday)
 
+- **07:08 IST** · **Upgrade** · feat(risk): spread/depth filter, daily new-position cap, P&L split by scanner tier (`5ec7b3c`, Ekanth B S)
+  - Files: +1 added · ~9 modified · −0 deleted
+  - Added: `tests/test_daily_trade_cap.py`
+  - Details: Scanner drops pairs with spread > 0.15% (wide_spread) or < $1,000 at the top of book (thin_book); tunable with ZILLERS_MAX_SPREAD / ZILLERS_MIN_TOP_DEPTH_USD; a book outage does not stop the scan. RiskBot caps new positions per UTC day (default 12, ZILLERS_MAX_TRADES_PER_DAY); persisted across restarts. Autopilot logs each coin's tier to work/runtime/scanner_tiers.jsonl; P&L page shows win rate vs break-even and P&L per tier.
+- **07:02 IST** · **Docs** · docs: update CHANGES.md (`e250e1f`, Ekanth B S)
+  - Files: +0 added · ~1 modified · −0 deleted
 - **07:02 IST** · **Upgrade** · feat(llm): switch local LLM to qwen3:8b; add risk-off market filter and break-even win-rate stats (`6c21bb2`, Ekanth B S)
   - Files: +1 added · ~13 modified · −0 deleted
   - Added: `tests/test_trade_quality_stats.py`
