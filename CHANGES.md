@@ -4,12 +4,18 @@ Every modification, upgrade, fix and deletion, newest first, with date and time 
 Generated from git history by `python scripts/update_changes.py`; regenerate after each commit.
 Deleted code remains recoverable from git with `git show <hash>^:<path>`.
 
-Totals: Upgrade 100 · Fix 38 · Modification 13 · Deletion 19 · Docs 25 · Security 2 · Test 3
+Totals: Upgrade 101 · Fix 38 · Modification 13 · Deletion 19 · Docs 26 · Security 2 · Test 3
 
 Types: **Upgrade** = new feature or capability · **Fix** = bug fix · **Modification** = change/refactor/chore · **Deletion** = code or files removed · **Docs** · **Security** · **Test**.
 
 ## 2026-11-20 (Friday)
 
+- **07:36 IST** · **Upgrade** · feat(models): real THX-02 + Laya as a veto-only meta-label filter; VPIN/regime risk sizing (`317212a`, Ekanth B S)
+  - Files: +7 added · ~16 modified · −0 deleted
+  - Added: `cryptoscope/agents/decision_models.py`, `cryptoscope/models_sidecar/server.py`, `cryptoscope/quant/flow_risk.py`, `requirements-models.txt`, `scripts/download_decision_models.py`, `tests/test_flow_risk.py`, `tests/test_meta_label_filter.py`
+  - Details: Sidecar (cryptoscope/models_sidecar/server.py): HAL-X-AI/THX-02 and convaiinnovations/laya (typed-decisions) behind a token-protected 127.0.0.1:8950 endpoint. Runs in WSL on Windows because Application Control blocks PyTorch's DLLs; the dashboard never imports torch. DebateBot asks both models "target before stop?" alongside the LLM debate; answers go to DebateResult.meta and the new meta_labels journal table. RiskBot vetoes (META_LABEL_SKIP) only when ZILLERS_META_ENFORCE=1; default is shadow mode. Any error = no opinion (fail open). P&L page: take-vs-skip comparison per model with a recommen
+- **07:12 IST** · **Docs** · docs: update CHANGES.md (`e07d454`, Ekanth B S)
+  - Files: +0 added · ~1 modified · −0 deleted
 - **07:12 IST** · **Fix** · fix(scanner): measure depth within 0.2% of mid instead of the single best level (`3a1396a`, Ekanth B S)
   - Files: +0 added · ~2 modified · −0 deleted
   - Details: The best bid/ask level alone flagged BNB ($68) and SUI ($16) as thin although they hold $527k and $186k within 0.2%. Depth now sums the order book (limit 100) within +/-0.2% of mid on the thinner side; minimum $5,000 (ZILLERS_MIN_DEPTH_USD). Unknown depth keeps the coin.
