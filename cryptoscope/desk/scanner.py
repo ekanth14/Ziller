@@ -80,12 +80,33 @@ def fetch_book_tickers() -> Dict[str, Dict[str, float]]:
 
 
 def book_quality(book: Optional[Dict[str, float]]) -> Optional[Dict[str, float]]:
-    """Spread as a fraction of mid, and the thinner side of the top of book in USDT."""
+    """Spread as a fraction of mid."""
     if not book or book["bid"] <= 0 or book["ask"] < book["bid"]:
         return None
     mid = (book["bid"] + book["ask"]) / 2
-    return {"spread_pct": (book["ask"] - book["bid"]) / mid,
-            "top_depth_usd": min(book["bid"] * book["bid_qty"], book["ask"] * book["ask_qty"])}
+    return {"spread_pct": (book["ask"] - book["bid"]) / mid}
+
+
+def depth_within(depth: Dict[str, Any], band: float = 0.002) -> Optional[float]:
+    """USDT resting within +/-band of mid on the thinner side (one price level alone is misleading)."""
+    bids = [(float(p), float(q)) for p, q in depth.get("bids", [])]
+    asks = [(float(p), float(q)) for p, q in depth.get("asks", [])]
+    if not bids or not asks:
+        return None
+    mid = (bids[0][0] + asks[0][0]) / 2
+    bid_usd = sum(p * q for p, q in bids if p >= mid * (1 - band))
+    ask_usd = sum(p * q for p, q in asks if p <= mid * (1 + band))
+    return min(bid_usd, ask_usd)
+
+
+def fetch_depth(symbol: str) -> Dict[str, Any]:
+    last = None
+    for base in ENDPOINTS:
+        try:
+            return _get(f"{base}/api/v3/depth?symbol={symbol}&limit=100", timeout=10)
+        except Exception as exc:
+            last = exc
+    raise RuntimeError(f"depth unavailable: {type(last).__name__}")
 
 
 def fetch_trading_usdt_symbols(base_url: str) -> set:
@@ -168,7 +189,7 @@ def intraday_factors(candles: List[Dict[str, float]]) -> Optional[Dict[str, floa
 RISK_OFF_MEDIAN_24H = float(os.environ.get("ZILLERS_RISK_OFF_MEDIAN", "-0.03"))  # median coin down >=3%/24h
 # A 0.5% target cannot survive a wide spread; thin top-of-book means the fill slips past it.
 MAX_SPREAD = float(os.environ.get("ZILLERS_MAX_SPREAD", "0.0015"))          # 0.15% of mid
-MIN_TOP_DEPTH_USD = float(os.environ.get("ZILLERS_MIN_TOP_DEPTH_USD", "1000"))
+MIN_DEPTH_USD = float(os.environ.get("ZILLERS_MIN_DEPTH_USD", "5000"))   # within 0.2% of mid, thinner side
 MIN_ATR1H = 0.0025 # 0.25%/h: a 0.5-1% target is reachable within a few hours
 MAX_ATR1H = 0.03     # above 3%/h, ordinary noise hits a 0.5-1% stop most of the time
 
@@ -188,8 +209,10 @@ class MarketScanner:
                  klines_fetcher: Callable[..., List[Dict[str, float]]] = fetch_klines,
                  testnet_symbols: Callable[[], set] = lambda: fetch_trading_usdt_symbols(TESTNET),
                  live_symbols: Optional[Callable[[], set]] = None, fallback: Optional[bool] = None,
-                 book_fetcher: Optional[Callable[[], Dict[str, Dict[str, float]]]] = fetch_book_tickers):
-        self.book_fetcher = book_fetcher
+                 book_fetcher: Optional[Callable[[], Dict[str, Dict[str, float]]]] = fetch_book_tickers,
+                 depth_fetcher: Optional[Callable[[str], Dict[str, Any]]] = fetch_depth):
+        # Both default to Binance; tests pass None to stay offline. Depth is checked only when book data loaded.
+        self.book_fetcher, self.depth_fetcher = book_fetcher, depth_fetcher
         self.min_quote_volume, self.max_24h_move = min_quote_volume, max_24h_move
         self.shortlist, self.top_n, self.ttl = shortlist, top_n, ttl_seconds
         self.tickers_fetcher, self.klines_fetcher = tickers_fetcher, klines_fetcher
@@ -246,17 +269,30 @@ class MarketScanner:
                 reason = "not_on_testnet"
             q = book_quality(books.get(sym)) if books else None
             if q:
-                row["spread_pct"], row["top_depth_usd"] = round(q["spread_pct"], 6), round(q["top_depth_usd"], 2)
+                row["spread_pct"] = round(q["spread_pct"], 6)
                 if not reason and q["spread_pct"] > MAX_SPREAD:
                     reason = "wide_spread"
-                elif not reason and q["top_depth_usd"] < MIN_TOP_DEPTH_USD:
-                    reason = "thin_book"
             row["excluded"] = reason
             if reason:
                 excluded[reason] += 1
             rows.append(row)
 
         survivors = sorted((r for r in rows if not r["excluded"]), key=lambda r: -r["quote_volume"])[: self.shortlist]
+
+        if books and self.depth_fetcher is not None:
+            def depth(r):
+                try:
+                    r["depth_usd"] = depth_within(self.depth_fetcher(r["symbol"]))
+                except Exception:
+                    r["depth_usd"] = None          # unknown depth: keep the coin (volume floor still applies)
+                return r
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                survivors = list(pool.map(depth, survivors))
+            for r in survivors:
+                if r["depth_usd"] is not None and r["depth_usd"] < MIN_DEPTH_USD:
+                    r["excluded"] = "thin_book"
+                    excluded["thin_book"] += 1
+            survivors = [r for r in survivors if not r["excluded"]]
 
         def enrich(r):
             try:
@@ -306,7 +342,7 @@ class MarketScanner:
             "params": {"min_quote_volume": self.min_quote_volume, "max_24h_move": self.max_24h_move,
                        "shortlist": self.shortlist, "top_n": self.top_n, "fallback": self.fallback,
                        "excluded_symbols": sorted(blocked), "max_spread": MAX_SPREAD,
-                       "min_top_depth_usd": MIN_TOP_DEPTH_USD, "book_error": book_error},
+                       "min_depth_usd": MIN_DEPTH_USD, "book_error": book_error},
             "method": __doc__.split("Workflow", 1)[1].split("This chooses", 1)[0].strip(),
         }
         with self._lock:

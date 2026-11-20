@@ -220,19 +220,24 @@ def test_strategy_bot_uses_scalp_bracket_for_cheap_coins():
 
 
 def test_wide_spread_and_thin_book_are_excluded():
-    from cryptoscope.desk.scanner import book_quality
+    from cryptoscope.desk.scanner import book_quality, depth_within
     tickers = [_ticker(s) for s in ("UPAUSDT", "UPBUSDT", "UPCUSDT")]
     syms = {t["symbol"] for t in tickers}
-    books = {"UPAUSDT": {"bid": 99.99, "ask": 100.01, "bid_qty": 500, "ask_qty": 500},   # 0.02% spread, deep
-             "UPBUSDT": {"bid": 99.5, "ask": 100.5, "bid_qty": 500, "ask_qty": 500},     # 1% spread
-             "UPCUSDT": {"bid": 99.99, "ask": 100.01, "bid_qty": 1, "ask_qty": 500}}      # ~$100 on the bid
-    sc = MarketScanner(book_fetcher=lambda: books, tickers_fetcher=lambda: tickers, live_symbols=lambda: syms,
+    books = {"UPAUSDT": {"bid": 99.99, "ask": 100.01, "bid_qty": 1, "ask_qty": 1},     # 0.02% spread
+             "UPBUSDT": {"bid": 99.5, "ask": 100.5, "bid_qty": 500, "ask_qty": 500},   # 1% spread
+             "UPCUSDT": {"bid": 99.99, "ask": 100.01, "bid_qty": 1, "ask_qty": 1}}
+    # tiny best level but deep within 0.2% (UPA) vs genuinely thin (UPC)
+    deep = {"bids": [["99.99", "1"], ["99.90", "200"], ["98.0", "9999"]], "asks": [["100.01", "1"], ["100.10", "200"]]}
+    thin = {"bids": [["99.99", "1"], ["99.90", "2"], ["90.0", "9999"]], "asks": [["100.01", "1"], ["100.10", "2"]]}
+    sc = MarketScanner(book_fetcher=lambda: books, depth_fetcher=lambda s: thin if s == "UPCUSDT" else deep,
+                       tickers_fetcher=lambda: tickers, live_symbols=lambda: syms,
                        klines_fetcher=lambda s, i, n: _klines(TREND.get(s, 0.0), n=n, vol=0.03 if i == "1d" else 0.004, seed=len(s)),
                        testnet_symbols=lambda: syms, fallback=False)
     r = sc.scan("PAPER")
     why = {x["symbol"]: x["excluded"] for x in r["all"]}
     assert why == {"UPAUSDT": None, "UPBUSDT": "wide_spread", "UPCUSDT": "thin_book"}
     assert r["counts"]["excluded"]["wide_spread"] == 1 and r["counts"]["excluded"]["thin_book"] == 1
+    assert 20_000 < depth_within(deep) < 20_100 and depth_within({"bids": [], "asks": []}) is None
     assert book_quality(None) is None and book_quality({"bid": 2, "ask": 1, "bid_qty": 1, "ask_qty": 1}) is None
 
 
@@ -241,7 +246,7 @@ def test_book_outage_does_not_stop_the_scan():
 
     def down():
         raise OSError("no route")
-    sc = MarketScanner(book_fetcher=down, tickers_fetcher=lambda: tickers, live_symbols=lambda: {"UPAUSDT"},
+    sc = MarketScanner(book_fetcher=down, depth_fetcher=None, tickers_fetcher=lambda: tickers, live_symbols=lambda: {"UPAUSDT"},
                        klines_fetcher=lambda s, i, n: _klines(0.012, n=n, vol=0.03 if i == "1d" else 0.004, seed=3),
                        testnet_symbols=lambda: {"UPAUSDT"}, fallback=False)
     r = sc.scan("PAPER")
