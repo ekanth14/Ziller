@@ -37,6 +37,7 @@ import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 from urllib.request import Request, urlopen
 
@@ -63,6 +64,28 @@ def fetch_24h_tickers() -> List[Dict[str, Any]]:
         except Exception as exc:
             last = exc
     raise RuntimeError(f"24h tickers unavailable: {type(last).__name__}")
+
+
+def fetch_book_tickers() -> Dict[str, Dict[str, float]]:
+    """Best bid/ask and their sizes for every symbol, in one public call."""
+    last = None
+    for base in ENDPOINTS:
+        try:
+            rows = _get(f"{base}/api/v3/ticker/bookTicker", timeout=15)
+            return {r["symbol"]: {"bid": float(r["bidPrice"]), "ask": float(r["askPrice"]),
+                                  "bid_qty": float(r["bidQty"]), "ask_qty": float(r["askQty"])} for r in rows}
+        except Exception as exc:
+            last = exc
+    raise RuntimeError(f"book tickers unavailable: {type(last).__name__}")
+
+
+def book_quality(book: Optional[Dict[str, float]]) -> Optional[Dict[str, float]]:
+    """Spread as a fraction of mid, and the thinner side of the top of book in USDT."""
+    if not book or book["bid"] <= 0 or book["ask"] < book["bid"]:
+        return None
+    mid = (book["bid"] + book["ask"]) / 2
+    return {"spread_pct": (book["ask"] - book["bid"]) / mid,
+            "top_depth_usd": min(book["bid"] * book["bid_qty"], book["ask"] * book["ask_qty"])}
 
 
 def fetch_trading_usdt_symbols(base_url: str) -> set:
@@ -143,7 +166,10 @@ def intraday_factors(candles: List[Dict[str, float]]) -> Optional[Dict[str, floa
 
 
 RISK_OFF_MEDIAN_24H = float(os.environ.get("ZILLERS_RISK_OFF_MEDIAN", "-0.03"))  # median coin down >=3%/24h
-MIN_ATR1H = 0.0025  # 0.25%/h: a 0.5-1% target is reachable within a few hours
+# A 0.5% target cannot survive a wide spread; thin top-of-book means the fill slips past it.
+MAX_SPREAD = float(os.environ.get("ZILLERS_MAX_SPREAD", "0.0015"))          # 0.15% of mid
+MIN_TOP_DEPTH_USD = float(os.environ.get("ZILLERS_MIN_TOP_DEPTH_USD", "1000"))
+MIN_ATR1H = 0.0025 # 0.25%/h: a 0.5-1% target is reachable within a few hours
 MAX_ATR1H = 0.03     # above 3%/h, ordinary noise hits a 0.5-1% stop most of the time
 
 
@@ -161,7 +187,9 @@ class MarketScanner:
                  tickers_fetcher: Callable[[], List[Dict[str, Any]]] = fetch_24h_tickers,
                  klines_fetcher: Callable[..., List[Dict[str, float]]] = fetch_klines,
                  testnet_symbols: Callable[[], set] = lambda: fetch_trading_usdt_symbols(TESTNET),
-                 live_symbols: Optional[Callable[[], set]] = None, fallback: Optional[bool] = None):
+                 live_symbols: Optional[Callable[[], set]] = None, fallback: Optional[bool] = None,
+                 book_fetcher: Optional[Callable[[], Dict[str, Dict[str, float]]]] = fetch_book_tickers):
+        self.book_fetcher = book_fetcher
         self.min_quote_volume, self.max_24h_move = min_quote_volume, max_24h_move
         self.shortlist, self.top_n, self.ttl = shortlist, top_n, ttl_seconds
         self.tickers_fetcher, self.klines_fetcher = tickers_fetcher, klines_fetcher
@@ -189,7 +217,14 @@ class MarketScanner:
             except Exception:
                 testnet = set()
         blocked = excluded_symbols()
-        rows, excluded = [], {"operator_excluded": 0, "stable_or_leveraged": 0, "illiquid": 0, "spike_24h": 0, "not_on_testnet": 0}
+        books, book_error = {}, None
+        if self.book_fetcher is not None:
+            try:
+                books = self.book_fetcher()
+            except Exception as exc:     # no book data: say so, keep scanning on volume alone
+                book_error = type(exc).__name__
+        rows, excluded = [], {"operator_excluded": 0, "stable_or_leveraged": 0, "illiquid": 0, "spike_24h": 0,
+                              "not_on_testnet": 0, "wide_spread": 0, "thin_book": 0}
         for t in tickers:
             sym = t.get("symbol", "")
             if not sym.endswith("USDT") or sym not in tradable:
@@ -209,6 +244,13 @@ class MarketScanner:
                 reason = "spike_24h"
             elif testnet is not None and sym not in testnet:
                 reason = "not_on_testnet"
+            q = book_quality(books.get(sym)) if books else None
+            if q:
+                row["spread_pct"], row["top_depth_usd"] = round(q["spread_pct"], 6), round(q["top_depth_usd"], 2)
+                if not reason and q["spread_pct"] > MAX_SPREAD:
+                    reason = "wide_spread"
+                elif not reason and q["top_depth_usd"] < MIN_TOP_DEPTH_USD:
+                    reason = "thin_book"
             row["excluded"] = reason
             if reason:
                 excluded[reason] += 1
@@ -263,7 +305,8 @@ class MarketScanner:
             "counts": {"universe": len(rows), "survivors": len(survivors), "scored": len(scored), "excluded": excluded},
             "params": {"min_quote_volume": self.min_quote_volume, "max_24h_move": self.max_24h_move,
                        "shortlist": self.shortlist, "top_n": self.top_n, "fallback": self.fallback,
-                       "excluded_symbols": sorted(blocked)},
+                       "excluded_symbols": sorted(blocked), "max_spread": MAX_SPREAD,
+                       "min_top_depth_usd": MIN_TOP_DEPTH_USD, "book_error": book_error},
             "method": __doc__.split("Workflow", 1)[1].split("This chooses", 1)[0].strip(),
         }
         with self._lock:
@@ -323,8 +366,9 @@ class Autopilot:
     """Scan -> trade the top N -> rescan every `period` and rotate only when the fleet is flat."""
 
     def __init__(self, scanner: MarketScanner, fleet, positions_open: Callable[[], int], notify=None,
-                 period_seconds: float = 4 * 3600):
+                 period_seconds: float = 4 * 3600, tier_log: Optional[Path] = None):
         self.scanner, self.fleet, self.positions_open = scanner, fleet, positions_open
+        self.tier_log = Path(tier_log) if tier_log else None
         self.notify, self.period = notify, period_seconds
         self.enabled = False
         self.mode = "PAPER"
@@ -372,9 +416,24 @@ class Autopilot:
             else:
                 action = "rotation deferred (open positions)"
         self.last = {"at": time.time(), "top": top, "action": action, "previous": current}
+        if action in {"started", "rotated"}:
+            self._log_tiers(scan, top)
         if self.notify and action in {"started", "rotated"}:
             self.notify(f"🧭 <b>Autopilot {action}</b>\nMode: {self.mode}\nTrading top {len(top)}: {', '.join(top)}")
         return {"scan": scan, "autopilot": self.status()}
+
+    def _log_tiers(self, scan: Dict[str, Any], top: List[str]) -> None:
+        """Append which tier each traded coin came from, so P&L can be split by tier later."""
+        if self.tier_log is None:
+            return
+        tier_of = {s: t for t, syms in (scan.get("tiers") or {}).items() for s in syms}
+        line = {"at": time.time(), "mode": self.mode, "tiers": {s: tier_of.get(s, "UNKNOWN") for s in top}}
+        try:
+            self.tier_log.parent.mkdir(parents=True, exist_ok=True)
+            with self.tier_log.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps(line) + "\n")
+        except OSError:
+            pass   # bookkeeping only: never block trading on it
 
     def status(self) -> Dict[str, Any]:
         return {"enabled": self.enabled, "mode": self.mode, "period_hours": self.period / 3600, "last": self.last}

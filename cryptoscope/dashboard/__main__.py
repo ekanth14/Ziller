@@ -170,7 +170,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
         except sqlite3.Error:
             return 1  # unknown -> treat as holding, so the autopilot never rotates blindly
 
-    autopilot = Autopilot(scanner, fleet, _fleet_positions_open, notify=fleet.notify)
+    autopilot = Autopilot(scanner, fleet, _fleet_positions_open, notify=fleet.notify,
+                          tier_log=ROOT / "work" / "runtime" / "scanner_tiers.jsonl")
 
     from cryptoscope.desk.startup import StartupRunner, build_default_checks
 

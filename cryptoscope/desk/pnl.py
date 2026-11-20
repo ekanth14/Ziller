@@ -17,6 +17,7 @@ Formulas
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 import time
 from collections import Counter, defaultdict
@@ -52,6 +53,45 @@ def _scalar(conn, sql, default=0):
         return default if v is None else v
     except sqlite3.Error:
         return default
+
+
+def load_tier_log(path: Path) -> List[Dict[str, Any]]:
+    """Autopilot launch records [{at, tiers: {symbol: tier}}], oldest first (missing file -> [])."""
+    out = []
+    try:
+        lines = Path(path).read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return out
+    for line in lines:
+        try:
+            rec = json.loads(line)
+            out.append({"at": float(rec["at"]), "tiers": dict(rec.get("tiers") or {})})
+        except (ValueError, KeyError, TypeError):
+            continue
+    return sorted(out, key=lambda r: r["at"])
+
+
+def tier_for(symbol: str, ts: float, log: List[Dict[str, Any]]) -> str:
+    """Tier of the most recent autopilot launch at or before ts that included the symbol."""
+    tier = "UNKNOWN"
+    for rec in log:
+        if rec["at"] > ts:
+            break
+        if symbol in rec["tiers"]:
+            tier = rec["tiers"][symbol]
+    return tier
+
+
+def by_tier(closed: List[Dict[str, Any]], log: List[Dict[str, Any]], start_nav: float) -> List[Dict[str, Any]]:
+    """Split closed trades by scanner tier, so a tier that loses money can be switched off."""
+    groups: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for t in closed:
+        groups[tier_for(t["symbol"], float(t["timestamp"]), log)].append(t)
+    keep = ("trades", "wins", "realized", "win_rate", "breakeven_win_rate", "profit_factor", "expectancy")
+    order = {"TREND": 0, "SHORT_TERM": 1, "POTENTIAL": 2}
+    return [{"tier": k, **{f: s[f] for f in keep}}
+            for k, s in sorted(((k, trade_stats(v, start_nav)) for k, v in groups.items()),
+                               key=lambda kv: order.get(kv[0], 9))]
 
 
 def trade_stats(closed: List[Dict[str, Any]], start_nav: float) -> Dict[str, Any]:
@@ -181,6 +221,7 @@ def build_pnl(runtime_dir: Path, paper_bots: Optional[List[Dict[str, Any]]] = No
         "equity_curve": stats["curve"],
         "daily": [{"time": d, "pnl": round(v, 4)} for d, v in sorted(daily.items())],
         "by_symbol": sorted(({"symbol": k, **v} for k, v in by_symbol.items()), key=lambda r: r["pnl"]),
+        "by_tier": by_tier(closed, load_tier_log(runtime_dir / "scanner_tiers.jsonl"), start_nav),
         "by_exit_reason": sorted(({"reason": k, **v} for k, v in by_reason.items()), key=lambda r: r["pnl"]),
         "open_positions": open_positions,
         "recent_trades": [dict(t) for t in closed[-25:]][::-1],

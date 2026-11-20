@@ -28,7 +28,7 @@ def _scanner(**kw):
     tickers = [_ticker(s) for s in TREND] + [_ticker("USDCUSDT"), _ticker("TINYUSDT", vol=1e5),
                                             _ticker("PUMPUSDT", chg=60.0), _ticker("BTCUPUSDT")]
     syms = {t["symbol"] for t in tickers}
-    return MarketScanner(tickers_fetcher=lambda: tickers, live_symbols=lambda: syms,
+    return MarketScanner(book_fetcher=None, tickers_fetcher=lambda: tickers, live_symbols=lambda: syms,
                          klines_fetcher=lambda s, i, n: _klines(TREND.get(s, 0.0), n=n, vol=0.03 if i == "1d" else 0.004, seed=len(s)),
                          testnet_symbols=lambda: {"UPAUSDT", "UPBUSDT"}, **kw)
 
@@ -63,7 +63,7 @@ def test_fallback_always_finds_coins_when_none_trend():
     def kl(s, interval, n):
         drift = -0.004 if interval == "1d" else 0.0015     # daily downtrend (no TREND pick), hourly bounce
         return _klines(drift, n=n, vol=0.01, seed=len(s) + int(s[3]))
-    sc = MarketScanner(tickers_fetcher=lambda: tickers, live_symbols=lambda: syms, klines_fetcher=kl,
+    sc = MarketScanner(book_fetcher=None, tickers_fetcher=lambda: tickers, live_symbols=lambda: syms, klines_fetcher=kl,
                        testnet_symbols=lambda: syms, top_n=5)
     r = sc.scan("PAPER")
     assert not r["tiers"]["TREND"] and len(r["top"]) == 5
@@ -114,7 +114,7 @@ def test_autopilot_starts_then_rotates_only_when_flat():
 
 def test_autopilot_does_nothing_when_no_pair_is_eligible():
     tickers = [_ticker("DOWNXUSDT")]
-    scanner = MarketScanner(tickers_fetcher=lambda: tickers, live_symbols=lambda: {"DOWNXUSDT"},
+    scanner = MarketScanner(book_fetcher=None, tickers_fetcher=lambda: tickers, live_symbols=lambda: {"DOWNXUSDT"},
                             klines_fetcher=lambda s, i, n: _klines(-0.01))
     fleet = _Fleet()
     ap = Autopilot(scanner, fleet, lambda: 0)
@@ -217,3 +217,32 @@ def test_strategy_bot_uses_scalp_bracket_for_cheap_coins():
     tp = intent.take_profit / intent.entry_price - 1
     sl = 1 - intent.stop_loss / intent.entry_price
     assert 0.005 - 1e-6 <= tp <= 0.010 + 1e-6 and sl > 0.005 and intent.horizon_bars == 16
+
+
+def test_wide_spread_and_thin_book_are_excluded():
+    from cryptoscope.desk.scanner import book_quality
+    tickers = [_ticker(s) for s in ("UPAUSDT", "UPBUSDT", "UPCUSDT")]
+    syms = {t["symbol"] for t in tickers}
+    books = {"UPAUSDT": {"bid": 99.99, "ask": 100.01, "bid_qty": 500, "ask_qty": 500},   # 0.02% spread, deep
+             "UPBUSDT": {"bid": 99.5, "ask": 100.5, "bid_qty": 500, "ask_qty": 500},     # 1% spread
+             "UPCUSDT": {"bid": 99.99, "ask": 100.01, "bid_qty": 1, "ask_qty": 500}}      # ~$100 on the bid
+    sc = MarketScanner(book_fetcher=lambda: books, tickers_fetcher=lambda: tickers, live_symbols=lambda: syms,
+                       klines_fetcher=lambda s, i, n: _klines(TREND.get(s, 0.0), n=n, vol=0.03 if i == "1d" else 0.004, seed=len(s)),
+                       testnet_symbols=lambda: syms, fallback=False)
+    r = sc.scan("PAPER")
+    why = {x["symbol"]: x["excluded"] for x in r["all"]}
+    assert why == {"UPAUSDT": None, "UPBUSDT": "wide_spread", "UPCUSDT": "thin_book"}
+    assert r["counts"]["excluded"]["wide_spread"] == 1 and r["counts"]["excluded"]["thin_book"] == 1
+    assert book_quality(None) is None and book_quality({"bid": 2, "ask": 1, "bid_qty": 1, "ask_qty": 1}) is None
+
+
+def test_book_outage_does_not_stop_the_scan():
+    tickers = [_ticker("UPAUSDT")]
+
+    def down():
+        raise OSError("no route")
+    sc = MarketScanner(book_fetcher=down, tickers_fetcher=lambda: tickers, live_symbols=lambda: {"UPAUSDT"},
+                       klines_fetcher=lambda s, i, n: _klines(0.012, n=n, vol=0.03 if i == "1d" else 0.004, seed=3),
+                       testnet_symbols=lambda: {"UPAUSDT"}, fallback=False)
+    r = sc.scan("PAPER")
+    assert r["params"]["book_error"] == "OSError" and r["all"][0]["excluded"] is None

@@ -58,6 +58,7 @@ class RiskBot(BaseBot):
         enable_kelly_sizing: bool = False,     # Gated: requires >= 300 closed trades
         state_path: Optional[str] = None,      # persist breakers/NAV across restarts when set
         protections: Any = None,               # cryptoscope.execution.protections.ProtectionManager
+        max_entries_per_day: Optional[int] = None,  # new positions per UTC day; env ZILLERS_MAX_TRADES_PER_DAY
     ):
         super().__init__(name, bus)
         self.initial_nav = initial_nav
@@ -74,8 +75,16 @@ class RiskBot(BaseBot):
         self.kelly_fraction = kelly_fraction
         self.fixed_risk_fraction = fixed_risk_fraction
         self.enable_kelly_sizing = enable_kelly_sizing
+        # Fewer, better trades: every round trip costs ~0.2% in fees, so cap new entries per day.
+        if max_entries_per_day is None:
+            try:
+                max_entries_per_day = int(os.environ.get("ZILLERS_MAX_TRADES_PER_DAY", "12"))
+            except ValueError:
+                max_entries_per_day = 12
+        self.max_entries_per_day = max(0, max_entries_per_day)
 
         # State tracking
+        self.daily_entries: int = 0
         self.daily_realized_pnl: float = 0.0
         self.daily_loss_circuit_breaker: bool = False
         self.drawdown_circuit_breaker: bool = False
@@ -117,6 +126,7 @@ class RiskBot(BaseBot):
             self.closed_trades_count = int(data.get("closed_trades_count", 0))
             if data.get("day") == self._day:
                 self.daily_realized_pnl = float(data.get("daily_realized_pnl", 0.0))
+                self.daily_entries = int(data.get("daily_entries", 0))
                 self.daily_loss_circuit_breaker = bool(data.get("daily_loss_circuit_breaker", False))
         except (OSError, ValueError, KeyError, TypeError):
             # Unreadable risk state must fail closed rather than silently reset the breakers.
@@ -129,6 +139,7 @@ class RiskBot(BaseBot):
         data = {
             "day": self._day,
             "daily_realized_pnl": self.daily_realized_pnl,
+            "daily_entries": self.daily_entries,
             "daily_loss_circuit_breaker": self.daily_loss_circuit_breaker,
             "drawdown_circuit_breaker": self.drawdown_circuit_breaker,
             "current_nav": self.current_nav,
@@ -149,6 +160,7 @@ class RiskBot(BaseBot):
         if today != self._day:
             self._day = today
             self.daily_realized_pnl = 0.0
+            self.daily_entries = 0
             self.daily_loss_circuit_breaker = False
             self._save_state()
 
@@ -171,6 +183,10 @@ class RiskBot(BaseBot):
 
         if self.daily_loss_circuit_breaker:
             veto_reasons.append("DAILY_LOSS_LIMIT: Circuit breaker active.")
+
+        cap = self._entry_cap_reason(intent)
+        if cap:
+            veto_reasons.append(cap)
 
         if self.protections is not None:
             locked, reasons = self.protections.is_locked(intent.symbol)
@@ -198,6 +214,15 @@ class RiskBot(BaseBot):
 
         return len(veto_reasons) == 0, veto_reasons
 
+    def _entry_cap_reason(self, intent) -> Optional[str]:
+        """Veto a NEW position once today's entry cap is used (adding to an open one is not an entry)."""
+        self._roll_day()
+        if intent.direction == "BUY" and intent.symbol not in self.open_positions \
+                and self.daily_entries >= self.max_entries_per_day:
+            return (f"MAX_DAILY_TRADES: {self.daily_entries} new positions today "
+                    f"(cap {self.max_entries_per_day}, ZILLERS_MAX_TRADES_PER_DAY).")
+        return None
+
     @staticmethod
     def _valid_prices(intent):
         values = (intent.entry_price,intent.stop_loss,intent.take_profit)
@@ -221,6 +246,10 @@ class RiskBot(BaseBot):
         """Track open position exposure."""
         sym = fill.symbol
         if fill.side == "BUY":
+            if sym not in self.open_positions:
+                self._roll_day()
+                self.daily_entries += 1
+                self._save_state()
             pos = self.open_positions.get(sym, {"quantity": 0.0, "entry": fill.executed_price, "usd_value": 0.0})
             pos["quantity"] += fill.quantity
             pos["entry"] = fill.executed_price
@@ -293,6 +322,11 @@ class RiskBot(BaseBot):
         # Gate 1: Debate verdict
         if debate.verdict != "APPROVE":
             veto_reasons.append(f"Debate layer verdict is {debate.verdict} (Conviction: {debate.conviction_score:.1f})")
+
+        # Gate 1a: daily entry cap (re-checked here: fills may have landed during the debate)
+        cap = self._entry_cap_reason(intent)
+        if cap:
+            veto_reasons.append(cap)
 
         # Gate 1b: Protections (cooldown, stop-loss guard, low-profit pair, closed-trade drawdown)
         if self.protections is not None:
@@ -413,5 +447,7 @@ class RiskBot(BaseBot):
             "daily_realized_pnl": self.daily_realized_pnl,
             "open_positions": list(self.open_positions.keys()),
             "max_daily_loss_usd": self.initial_nav * self.max_daily_loss_pct,
+            "daily_entries": self.daily_entries,
+            "max_entries_per_day": self.max_entries_per_day,
             "drawdown_halted": self.drawdown_circuit_breaker
         }

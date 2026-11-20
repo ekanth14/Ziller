@@ -41,7 +41,7 @@ def test_scanner_never_picks_excluded_and_ranks_many(monkeypatch):
     alts = [f"ALT{i:02d}USDT" for i in range(40)]
     syms = ["BTCUSDT", "ETHUSDT", "SOLUSDT", *alts]
     tickers = [_ticker(s, vol=1e9 if s in {"BTCUSDT", "ETHUSDT", "SOLUSDT"} else 50e6) for s in syms]
-    sc = MarketScanner(tickers_fetcher=lambda: tickers, live_symbols=lambda: set(syms),
+    sc = MarketScanner(book_fetcher=None, tickers_fetcher=lambda: tickers, live_symbols=lambda: set(syms),
                        klines_fetcher=lambda s, i, n: _uptrend(), testnet_symbols=lambda: set(syms))
     r = sc.scan("PAPER")
     reasons = {x["symbol"]: x["excluded"] for x in r["all"]}

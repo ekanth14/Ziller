@@ -94,6 +94,12 @@ function render() {
     'No closed trades yet.');
   table('byreason', [['EXIT'], ['TRADES', 'num'], ['P&L', 'num']],
     d.by_exit_reason.map(r => `<tr><td>${esc(r.reason)}</td><td class="num">${r.trades}</td><td class="num ${cls(r.pnl)}">${money(r.pnl, true)}</td></tr>`), '—');
+  const rate = v => v == null ? '—' : Math.round(v * 100) + '%';
+  table('bytier', [['TIER'], ['TRADES', 'num'], ['WIN', 'num'], ['BREAK-EVEN', 'num'], ['P&L', 'num']],
+    (d.by_tier || []).map(r => `<tr><td><b>${esc(r.tier.replace('_', '-'))}</b></td><td class="num">${r.trades}</td>` +
+      `<td class="num ${r.win_rate != null && r.breakeven_win_rate != null ? (r.win_rate >= r.breakeven_win_rate ? 'up' : 'dn') : ''}">${rate(r.win_rate)}</td>` +
+      `<td class="num muted">${rate(r.breakeven_win_rate)}</td><td class="num ${cls(r.realized)}">${money(r.realized, true)}</td></tr>`),
+    'No closed trades yet. Tiers are recorded each time the autopilot starts or rotates.');
 
   table('bots', [['BOT'], ['STATUS'], ['INVESTED', 'num'], ['EQUITY', 'num'], ['P&L', 'num'], ['VS HOLD', 'num'], ['FILLS', 'num']],
     d.paper_bots.map(b => `<tr><td><b>${esc(b.kind)}</b> ${esc(b.symbol)}</td><td class="muted">${esc(b.status)}</td><td class="num">${money(b.investment)}</td>` +

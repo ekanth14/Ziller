@@ -16,3 +16,43 @@ def test_breakeven_win_rate_and_sharpe():
 def test_stats_with_no_trades():
     s = trade_stats([], 10_000)
     assert s["breakeven_win_rate"] is None and s["sharpe_per_trade"] is None
+
+
+def test_pnl_split_by_scanner_tier(tmp_path):
+    import json
+    from cryptoscope.desk.pnl import by_tier, load_tier_log, tier_for
+    log_path = tmp_path / "scanner_tiers.jsonl"
+    log_path.write_text("\n".join([
+        json.dumps({"at": 1000, "tiers": {"AUSDT": "TREND", "BUSDT": "POTENTIAL"}}),
+        "not json",
+        json.dumps({"at": 2000, "tiers": {"AUSDT": "SHORT_TERM"}}),
+    ]), encoding="utf-8")
+    log = load_tier_log(log_path)
+    assert tier_for("AUSDT", 1500, log) == "TREND" and tier_for("AUSDT", 2500, log) == "SHORT_TERM"
+    assert tier_for("BUSDT", 2500, log) == "POTENTIAL" and tier_for("CUSDT", 2500, log) == "UNKNOWN"
+    closed = [{"symbol": "AUSDT", "timestamp": 1500, "pnl_usd": 5, "duration_seconds": 1},
+              {"symbol": "BUSDT", "timestamp": 1600, "pnl_usd": -3, "duration_seconds": 1},
+              {"symbol": "BUSDT", "timestamp": 1700, "pnl_usd": -2, "duration_seconds": 1}]
+    rows = {r["tier"]: r for r in by_tier(closed, log, 10_000)}
+    assert [r["tier"] for r in by_tier(closed, log, 10_000)] == ["TREND", "POTENTIAL"]
+    assert rows["TREND"]["realized"] == 5 and rows["POTENTIAL"]["trades"] == 2 and rows["POTENTIAL"]["win_rate"] == 0
+    assert load_tier_log(tmp_path / "missing.jsonl") == []
+
+
+def test_autopilot_records_tiers_on_start(tmp_path):
+    from cryptoscope.desk.scanner import Autopilot
+
+    class Scan:
+        def scan(self, mode, force=False):
+            return {"top": ["AUSDT", "BUSDT"], "tiers": {"TREND": ["AUSDT"], "SHORT_TERM": [], "POTENTIAL": ["BUSDT"]}}
+
+    class Fleet:
+        def status(self):
+            return {"running": False}
+
+        def start(self, *a):
+            pass
+    log = tmp_path / "t.jsonl"
+    Autopilot(Scan(), Fleet(), lambda: 0, tier_log=log)._cycle("admin", first=True)
+    import json
+    assert json.loads(log.read_text())["tiers"] == {"AUSDT": "TREND", "BUSDT": "POTENTIAL"}
