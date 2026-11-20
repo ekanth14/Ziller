@@ -1,12 +1,12 @@
-"""THX-02 Thinking Decision Model Integration.
+"""Formula ensemble used inside the hedge-fund committee (historically named "THX-02").
 
-Implements the THX-02 Decision Engine wrapping HAL-X-AI/THX-02
-(4.5B decision backbone + 60M thinking adapter).
-Supports dual-mode execution:
-1. NATIVE mode: when native weights or runtime are present.
-2. DETERMINISTIC ENSEMBLE mode: zero-dependency calibrated probability vectors
-   derived from Order Flow CVD, log-return z-score, GARCH vol, and Alpha158 momentum factors,
-   with structured reasoning thought chains.
+Despite the class name, what runs here is a DETERMINISTIC FORMULA: softmax over logits built from
+order-flow CVD, log-return z-score, GARCH vol and Alpha158 momentum. It is not the HAL-X-AI/THX-02
+neural model. The NATIVE mode below is a stub that is never reached on this machine.
+
+The real HAL-X-AI/THX-02 (and convaiinnovations/laya) run in a separate sidecar process and act only
+as a veto-only meta-label filter on fleet trades: see cryptoscope/agents/decision_models.py and
+cryptoscope/models_sidecar/server.py. The class keeps its name so existing callers keep working.
 """
 
 from dataclasses import dataclass, field

@@ -94,6 +94,56 @@ def by_tier(closed: List[Dict[str, Any]], log: List[Dict[str, Any]], start_nav: 
                                key=lambda kv: order.get(kv[0], 9))]
 
 
+def _meta_label(closed, meta_rows):
+    from cryptoscope.agents.decision_models import enforce_enabled, min_probability
+    return meta_label_report(closed, meta_rows, min_probability(), enforce_enabled())
+
+
+def meta_label_report(closed: List[Dict[str, Any]], labels: List[Dict[str, Any]], min_p: float = 0.5,
+                      enforced: bool = False, needed: int = 100) -> Dict[str, Any]:
+    """Would the THX-02 / Laya veto have helped? Compare closed trades the models said take vs skip.
+
+    Each closed trade is matched to the latest meta-label answer for its coin given before the trade
+    opened (close time - holding time, +2 min slack for the debate). Trades with no answer are 'no opinion'.
+    """
+    by_sym: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for r in sorted(labels, key=lambda r: r["timestamp"]):
+        by_sym[r["symbol"]].append(r)
+
+    def label_for(t):
+        opened = float(t["timestamp"]) - float(t.get("duration_seconds") or 0) + 120
+        best = None
+        for r in by_sym.get(t["symbol"], []):
+            if r["timestamp"] > opened:
+                break
+            best = r
+        return best
+
+    matched = [(t, label_for(t)) for t in closed]
+    keep = ("trades", "win_rate", "expectancy", "realized")
+    rows = []
+    for model, col in (("THX-02 + Laya", "mean_p"), ("THX-02", "thx02_p"), ("Laya", "laya_p")):
+        groups: Dict[str, List[Dict[str, Any]]] = {"take": [], "skip": [], "no opinion": []}
+        for t, lab in matched:
+            p = None if lab is None else lab.get(col)
+            groups["no opinion" if p is None else ("take" if p >= min_p else "skip")].append(t)
+        for g, ts in groups.items():
+            s = trade_stats(ts, 0.0)
+            rows.append({"model": model, "group": g, **{k: s[k] for k in keep}})
+    take = next(r for r in rows if r["model"] == "THX-02 + Laya" and r["group"] == "take")
+    skip = next(r for r in rows if r["model"] == "THX-02 + Laya" and r["group"] == "skip")
+    judged = take["trades"] + skip["trades"]
+    if judged < needed:
+        verdict = f"Keep shadow mode: {judged}/{needed} closed trades have a model answer."
+    elif (skip["expectancy"] or 0) < 0 and (skip["expectancy"] or 0) < (take["expectancy"] or 0):
+        verdict = (f"Skipped trades averaged {skip['expectancy']:+.2f} USDT vs {take['expectancy']:+.2f} for taken: "
+                   "the veto would have helped. Enforce with ZILLERS_META_ENFORCE=1 if you agree.")
+    else:
+        verdict = "The models' skips did not pick out worse trades: keep shadow mode."
+    return {"min_p": min_p, "enforced": enforced, "answered": len(labels), "judged": judged, "needed": needed,
+            "rows": rows, "verdict": verdict}
+
+
 def trade_stats(closed: List[Dict[str, Any]], start_nav: float) -> Dict[str, Any]:
     pnls = [float(t["pnl_usd"]) for t in closed]
     wins, losses = [p for p in pnls if p > 0], [p for p in pnls if p <= 0]
@@ -165,6 +215,7 @@ def build_pnl(runtime_dir: Path, paper_bots: Optional[List[Dict[str, Any]]] = No
                     continue
                 vetoes[str(reason).split(":", 1)[0].split(" (", 1)[0][:60]] += 1
         last_signal = _scalar(jr, "SELECT max(timestamp) FROM signals", None)
+        meta_rows = _rows(jr, "SELECT timestamp, symbol, thx02_p, laya_p, mean_p FROM meta_labels ORDER BY timestamp")
 
     with closing(_ro(runtime_dir / "orchestrator_execution.db") or sqlite3.connect(":memory:")) as ex:
         ex.row_factory = sqlite3.Row
@@ -221,6 +272,7 @@ def build_pnl(runtime_dir: Path, paper_bots: Optional[List[Dict[str, Any]]] = No
         "equity_curve": stats["curve"],
         "daily": [{"time": d, "pnl": round(v, 4)} for d, v in sorted(daily.items())],
         "by_symbol": sorted(({"symbol": k, **v} for k, v in by_symbol.items()), key=lambda r: r["pnl"]),
+        "meta_label": _meta_label(closed, meta_rows),
         "by_tier": by_tier(closed, load_tier_log(runtime_dir / "scanner_tiers.jsonl"), start_nav),
         "by_exit_reason": sorted(({"reason": k, **v} for k, v in by_reason.items()), key=lambda r: r["pnl"]),
         "open_positions": open_positions,

@@ -63,6 +63,7 @@ class StrategyBot(BaseBot):
         self.is_paused: bool = False
         self.pause_reason: str = ""
         self.latest_prices: Dict[str, float] = {}
+        self.latest_candles: Dict[str, list] = {}   # for bar-VPIN and volatility regime (risk-only inputs)
         self.last_signal_time: Dict[str, float] = {}
         self.proposed_intents_count: int = 0
 
@@ -89,6 +90,8 @@ class StrategyBot(BaseBot):
     async def on_event(self, event: BaseEvent) -> None:
         if isinstance(event, MarketUpdate):
             self.latest_prices[event.symbol] = event.price
+            if event.candles:
+                self.latest_candles[event.symbol] = event.candles
         elif isinstance(event, Signal):
             await self._evaluate_signal(event)
 
@@ -145,11 +148,29 @@ class StrategyBot(BaseBot):
             take_profit=target,
             horizon_bars=horizon,
             reasons=sig.reasons + [f"Signal confidence {sig.confidence:.2f}",
-                                   f"{self.profile}: target {target_pct:.2%}, stop {stop_pct:.2%}"]
+                                   f"{self.profile}: target {target_pct:.2%}, stop {stop_pct:.2%}"],
+            # Facts known at this bar, for the THX-02 / Laya meta-label check (numbers and short labels only).
+            metadata={"features": {**{k: v for k, v in (sig.indicators or {}).items()
+                                      if isinstance(v, (int, float, str)) and not isinstance(v, bool)
+                                      and (not isinstance(v, str) or len(v) <= 40)},
+                                   "confidence": sig.confidence, "strategy": sig.strategy_id,
+                                   "atr_pct": atr / price if price else None,
+                                   **self._flow_features(sig.symbol)}},
         )
         self.proposed_intents_count += 1
         logger.info("[%s] Proposing %s %s @ %.4f (SL: %.4f, TP: %.4f)", self.name, intent.direction, intent.symbol, entry, stop, target)
         await self.emit(intent)
+
+    def _flow_features(self, symbol: str) -> Dict[str, Any]:
+        """Bar-VPIN and volatility regime from the latest candles (risk-only; RiskBot may shrink size)."""
+        from cryptoscope.quant.flow_risk import vol_regime, vpin_state
+        candles = self.latest_candles.get(symbol) or []
+        try:
+            v, r = vpin_state(candles), vol_regime(candles)
+        except Exception:
+            return {}
+        return {"vpin": v["vpin"], "vpin_pctile": v["vpin_pctile"], "vpin_toxic": v["toxic"],
+                "regime": r["regime"], "vol_ratio": r["vol_ratio"]}
 
     def get_health_details(self) -> Dict[str, Any]:
         return {

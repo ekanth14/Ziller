@@ -3,7 +3,8 @@
 Systems linked (all in-process, all fed with real candles and the desk's own risk numbers):
 - SMC + Laya   : cryptoscope.autotrader.decision.FastDecisionLayer (Tier 1 rules + Laya Tier 2 classifier)
 - Committee    : core.agents.hedge_fund_committee.HedgeFundCommittee (personas + risk officer)
-- THX-02       : core.agents.thx02_decision_engine.THX02DecisionEngine (inside the committee)
+- Formula ensemble: core.agents.thx02_decision_engine (deterministic formula named after THX-02; NOT the
+                model -- the real THX-02 and Laya run in the sidecar, see cryptoscope/agents/decision_models.py)
 - Ollama       : local LLM explainer (status only; it never votes)
 
 Safety rule: the overlay can only make the desk MORE conservative. It may veto a rule-PM BUY

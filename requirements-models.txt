@@ -1,0 +1,12 @@
+# Decision-model sidecar (real HAL-X-AI/THX-02 + convaiinnovations/laya). NOT for the main .venv.
+# Install into an isolated venv; on Windows use WSL (Application Control blocks PyTorch's DLLs):
+#   wsl -- sudo apt install -y python3.14-venv          # once, needs your Ubuntu password
+#   wsl -- python3 -m venv ~/.zillers-models-venv
+#   wsl -- ~/.zillers-models-venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   wsl -- ~/.zillers-models-venv/bin/pip install -r requirements-models.txt
+#   wsl -- ~/.zillers-models-venv/bin/python scripts/download_decision_models.py --dest ~/zillers-models
+# Packages were source-reviewed on 2026-11-20: pure-Python wheels, safetensors loading, no
+# trust_remote_code; network use is limited to optional hosted clients that the sidecar never calls.
+laya==0.5.0
+vegaml==0.17.2
+thx02[local]==1.0.0

@@ -54,9 +54,9 @@ function render(m) {
       `<td class="muted">${t.source_latencies ? Object.entries(t.source_latencies).map(([s, v]) => `${esc(s)} ${v == null ? '—' : Math.round(v) + 'ms'}`).join(' · ') : '—'}</td></tr>`).join('');
   const a = m.ai || {};
   $('ai').innerHTML = kv([['Ollama', `<span class="${a.status === 'available' ? 'ok' : 'bad'}">${esc(a.status)}</span> ${esc(a.model || '')}`],
-    ['Ollama role', esc(a.role || '')], ['Laya classifier', `${esc(a.laya?.status)} · checkpoint ${a.laya?.checkpoint_loaded ? 'loaded' : 'missing'}`],
-    ['Laya evaluations', a.laya?.evaluations ?? 0], ['SMC Tier 1', '<span class="ok">in-process</span>'],
-    ['Committee + THX-02', '<span class="ok">in-process</span>'], ['C++ kernels', 'Python fallback if blocked']]);
+    ['Ollama role', esc(a.role || '')], ['Tier-2 classifier (local)', `${esc(a.laya?.status)} · checkpoint ${a.laya?.checkpoint_loaded ? 'loaded' : 'missing'}`],
+    ['Tier-2 evaluations', a.laya?.evaluations ?? 0], ['SMC Tier 1', '<span class="ok">in-process</span>'],
+    ['Committee + formula ensemble', '<span class="ok">in-process</span>'], ['THX-02 + Laya (real models)', 'sidecar · see START ALL'], ['C++ kernels', 'Python fallback if blocked']]);
   renderFleet(m.fleet);
   $('live-dot').className = 'dot'; $('live-label').textContent = 'LIVE';
 }
@@ -139,7 +139,7 @@ async function masterKill() {
   if (!state.user) { $('login-err').textContent = 'Sign in to use the kill switch.'; $('login').showModal(); return; }
   const flatten = confirm('MASTER KILL SWITCH\n\nThis immediately:\n' +
     ' • latches the emergency halt (no new entries anywhere)\n • stops the autotrader fleet\n' +
-    ' • stops every AI system (SMC/Laya, committee, THX-02, strategies, all Ollama models) and unloads models from memory\n\n' +
+    ' • stops every AI system (SMC, committee, formula ensemble, THX-02 + Laya sidecar, strategies, all Ollama models) and unloads models from memory\n\n' +
     'OK = HALT + FLATTEN open positions (market close)\nCancel = choose plain HALT instead');
   const action = flatten ? 'HALT_FLATTEN' : (confirm('Engage plain HALT (keep open positions and their exchange stops)?') ? 'HALT' : null);
   if (!action) return;

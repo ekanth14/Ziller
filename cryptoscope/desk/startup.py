@@ -7,8 +7,9 @@ Order
 1. Safety      - kill switch released, risk governor answers, OCaml shadow gate agrees with Python,
                  native C++ kernels (or the Python fallback).
 2. Data        - live Binance candles, market scanner.
-3. Decision    - rule desk, SMC + Laya, hedge-fund committee + THX-02, strategy library,
-                 HMM regime model, Strategy Lab.
+3. Decision    - rule desk, SMC + tier-2 classifier, hedge-fund committee + formula ensemble,
+                 strategy library, HMM regime model, Strategy Lab, and the real THX-02 + Laya
+                 meta-label sidecar (started here; WSL on Windows).
 4. LLMs        - Ollama server, a short JSON test on every installed chat model, then one full
                  fleet debate on the debate model (left warm for the fleet).
 5. Launch      - paper bots loop, autopilot (scanner -> fleet on the eligible top picks),
@@ -139,7 +140,8 @@ def build_default_checks(mode: str, *, kill_switch, risk_governor, fleet, autopi
                          llm_panel, laya_evaluator, klines, telegram_status, symbol: str = "ADAUSDT",
                          llm_ping: Optional[Callable[[str], Tuple[str, str]]] = None,
                          debate: Optional[Callable[[], Dict[str, Any]]] = None,
-                         testnet_account: Optional[Callable[[], Dict[str, Any]]] = None) -> List[Check]:
+                         testnet_account: Optional[Callable[[], Dict[str, Any]]] = None,
+                         decision_sidecar=None, sidecar_wait_s: float = 300.0) -> List[Check]:
     """The real checks, wired to the dashboard's live objects (all injectable for tests)."""
     shared: Dict[str, Any] = {}
 
@@ -205,14 +207,14 @@ def build_default_checks(mode: str, *, kill_switch, risk_governor, fleet, autopi
         from cryptoscope.autotrader.decision import FastDecisionLayer
         r = _smc_laya(candles()[-200:], symbol, FastDecisionLayer(), 86400)
         st = laya_evaluator.get_status()
-        laya = "Laya classifier loaded" if st.get("checkpoint_loaded") or st.get("in_process_serving_loaded") else "Laya NOT loaded"
+        laya = "tier-2 classifier loaded" if st.get("checkpoint_loaded") or st.get("in_process_serving_loaded") else "tier-2 classifier NOT loaded"
         return ("ok" if "NOT" not in laya else "warn"), f"{r['action']} · tier1 {r['tier1']['action']} · {laya}"
 
     def c_committee():
         from cryptoscope.desk.ai_layer import _committee
         r = _committee(candles(), symbol, desk())
         thx = r.get("thx02") or {}
-        return "ok", f"{r['action']} · conviction {r['conviction']:.2f} · THX-02 {thx.get('action', '—')} ({thx.get('regime', '—')})"
+        return "ok", f"{r['action']} · conviction {r['conviction']:.2f} · formula ensemble {thx.get('action', '—')} ({thx.get('regime', '—')})"
 
     def c_strats():
         from cryptoscope.desk.ai_layer import _strategies
@@ -317,6 +319,52 @@ def build_default_checks(mode: str, *, kill_switch, risk_governor, fleet, autopi
     def c_panel():
         return "ok", "ready on the desk (pauses while the fleet uses Ollama)"
 
+    def c_sidecar():
+        """Start the THX-02 + Laya sidecar (WSL on Windows) and wait until its models have loaded."""
+        if decision_sidecar is None:
+            return "warn", "not configured"
+        inst = decision_sidecar.installed()
+        if not inst.get("venv") or not any((inst.get("weights") or {}).values()):
+            return "warn", ("not installed — see scripts/download_decision_models.py "
+                            "(WSL needs: sudo apt install python3.14-venv)")
+        started = decision_sidecar.start()
+        if not started.get("ok"):
+            return "fail", started.get("error", "could not start")
+        deadline = time.time() + sidecar_wait_s
+        wanted = [n for n, ok in inst["weights"].items() if ok]
+        while time.time() < deadline:
+            h = decision_sidecar.status().get("health") or {}
+            models = h.get("models") or {}
+            if wanted and all((models.get(n) or {}).get("loaded") or (models.get(n) or {}).get("error") for n in wanted):
+                bad = [f"{n}: {models[n]['error']}" for n in wanted if models[n].get("error")]
+                if bad:
+                    return "fail", "; ".join(bad)[:200]
+                return "ok", " · ".join(f"{n} loaded in {models[n].get('load_s')} s" for n in wanted) + f" ({inst.get('runtime')})"
+            time.sleep(2)
+        return "fail", f"models still loading after {sidecar_wait_s:.0f} s"
+
+    def meta_check(name):
+        def run():
+            from cryptoscope.agents.decision_models import QUESTIONS, MetaLabeler, build_state
+            if decision_sidecar is None or not (decision_sidecar.installed().get("weights") or {}).get(name):
+                return "warn", "not installed"
+            t0 = time.time()
+            try:
+                res = MetaLabeler(timeout=120).ask(build_state(symbol, "BUY", 1.0, 0.9948, 1.0075, 4,
+                                                               {"rsi": 56, "tier": "SHORT_TERM", "r4h": 0.004}),
+                                                   QUESTIONS, models=[name], timeout=120)
+            except Exception as exc:
+                return "fail", f"{type(exc).__name__}: {exc}"[:200]
+            r = (res.get("models") or {}).get(name) or {}
+            if r.get("error"):
+                return "fail", r["error"][:200]
+            p = (r.get("answers", {}).get("take") or {}).get("noul")
+            if p is None:
+                return "fail", "no probability returned"
+            mode = "ENFORCED veto" if __import__("os").environ.get("ZILLERS_META_ENFORCE") == "1" else "shadow (logged only)"
+            return "ok", f"test trade: P(target first) {float(p):.0%} in {(time.time() - t0) * 1000:.0f} ms · {mode}"
+        return run
+
     checks = [
         Check("kill", "Kill switch released", "Safety", c_kill, critical=True),
         Check("governor", "Risk governor", "Safety", c_governor, critical=True),
@@ -326,11 +374,14 @@ def build_default_checks(mode: str, *, kill_switch, risk_governor, fleet, autopi
         *([Check("testnet", "Binance testnet account", "Data", c_testnet, critical=True)] if mode == "TESTNET" else []),
         Check("scanner", "Market scanner", "Data", c_scanner),
         Check("desk", "Rule models + PM", "Decision models", c_desk),
-        Check("smc", "SMC + Laya", "Decision models", c_smc),
-        Check("committee", "Hedge-fund committee + THX-02", "Decision models", c_committee),
+        Check("smc", "SMC + tier-2 classifier", "Decision models", c_smc),
+        Check("committee", "Hedge-fund committee + formula ensemble", "Decision models", c_committee),
         Check("strategies", "Strategy library", "Decision models", c_strats),
         Check("hmm", "HMM regime model", "Decision models", c_hmm),
         Check("lab", "Strategy Lab (13 strategies)", "Decision models", c_lab),
+        Check("sidecar", "THX-02 + Laya sidecar", "Decision models", c_sidecar),
+        Check("meta:thx02", "THX-02 meta-label (HAL-X-AI)", "Decision models", meta_check("thx02")),
+        Check("meta:laya", "Laya meta-label (convaiinnovations)", "Decision models", meta_check("laya")),
         Check("ollama", "Ollama server", "LLMs", c_ollama, critical=True),
     ]
     try:

@@ -43,6 +43,11 @@ class DebateBot(BaseBot):
         self.skipped_busy_count: int = 0
         # Ollama answers one prompt at a time; queued debates would only time out behind each other.
         self._busy = asyncio.Lock()
+        # THX-02 / Laya meta-labeler (separate sidecar process). No sidecar -> "no opinion", instantly.
+        from cryptoscope.agents.decision_models import MetaLabeler
+        self.meta_labeler = MetaLabeler(timeout=float(os.environ.get("ZILLERS_META_TIMEOUT_SEC", "20")))
+        self.meta_timeout = float(os.environ.get("ZILLERS_META_TIMEOUT_SEC", "20")) + 5.0
+        self.meta_answered_count: int = 0
 
         self.subscribe(RiskPreApproved)
         self.subscribe(TradeIntent)
@@ -75,6 +80,35 @@ class DebateBot(BaseBot):
         async with self._busy:
             await self._run_debate(pre)
 
+    @staticmethod
+    def _book_imbalance(symbol: str):
+        """Public depth snapshot -> bid/ask USDT imbalance within +/-0.5% (feature only; None on any error)."""
+        try:
+            from cryptoscope.desk.scanner import fetch_depth
+            from cryptoscope.quant.flow_risk import book_imbalance
+            return book_imbalance(fetch_depth(symbol))
+        except Exception:
+            return None
+
+    async def _meta_assess(self, pre: RiskPreApproved) -> Dict[str, Any]:
+        """Ask THX-02 and Laya 'take or skip?'. Returns {} -style 'no opinion' fields on any problem."""
+        from cryptoscope.agents.decision_models import enforce_enabled
+        features = dict((pre.intent.metadata or {}).get("features") or {}) if pre.intent else {}
+        horizon_h = (pre.intent.horizon_bars / 4.0) if pre.intent else 4.0   # 15m bars
+        if self.meta_labeler._endpoint()[0] and "book_imbalance" not in features:
+            features["book_imbalance"] = await asyncio.to_thread(self._book_imbalance, pre.symbol)
+        try:
+            meta = await asyncio.to_thread(self.meta_labeler.assess, pre.symbol, pre.direction, pre.entry_price,
+                                           pre.stop_loss, pre.take_profit, horizon_h, features)
+        except Exception as exc:   # assess() already never raises; belt and braces
+            meta = {"mean_p": None, "errors": {"sidecar": type(exc).__name__}}
+        from cryptoscope.agents.decision_models import veto_reason
+        meta["enforced"] = enforce_enabled()
+        meta["vetoed"] = veto_reason(meta) is not None
+        if meta.get("mean_p") is not None:
+            self.meta_answered_count += 1
+        return meta
+
     async def _run_debate(self, pre: RiskPreApproved) -> None:
         t0 = time.time()
         self.debates_evaluated_count += 1
@@ -92,6 +126,9 @@ class DebateBot(BaseBot):
         # the decision bar. This optional context carries no sizing authority.
         if pre.intent and 'debate_context' in pre.intent.metadata:
             indicators['replay_context'] = pre.intent.metadata['debate_context']
+
+        # THX-02 / Laya meta-label check runs alongside the LLM debate; it never delays or blocks it.
+        meta_task = asyncio.ensure_future(self._meta_assess(pre))
 
         try:
             debate_task = asyncio.to_thread(
@@ -135,6 +172,11 @@ class DebateBot(BaseBot):
             logger.error("[%s] Deliberation error for %s: %s. Defaulting to REJECT.", self.name, symbol, exc)
 
         latency_ms = (time.time() - t0) * 1000.0
+        try:
+            meta = await asyncio.wait_for(meta_task, timeout=max(1.0, self.meta_timeout - (time.time() - t0)))
+        except Exception:
+            meta_task.cancel()
+            meta = {"errors": {"sidecar": "timeout"}}
         result_event = DebateResult(
             intent_id=intent_id,
             symbol=symbol,
@@ -145,6 +187,7 @@ class DebateBot(BaseBot):
             risk_summary=risk,
             latency_ms=round(latency_ms, 2),
             fallback_used=fallback_used,
+            meta=meta,
         )
         logger.info(
             "[%s] Deliberation completed for %s (%s): %s (Conviction: %.1f, Latency: %.1fms)",
@@ -190,4 +233,5 @@ class DebateBot(BaseBot):
             "fallbacks_triggered": self.fallbacks_count,
             "timeout_seconds": self.timeout_seconds,
             "skipped_busy": self.skipped_busy_count,
+            "meta_answered": self.meta_answered_count,
         }

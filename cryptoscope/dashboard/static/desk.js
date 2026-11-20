@@ -173,16 +173,16 @@ function renderAI(d) {
     else if (s.key === 'strategies') detail = s.signals.map(g => `<span class="sig">${esc(g.name.replace(/\s*\(.*\)$/, ''))}: <b class="act ${g.action === 'BUY' ? 'BUY' : g.action === 'SELL' ? 'SELL' : 'HOLD'}">${g.action === 'NONE' ? 'no setup' : esc(g.action)}</b></span>`).join('') +
       (s.not_run?.length ? `<span class="sig">${s.not_run.map(esc).join(' · ')}</span>` : '');
     else if (s.key === 'llm_panel') detail = esc(s.detail || '');
-    else if (s.key === 'smc_laya') detail = `Tier 1 ${esc(s.tier1.setup)} · score ${s.tier1.score} · Laya ${esc(s.tier2.status || '')} ${s.tier2.agreed ? 'agreed' : ''}`;
+    else if (s.key === 'smc_laya') detail = `Tier 1 ${esc(s.tier1.setup)} · score ${s.tier1.score} · tier-2 classifier ${esc(s.tier2.status || '')} ${s.tier2.agreed ? 'agreed' : ''}`;
     else if (s.key === 'committee') detail = `conviction ${(+s.conviction).toFixed(2)}${s.risk_veto ? ' · <span class="veto">risk veto</span>' : ''}` +
-      (s.thx02 ? `<br>THX-02 <span class="act ${s.thx02.action === 'BUY' || s.thx02.action === 'LONG' ? 'BUY' : s.thx02.action === 'SELL' || s.thx02.action === 'SHORT' ? 'SELL' : 'HOLD'}">${esc(s.thx02.action)}</span> · regime ${esc(s.thx02.regime)}` : '') +
+      (s.thx02 ? `<br>Formula ensemble <span class="act ${s.thx02.action === 'BUY' || s.thx02.action === 'LONG' ? 'BUY' : s.thx02.action === 'SELL' || s.thx02.action === 'SHORT' ? 'SELL' : 'HOLD'}">${esc(s.thx02.action)}</span> · regime ${esc(s.thx02.regime)}` : '') +
       `<br>${s.personas.map(p => `${esc(p.persona)} ${esc(p.action)}`).join(' · ')}`;
     return `<div class="ai-card"><div class="t"><span>${esc(s.label)}</span><span class="act ${s.action}">${s.action}</span></div>` +
       `<div class="d">${detail}${s.latency_ms != null ? ` · ${s.latency_ms}ms` : ''}</div></div>`;
   };
   const o = ai.ollama || {};
   const ollama = `<div class="ai-card"><div class="t"><span>Ollama ${esc(o.model || '')}</span><span class="${o.status === 'available' ? 'up' : 'dn'}">${esc(o.status || '?')}</span></div>` +
-    `<div class="d">${esc(o.role || '')}${o.laya ? ` · Laya ${esc(o.laya.status)}` : ''}</div></div>`;
+    `<div class="d">${esc(o.role || '')}${o.laya ? ` · tier-2 ${esc(o.laya.status)}` : ''}</div></div>`;
   const L = ai.llm;
   const llm = !L ? '' : `<div class="llm"><div class="ai-head"><span><b>LOCAL LLMs</b> <em>Ollama · one answer per model per closed bar · ${L.ready}/${L.total} ready</em></span>` +
     `<span>${L.panel_action ? `panel <span class="act ${L.panel_action}">${L.panel_action}</span>` : ''}</span></div>` +
@@ -377,7 +377,7 @@ async function masterKill() {
   if (!state.user) { $('login-err').textContent = 'Sign in to use the kill switch.'; $('login').showModal(); return; }
   const flatten = confirm('MASTER KILL SWITCH\n\nThis immediately:\n' +
     ' • latches the emergency halt (no new entries anywhere)\n • stops the autotrader fleet\n' +
-    ' • stops every AI system (SMC/Laya, committee, THX-02, strategies, all Ollama models) and unloads models from memory\n\n' +
+    ' • stops every AI system (SMC, committee, formula ensemble, THX-02 + Laya sidecar, strategies, all Ollama models) and unloads models from memory\n\n' +
     'OK = HALT + FLATTEN open positions (market close)\nCancel = choose plain HALT instead');
   const action = flatten ? 'HALT_FLATTEN' : (confirm('Engage plain HALT (keep open positions and their exchange stops)?') ? 'HALT' : null);
   if (!action) return;

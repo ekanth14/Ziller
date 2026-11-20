@@ -95,6 +95,16 @@ function render() {
   table('byreason', [['EXIT'], ['TRADES', 'num'], ['P&L', 'num']],
     d.by_exit_reason.map(r => `<tr><td>${esc(r.reason)}</td><td class="num">${r.trades}</td><td class="num ${cls(r.pnl)}">${money(r.pnl, true)}</td></tr>`), '—');
   const rate = v => v == null ? '—' : Math.round(v * 100) + '%';
+  const ml = d.meta_label;
+  if (ml) {
+    $('metamode').textContent = `THX-02 + Laya · ${ml.enforced ? 'ENFORCED veto' : 'shadow (logged only)'} · skip below ${Math.round(ml.min_p * 100)}% · ${ml.answered} answers`;
+    $('metaverdict').textContent = ml.verdict;
+    table('bymeta', [['MODEL'], ['SAID'], ['TRADES', 'num'], ['WIN', 'num'], ['AVG / TRADE', 'num'], ['P&L', 'num']],
+      ml.rows.filter(r => r.trades > 0 || r.group !== 'no opinion').map(r => `<tr><td><b>${esc(r.model)}</b></td><td>${esc(r.group.toUpperCase())}</td>` +
+        `<td class="num">${r.trades}</td><td class="num">${r.win_rate == null ? '—' : Math.round(r.win_rate * 100) + '%'}</td>` +
+        `<td class="num ${cls(r.expectancy)}">${money(r.expectancy, true)}</td><td class="num ${cls(r.realized)}">${money(r.realized, true)}</td></tr>`),
+      'No closed trades yet.');
+  }
   table('bytier', [['TIER'], ['TRADES', 'num'], ['WIN', 'num'], ['BREAK-EVEN', 'num'], ['P&L', 'num']],
     (d.by_tier || []).map(r => `<tr><td><b>${esc(r.tier.replace('_', '-'))}</b></td><td class="num">${r.trades}</td>` +
       `<td class="num ${r.win_rate != null && r.breakeven_win_rate != null ? (r.win_rate >= r.breakeven_win_rate ? 'up' : 'dn') : ''}">${rate(r.win_rate)}</td>` +

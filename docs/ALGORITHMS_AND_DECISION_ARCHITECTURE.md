@@ -424,3 +424,61 @@ Anything else — timeout (default 35 s, desk fleet uses 90 s), HTTP error, inva
 * The RiskBot correlation matrix is a static table for major pairs, not a live estimate.
 * C++ and OCaml components are exercised in CI; locally the Python fallback runs.
 * Telegram delivery and LIVE mode have not been exercised end-to-end by the assistant.
+
+---
+
+## 14. THX-02 + Laya meta-label filter and risk-only flow sizing (added 2026-11-20)
+
+### 14.1 The two models
+
+| | HAL-X-AI/THX-02 | convaiinnovations/laya (`typed-decisions`) |
+|---|---|---|
+| Kind | 4.5 B "decision model" (Qwen3.5-family backbone + readout) | ModernBERT-large encoder + decision head (421 M) |
+| Answers | probabilities over supplied options (`noul` yes/no, `score`, `choice`) | same question types; never generates text |
+| Trained for | ticket routing, classification, moderation — **not markets** | same — **not markets** |
+| Runtime here | CPU, `think=False` (its thinker needs a GPU vLLM server) | CPU |
+| License | Apache-2.0 | Apache-2.0 |
+
+Both cards' benchmarks are self-reported. THX-02's card says a new domain needs a few hundred labelled examples before its confidence can be trusted, so here the models start in **shadow mode**.
+
+**Not to be confused with:** `core/agents/thx02_decision_engine.py` (a deterministic *formula ensemble* historically named "THX-02") and the Tier-2 joblib classifier in `autotrader/decision.py`. The UI now labels these "formula ensemble" and "tier-2 classifier".
+
+### 14.2 Architecture
+
+```
+StrategyBot ──TradeIntent(features)──► DebateBot ──┬─ LLM debate (qwen3:8b, Ollama)
+                                                    └─ MetaLabeler.assess() ──HTTP 127.0.0.1:8950 + token──► sidecar
+                                                                                          (WSL on Windows: Application Control
+                                                                                           blocks PyTorch DLLs on the host)
+DebateResult.meta = {thx02_p, laya_p, mean_p, quality, enforced, vetoed}
+      │
+      ├─► JournalBot  → meta_labels table (always)
+      └─► RiskBot     → META_LABEL_SKIP veto only if ZILLERS_META_ENFORCE=1 and mean_p < ZILLERS_META_MIN_P (0.5)
+```
+
+* Questions: `take` — "will the target be hit before the stop within the time limit?" (noul → P(yes)); `quality` — 5-level score.
+* State text: coin, bracket, fee-adjusted win/loss and break-even win rate, tier, RSI, ATR%, 4h/24h returns, spread, depth, order-book imbalance, bar-VPIN and its percentile, volatility regime, strategy confidence.
+* **Fail open**: no sidecar, timeout or model error → no opinion → never vetoes. The models can never add a trade or raise a size.
+* **Proof before enforcement**: the P&L page compares closed trades the models said *take* vs *skip* (per model and combined). It recommends enforcing only after ≥ 100 judged trades and only if skipped trades had negative and lower expectancy.
+* Setup: `scripts/download_decision_models.py` (weights pinned to a commit in `REVISIONS.json`), `cryptoscope/models_sidecar/server.py`, `cryptoscope/agents/decision_models.py`. START ALL starts the sidecar and test-asks each model. The kill switch stops it.
+
+### 14.3 Risk-only flow and regime sizing — `cryptoscope/quant/flow_risk.py`
+
+| Input | Formula | Use |
+|---|---|---|
+| Bar VPIN | `Σ|taker_buy − taker_sell| / Σ volume` over 20 bars (15m) | toxic if in the top 10% of its own history **and** ≥ 1.5× its median → size × 0.5 |
+| Volatility regime | `σ(last 20 log returns) / σ(all ~60)` | ≥ 1.5 HIGH_VOL → × 0.5; ≥ 2.5 EXTREME_VOL → × 0.25 |
+| Order-book imbalance | `(bid$ − ask$)/(bid$ + ask$)` within ±0.5% of mid (REST depth at decision time) | meta-label feature only |
+
+* The smallest factor wins, and it is applied **after** every notional cap, clamped to [0, 1].
+* **Approximations:**
+  * Bar VPIN uses kline taker volume, not trade-by-trade volume buckets.
+  * The regime is a volatility ratio rather than an HMM, because ~60 bars are too few to fit one.
+  * True OFI (Cont et al.) needs a live depth stream, so a single depth snapshot is used instead.
+
+### 14.4 Research notes behind §14
+
+* **Time-series momentum** is the best-documented crypto effect. Size, momentum and market factors price the cross-section of coins (Liu & Tsyvinski; Liu, Tsyvinski & Wu).
+* **Order-flow imbalance** predicts only very short horizons. **VPIN** helps more with volatility and jumps than with direction.
+* **Funding/basis carry** has compressed to roughly 3–5% a year and has failed out-of-sample tests. It also needs perpetual shorts, so it stays analytics-only on this spot terminal.
+* **Triple-barrier labels, meta-labeling, CPCV, PBO and the Deflated Sharpe Ratio** (López de Prado; Bailey et al.) guard against false winners. They decide what is promoted (see the Strategy Lab section).

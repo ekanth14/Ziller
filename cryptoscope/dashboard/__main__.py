@@ -179,10 +179,14 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
         from cryptoscope.telegram.notify import configured as telegram_configured
         return telegram_configured()
 
+    from cryptoscope.agents.decision_models import SidecarManager
+    decision_sidecar = SidecarManager()   # real THX-02 + Laya, in WSL on Windows; never imported in-process
+
     startup = StartupRunner(lambda mode: build_default_checks(
         mode, kill_switch=kill_switch, risk_governor=RiskGovernor(), fleet=fleet, autopilot=autopilot, scanner=scanner,
         paper_bots=paper_bots, llm_panel=llm_panel, laya_evaluator=laya_evaluator,
-        klines=lambda s, i, n: _klines(s, i, n), telegram_status=_telegram_status))
+        klines=lambda s, i, n: _klines(s, i, n), telegram_status=_telegram_status,
+        decision_sidecar=decision_sidecar))
 
     def _feed_delays():
         out = {}
@@ -455,6 +459,10 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 return self.json(200 if m.get("status") in {"OK", "STALE"} else 503, m)
             if url.path == "/api/system/startup":
                 return self.json(200, startup.status())
+            if url.path == "/api/models/sidecar":
+                from cryptoscope.agents.decision_models import enforce_enabled, min_probability
+                return self.json(200, {**decision_sidecar.status(), "enforced": enforce_enabled(),
+                                       "min_p": min_probability()})
             if url.path == "/api/telegram/status":
                 from cryptoscope.telegram.notify import configured as telegram_configured
                 return self.json(200, telegram_configured())
@@ -1572,6 +1580,17 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 except RuntimeError as err:
                     return self.json(409, {"error": str(err)})
 
+            if url.path == "/api/models/sidecar":
+                if session.get("role") != "admin":
+                    return self.json(403, {"error": "Admin role required"})
+                action = str(body.get("action", "")).lower()
+                if action == "start":
+                    return self.json(200, decision_sidecar.start())
+                if action == "stop":
+                    decision_sidecar.stop()
+                    return self.json(200, {"ok": True, "stopped": True})
+                return self.json(400, {"error": "action must be start or stop"})
+
             if url.path == "/api/scanner/autopilot":
                 if session.get("role") != "admin":
                     return self.json(403, {"error": "Admin role required to control the autopilot"})
@@ -1616,6 +1635,9 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 autopilot.stop()
                 fleet.stop(reason="master kill switch")
                 result["background"]["fleet"]["running"] = fleet.status()["running"]
+                # The THX-02 + Laya sidecar frees ~10 GB of RAM; stopping it in WSL can take seconds, so not inline.
+                threading.Thread(target=decision_sidecar.stop, daemon=True, name="sidecar-stop").start()
+                result["background"]["decision_sidecar"] = "stopping"
                 return self.json(200, result)
 
             # Resume from Emergency Kill Switch (Requires Admin Password)

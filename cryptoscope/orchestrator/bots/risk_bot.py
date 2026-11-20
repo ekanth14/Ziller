@@ -323,6 +323,12 @@ class RiskBot(BaseBot):
         if debate.verdict != "APPROVE":
             veto_reasons.append(f"Debate layer verdict is {debate.verdict} (Conviction: {debate.conviction_score:.1f})")
 
+        # Gate 1m: THX-02 / Laya meta-label filter. Veto-only, and only when the operator enforces it.
+        from cryptoscope.agents.decision_models import veto_reason
+        meta_veto = veto_reason(getattr(debate, "meta", None))
+        if meta_veto:
+            veto_reasons.append(meta_veto)
+
         # Gate 1a: daily entry cap (re-checked here: fills may have landed during the debate)
         cap = self._entry_cap_reason(intent)
         if cap:
@@ -409,6 +415,14 @@ class RiskBot(BaseBot):
         # Round down so precision handling never increases approved exposure.
         approved_usd = min(approved_usd,self.current_nav * self.max_order_pct,
                            max(0.0,max_coin_usd-existing_exposure))
+        # Risk-only scaling AFTER every cap: toxic order flow (bar VPIN) or a high-volatility regime shrink
+        # the final trade. Clamped to [0, 1], so it can never enlarge a position.
+        from cryptoscope.quant.flow_risk import size_multiplier
+        scale = size_multiplier((intent.metadata or {}).get("features"))
+        mult = min(1.0, max(0.0, float(scale["multiplier"])))
+        if mult < 1.0:
+            approved_usd *= mult
+            logger.info("[%s] %s size x%.2f (%s)", self.name, intent.symbol, mult, "; ".join(scale["reasons"]))
         approved_qty = math.floor(min(approved_qty,approved_usd/entry)*100_000_000)/100_000_000
         approved_usd = approved_qty * entry
         risk_usd = approved_qty * abs(entry-stop)
