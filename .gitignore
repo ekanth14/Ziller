@@ -69,3 +69,6 @@ native/build/
 
 # OCaml build output (dune and build_wsl.sh)
 ocaml/risk_gate/_build/
+
+# Generated run outputs (backtests, research runs) - regenerated locally, never committed
+reports/
