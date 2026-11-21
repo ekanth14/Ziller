@@ -119,6 +119,8 @@ class OrchestratorEngine:
         validate_startup(self.mode)
         logger.info("[OrchestratorEngine] Starting autonomous fleet in %s mode...", self.mode)
         self._running = True
+        # Positions restored from disk count toward the risk bot's open-position and per-coin limits.
+        self.risk_bot.seed_open_positions(self.execution_bot.active_positions)
 
         # Start supervisor first
         await self.supervisor.start()

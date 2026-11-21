@@ -334,6 +334,11 @@ class ExecutionBot(TestnetLifecycle,BaseBot):
         if symbol != intent.symbol:
             self.halt_state.halt('Approved symbol conflicts with trade intent',self.name)
             return
+        if symbol in self.active_positions:
+            # Backstop for RiskBot's one-position-per-coin gate: a second entry would overwrite the tracked
+            # position, orphaning the earlier fills from their stop and target.
+            logger.warning("[%s] Refusing second entry on %s: a position is already open", self.name, symbol)
+            return
 
         # Mode check
         if self.mode == "OBSERVE":

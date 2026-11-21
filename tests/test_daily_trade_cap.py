@@ -15,8 +15,8 @@ def test_cap_blocks_new_entries_but_not_open_symbols(tmp_path):
         bot._handle_fill(Fill(symbol=sym, side="BUY", quantity=1.0, executed_price=1.0))
     ok, why = bot.check_pre_trade_risk(_intent("CUSDT"))
     assert not ok and any(r.startswith("MAX_DAILY_TRADES") for r in why)
-    assert bot.check_pre_trade_risk(_intent("AUSDT"))[0]          # already open: not a new entry
-    bot._handle_fill(Fill(symbol="AUSDT", side="BUY", quantity=1.0, executed_price=1.0))
+    ok, why = bot.check_pre_trade_risk(_intent("AUSDT"))          # already open: refused, not counted
+    assert not ok and not any(r.startswith("MAX_DAILY_TRADES") for r in why)
     assert bot.daily_entries == 2
 
     # survives a restart the same day, resets on a new UTC day

@@ -187,6 +187,9 @@ class RiskBot(BaseBot):
         cap = self._entry_cap_reason(intent)
         if cap:
             veto_reasons.append(cap)
+        held = self._already_held_reason(intent)
+        if held:
+            veto_reasons.append(held)
 
         if self.protections is not None:
             locked, reasons = self.protections.is_locked(intent.symbol)
@@ -213,6 +216,21 @@ class RiskBot(BaseBot):
             veto_reasons.append(f"STOP_TOO_TIGHT: Stop distance ({stop_dist*100:.2f}%) below minimum 0.50%.")
 
         return len(veto_reasons) == 0, veto_reasons
+
+    def _already_held_reason(self, intent) -> Optional[str]:
+        if intent.direction == "BUY" and intent.symbol in self.open_positions:
+            return f"ALREADY_IN_POSITION: {intent.symbol} is already held; one position per coin."
+        return None
+
+    def seed_open_positions(self, positions: Dict[str, Dict[str, Any]]) -> None:
+        """Tell the risk bot about positions the execution layer restored on startup (exposure + counts)."""
+        for sym, p in (positions or {}).items():
+            try:
+                qty, entry = float(p["quantity"]), float(p["entry_price"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if qty > 0 and str(p.get("side", "BUY")).upper() == "BUY":
+                self.open_positions[sym] = {"quantity": qty, "entry": entry, "usd_value": qty * entry}
 
     def _entry_cap_reason(self, intent) -> Optional[str]:
         """Veto a NEW position once today's entry cap is used (adding to an open one is not an entry)."""
@@ -355,6 +373,12 @@ class RiskBot(BaseBot):
             veto_reasons.append(
                 f"MAX_DRAWDOWN: Current drawdown ({current_drawdown_pct*100:.1f}%) exceeds max allowed ({self.max_drawdown_pct*100:.1f}%)"
             )
+
+        # Gate 3b: one position per coin. Each trade has its own bracket; adding to a held coin stacked
+        # $500 + $250 + ... fills that the execution layer could not track as one position.
+        held = self._already_held_reason(intent)
+        if held:
+            veto_reasons.append(held)
 
         # Gate 4: Max Open Positions
         if intent.symbol not in self.open_positions and len(self.open_positions) >= self.max_open_positions:

@@ -9,6 +9,7 @@ import uuid
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import re
 import logging
 import os
 import sys
@@ -154,6 +155,9 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                                  candles=lambda sym, n: _klines(sym, "1m", n), price=_last_price,
                                  gate=lambda: not kill_switch.halted, notify=fleet.notify)
     paper_bots.ensure_running()
+
+    from cryptoscope.desk.live_view import PriceCache, build_live
+    live_prices = PriceCache()   # one batched Binance price request per second, shared by every viewer
 
     from cryptoscope.desk.market_structure import MarketStructure
     from cryptoscope.desk.strategy_lab import record_promotions, run_lab
@@ -322,6 +326,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 "/lab.js": ("lab.js", "text/javascript"),
                 "/pnl": ("pnl.html", "text/html"),
                 "/pnl.js": ("pnl.js", "text/javascript"),
+                "/live": ("live.html", "text/html"),
+                "/live.js": ("live.js", "text/javascript"),
             }
             if url.path in assets:
                 name, kind = assets[url.path]
@@ -406,6 +412,41 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
             if url.path == "/api/protections":
                 from cryptoscope.execution.protections import read_status
                 return self.json(200, read_status(str(ROOT / "work" / "runtime" / "protections.json")))
+            # Live Tradebot view: every coin the fleet trades, live marks, per-coin P&L
+            if url.path == "/api/live":
+                return self.json(200, build_live(ROOT / "work" / "runtime", fleet.status(), live_prices,
+                                                 with_detail=(query.get("symbol", [None])[0] or None)))
+            if url.path == "/api/live/candles":
+                from cryptoscope.desk.feed import fetch_klines
+                from cryptoscope.desk.live_view import coin_book
+                sym = query.get("symbol", [""])[0].upper()
+                interval = query.get("interval", ["15m"])[0]
+                if not re.fullmatch(r"[A-Z0-9]{5,20}", sym) or interval not in {"1m", "5m", "15m", "1h", "4h"}:
+                    return self.json(400, {"error": "bad symbol or interval"})
+                try:
+                    limit = max(20, min(500, int(query.get("limit", ["200"])[0])))
+                    candles = fetch_klines(sym, interval, limit)
+                except Exception as err:
+                    return self.json(503, {"error": type(err).__name__})
+                book = coin_book(ROOT / "work" / "runtime", sym, fills_limit=100)
+                return self.json(200, {"symbol": sym, "interval": interval, "candles": candles,
+                                       "fills": book["fills"], "position": book["position"], "closed": book["closed"]})
+            if url.path == "/api/live/stream":
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                self.send_header("Cache-Control", "no-cache, no-transform")
+                self.send_header("X-Accel-Buffering", "no")
+                self.end_headers()
+                detail = query.get("symbol", [None])[0] or None
+                try:
+                    for _ in range(3600):   # the browser reconnects after an hour; keeps threads from piling up
+                        payload = build_live(ROOT / "work" / "runtime", fleet.status(), live_prices, with_detail=detail)
+                        self.wfile.write(("data: " + json.dumps(payload) + "\n\n").encode("utf-8"))
+                        self.wfile.flush()
+                        time.sleep(1.0)
+                except (ConnectionError, BrokenPipeError, TimeoutError, OSError):
+                    pass
+                return
             if url.path == "/api/pnl":
                 from cryptoscope.desk.pnl import build_pnl
                 marks = {}

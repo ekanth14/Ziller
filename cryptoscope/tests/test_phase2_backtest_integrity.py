@@ -133,8 +133,9 @@ def test_real_risk_per_coin_exposure_veto_is_counted_post_debate():
         pipeline = ReplayPipeline(mode='heuristic_diagnostic')
         pipeline.risk.open_positions['BTCUSDT'] = dict(usd_value=1500,quantity=15)
         assert await pipeline.approve(TradeIntent(symbol='BTCUSDT',entry_price=100,stop_loss=98,take_profit=104)) is None
-        assert pipeline.summary()['risk_post_veto'] == 1
-        assert pipeline.reasons['EXPOSURE_CAP'] == 1
+        # one position per coin: stacking onto a held coin is now refused before the debate
+        assert pipeline.summary()['risk_pre_veto'] == 1
+        assert pipeline.reasons['ALREADY_IN_POSITION'] == 1
     asyncio.run(run())
 
 

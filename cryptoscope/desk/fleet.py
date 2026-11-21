@@ -57,6 +57,14 @@ class FleetManager:
         with self._lock:
             if self._proc and self._proc.poll() is None:
                 raise RuntimeError("Fleet is already running; stop it first")
+            if mode == "PAPER":   # fleet is stopped here: safe to rebuild split positions from the journal
+                try:
+                    from cryptoscope.execution.paper_repair import repair_paper_positions
+                    runtime = self.root / "work" / "runtime"
+                    self.repaired = repair_paper_positions(runtime / "orchestrator_execution.db",
+                                                           runtime / "trading_journal.db")
+                except Exception as exc:   # never block a start on bookkeeping
+                    self.repaired = [{"error": type(exc).__name__}]
             logs = self.root / "work" / "logs"
             logs.mkdir(parents=True, exist_ok=True)
             log_path = logs / f"fleet-{time.strftime('%Y%m%d-%H%M%S')}.log"

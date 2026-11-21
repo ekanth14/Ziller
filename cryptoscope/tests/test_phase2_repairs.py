@@ -132,8 +132,9 @@ def test_actual_portfolio_limit_exercises_reconcile_counts():
     result=asyncio.run(exercise_portfolio_limits())
     assert result['correlation']['reasons']['CORRELATION_CAP']==1
     assert result['position_count']['reasons']['MAX_OPEN_POSITIONS']==1
-    assert result['per_coin']['reasons']['EXPOSURE_CAP']==1
-    assert result['per_coin']['risk_post_veto']==1
+    # one position per coin: a second entry on a held coin is refused before the debate
+    assert result['per_coin']['reasons']['ALREADY_IN_POSITION']==1
+    assert result['per_coin']['risk_pre_veto']==1
     assert result['order_notional']['approved_quantity']==5
 
 
