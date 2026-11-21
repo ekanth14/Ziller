@@ -4,12 +4,17 @@ Every modification, upgrade, fix and deletion, newest first, with date and time 
 Generated from git history by `python scripts/update_changes.py`; regenerate after each commit.
 Deleted code remains recoverable from git with `git show <hash>^:<path>`.
 
-Totals: Upgrade 104 · Fix 39 · Modification 13 · Deletion 19 · Docs 32 · Security 2 · Test 3
+Totals: Upgrade 104 · Fix 39 · Modification 13 · Deletion 20 · Docs 33 · Security 2 · Test 3
 
 Types: **Upgrade** = new feature or capability · **Fix** = bug fix · **Modification** = change/refactor/chore · **Deletion** = code or files removed · **Docs** · **Security** · **Test**.
 
 ## 2026-11-21 (Saturday)
 
+- **21:10 IST** · **Deletion** · chore(cleanup): delete demo/test data and unused local files (runtime data, not in git) (`9062b75`, Ekanth B S)
+  - Files: +0 added · ~0 modified · −0 deleted
+  - Details: Backup of every changed database: work/backups/demo-cleanup-20261121-205954/ trading_journal.db: fleet history before today's 19:28 IST run deleted (signals 4109->154, intents 411->127, debates 409->126, risk decisions 409->126, orders/fills 35->24, closed 6->2). paperbots.db: the 2 BTCUSDT paper bots (GRID ac62bada6929, DCA b16407097523) and their fills. ai_journal.db: 1,584 desk AI-overlay log rows. orchestrator_execution.db: stale details of already-closed positions. Ledger repair: UNI/NEAR stop-loss rows rebooked at full size from recorded fills (UNI -0.02 -> -7.60 USDT, NEAR -0.01 -> -19.
+- **21:10 IST** · **Docs** · docs: update CHANGES.md (`db78821`, Ekanth B S)
+  - Files: +0 added · ~1 modified · −0 deleted
 - **21:10 IST** · **Upgrade** · feat(live): Live Tradebot view; fix(fleet): one position per coin (stacked buys were overwritten) (`8fbb81b`, Ekanth B S)
   - Files: +6 added · ~15 modified · −0 deleted
   - Added: `cryptoscope/dashboard/static/live.html`, `cryptoscope/dashboard/static/live.js`, `cryptoscope/desk/live_view.py`, `cryptoscope/execution/paper_repair.py`, `tests/test_live_view.py`, `tests/test_one_position_per_coin.py`
