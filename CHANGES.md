@@ -4,12 +4,18 @@ Every modification, upgrade, fix and deletion, newest first, with date and time 
 Generated from git history by `python scripts/update_changes.py`; regenerate after each commit.
 Deleted code remains recoverable from git with `git show <hash>^:<path>`.
 
-Totals: Upgrade 108 · Fix 39 · Modification 13 · Deletion 20 · Docs 37 · Security 2 · Test 3
+Totals: Upgrade 108 · Fix 39 · Modification 13 · Deletion 21 · Docs 38 · Security 2 · Test 3
 
 Types: **Upgrade** = new feature or capability · **Fix** = bug fix · **Modification** = change/refactor/chore · **Deletion** = code or files removed · **Docs** · **Security** · **Test**.
 
 ## 2026-11-22 (Sunday)
 
+- **00:36 IST** · **Deletion** · chore(cleanup): delete .github CI, old generated reports, design mockups, old root docs and Kronos leftovers (`1a09e37`, Ekanth B S)
+  - Files: +0 added · ~2 modified · −123 deleted
+  - Deleted: `.github/workflows/ci.yml`, `AUDIT.md`, `CHANGELOG.md`, `MULTI_BOT_PRODUCTION_REPORT.md`, `PRODUCTION_REPORT.md`, `TRANSFORMATION_CHANGES.md`, `ZILLERS_QUANT_ARCHITECTURE.md`, `design/stitch/quant-crypto-trading-dashboard.zip`, `design/stitch/quant-crypto-trading-dashboard/01-aura-main-dashboard/index.html`, `design/stitch/quant-crypto-trading-dashboard/01-aura-main-dashboard/metadata.json`, `design/stitch/quant-crypto-trading-dashboard/01-aura-main-dashboard/preview.png`, `design/stitch/quant-crypto-trading-dashboard/02-aura-order-book-liquidity/index.html` … and 111 more
+  - Details: Requested clean-up before uploading (all recoverable from git history): .github/ (CI workflow) reports/: 61 old phase/benchmark outputs (the app writes fresh reports there when it runs) design/stitch: mockups incl. a 12 MB zip AUDIT.md, PRODUCTION_REPORT.md, MULTI_BOT_PRODUCTION_REPORT.md, TRANSFORMATION_CHANGES.md, CHANGELOG.md, ZILLERS_QUANT_ARCHITECTURE.md (superseded by CHANGES.md and docs/) integrations/kronos, requirements-kronos*.txt and the Kronos provenance test (model already removed) README now points to docs/ALGORITHMS_AND_DECISION_ARCHITECTURE.md and CHANGES.md.
+- **00:08 IST** · **Docs** · docs: update CHANGES.md (`4282545`, Ekanth B S)
+  - Files: +0 added · ~1 modified · −0 deleted
 - **00:08 IST** · **Upgrade** · feat(lab,pnl): LEAN-style strategy report, slippage selector, rotation weighting, signal-source accuracy (`4e01a3c`, Ekanth B S)
   - Files: +2 added · ~7 modified · −0 deleted
   - Added: `cryptoscope/desk/insight_scores.py`, `tests/test_lean_features.py`
