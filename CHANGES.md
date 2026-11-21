@@ -4,12 +4,18 @@ Every modification, upgrade, fix and deletion, newest first, with date and time 
 Generated from git history by `python scripts/update_changes.py`; regenerate after each commit.
 Deleted code remains recoverable from git with `git show <hash>^:<path>`.
 
-Totals: Upgrade 103 · Fix 39 · Modification 13 · Deletion 19 · Docs 31 · Security 2 · Test 3
+Totals: Upgrade 104 · Fix 39 · Modification 13 · Deletion 19 · Docs 32 · Security 2 · Test 3
 
 Types: **Upgrade** = new feature or capability · **Fix** = bug fix · **Modification** = change/refactor/chore · **Deletion** = code or files removed · **Docs** · **Security** · **Test**.
 
 ## 2026-11-21 (Saturday)
 
+- **21:10 IST** · **Upgrade** · feat(live): Live Tradebot view; fix(fleet): one position per coin (stacked buys were overwritten) (`8fbb81b`, Ekanth B S)
+  - Files: +6 added · ~15 modified · −0 deleted
+  - Added: `cryptoscope/dashboard/static/live.html`, `cryptoscope/dashboard/static/live.js`, `cryptoscope/desk/live_view.py`, `cryptoscope/execution/paper_repair.py`, `tests/test_live_view.py`, `tests/test_one_position_per_coin.py`
+  - Details: Live Tradebot page (/live, LIVE in every nav): One tile per coin the fleet trades (plus any coin still held): candlestick chart with entry/stop/ target lines and buy/sell markers, live price, 24h change, status, invested, value, P&L. Grid columns and tile height are recomputed from the number of coins and the window so every coin stays visible (1 column on phones). Click a tile (or /live#SYMBOL) for a full chart (1m-4h) with the coin's position and P&L, all-time stats, last bot decisions (signal, debate, THX-02/Laya, risk), fills and closed trades. /api/live/stream pushes marks and P&L every s
+- **20:28 IST** · **Docs** · docs: update CHANGES.md (`fd94f4d`, Ekanth B S)
+  - Files: +0 added · ~1 modified · −0 deleted
 - **20:28 IST** · **Docs** · docs: build spec for an Indian stock-market (NSE/BSE) version of the terminal (`a3bdc12`, Ekanth B S)
   - Files: +1 added · ~0 modified · −0 deleted
   - Added: `docs/INDIA_STOCK_TERMINAL_BUILD_SPEC.md`
