@@ -690,3 +690,25 @@ The model has two states and is fitted on past bars only.
 5. The output compares out-of-sample expectancy of all trades, trades the model takes, and trades it skips.
 
 **First live runs (XRP 15m):** out-of-sample AUC was 0.34–0.53, with no improvement in expectancy, so the filter is not used.
+
+---
+
+## 17. Ideas from QuantConnect LEAN (Apache-2.0; reimplemented, no code copied) — 2026-11-22
+
+| LEAN component | Here |
+|---|---|
+| Fill models (`EquityFillModel`, `ConstantSlippageModel`) | `cryptoscope/execution/fill_model.py`, PAPER fleet only. Buys fill at the live ask (Binance bookTicker) or ref + 5 bp. A stop the price gaps through fills at the worse market price, not the stop. Take-profit fills at the limit or a better price. |
+| `SpreadExecutionModel` | Skip an entry when the spread is above 0.3% (`ZILLERS_MAX_ENTRY_SPREAD`) |
+| `TrailingStopRiskManagementModel` | Opt-in `ZILLERS_TRAILING_STOP_PCT`: stop = max(stop, peak × (1 − pct)), PAPER only |
+| Insight period | Every position has `expires_at` = open + horizon × 15 m. `TIME_STOP` closes it at market (this was never enforced before) |
+| `PortfolioStatistics` / `TradeStatistics` | Lab: alpha, beta, Treynor, tracking error, information ratio (vs buy and hold), VaR95/99, MAE/MFE, win/loss streaks, P/L ratio, LEAN expectancy = WinRate × PLR − LossRate |
+| Report (`ReportCharts`) | Lab "STRATEGY REPORT": monthly returns heatmap, 5 worst drawdowns, rolling Sharpe (~6 months), returns-per-trade histogram |
+| Portfolio construction (Equal, ConfidenceWeighted, RiskParity) | Rotation weighting: equal, score-weighted, or inverse volatility |
+| Insight scoring | P&L "SIGNAL SOURCE ACCURACY": for each source (one per 15 m bar), how often the call came true within 4 h, against the coin's base rate of rising |
+| Slippage in backtests | Lab "slip" selector: extra bp per side on top of the fee |
+
+**Not ported:**
+* **Universe selection and Alpha models:** the scanner and Lab already have equivalents.
+* **Mean-variance, Black-Litterman and the optimizer:** grid-search optimisation conflicts with the Deflated Sharpe / PBO gate.
+* **Market-impact slippage (Almgren 2005):** calibrated for equities, and negligible at this trade size.
+* **Sector exposure:** Lean's version needs equity fundamentals.

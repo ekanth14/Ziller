@@ -170,4 +170,18 @@ fetch('/api/fx/rate').then(r => r.json()).then(r => { state.fx = (r.status === '
 toggles();
 load();
 setInterval(load, 15000);
+async function insights() {
+  try {
+    const d = await fetch('/api/insights/scores').then(r => r.json());
+    const rate = v => v == null ? '—' : Math.round(v * 100) + '%';
+    table('insights', [['SOURCE'], ['SIGNALS', 'num'], ['RIGHT', 'num'], ['MARKET UP', 'num'], ['EDGE', 'num'], ['AVG 4H MOVE', 'num']],
+      (d.sources || []).map(r => `<tr><td><b>${esc(r.source)}</b> <span class="muted">${r.coins} coins</span></td><td class="num">${r.signals}</td>` +
+        `<td class="num">${rate(r.direction_score)}</td><td class="num muted">${rate(r.base_rate)}</td>` +
+        `<td class="num ${cls(r.edge)}">${r.edge == null ? '—' : (r.edge >= 0 ? '+' : '') + Math.round(r.edge * 100) + ' pts'}</td>` +
+        `<td class="num ${cls(r.avg_fwd_return)}">${pct(r.avg_fwd_return)}</td></tr>`),
+      `No scored signals yet: a signal is scored once ${d.horizon_hours || 4} h have passed (${d.skipped || 0} waiting or outside the price history).`);
+  } catch (e) { /* the panel is informational */ }
+}
+insights();
+setInterval(insights, 300000);
 })();

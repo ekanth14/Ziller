@@ -163,6 +163,7 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
     from cryptoscope.desk.strategy_lab import record_promotions, run_lab
     market_structure = MarketStructure()
     _lab_cache = {}
+    _insight_cache = {}   # signal-source accuracy, 5 min
 
     def _fleet_positions_open():
         db = ROOT / "work" / "runtime" / "orchestrator_execution.db"
@@ -447,6 +448,21 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 except (ConnectionError, BrokenPipeError, TimeoutError, OSError):
                     pass
                 return
+            if url.path == "/api/insights/scores":
+                from cryptoscope.desk.insight_scores import score_signals
+                try:
+                    h = max(1, min(96, int(query.get("horizon", ["16"])[0])))
+                except ValueError:
+                    return self.json(400, {"error": "horizon must be an integer (15 m bars)"})
+                hit = _insight_cache.get(h)
+                if hit and time.time() - hit[0] < 300:
+                    return self.json(200, hit[1])
+                try:
+                    res = score_signals(ROOT / "work" / "runtime", horizon=h)
+                except Exception as err:
+                    return self.json(503, {"status": "UNAVAILABLE", "error": type(err).__name__})
+                _insight_cache[h] = (time.time(), res)
+                return self.json(200, res)
             if url.path == "/api/pnl":
                 from cryptoscope.desk.pnl import build_pnl
                 marks = {}
@@ -495,7 +511,10 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 if not (1 <= k <= 10 and 5 <= n <= 40 and n >= 2 * k):
                     return self.json(400, {"error": "need 1 <= k <= 10, 5 <= n <= 40, n >= 2k"})
                 try:
-                    res = run_rotation(n=n, k=k)
+                    wt = query.get("weighting", ["equal"])[0]
+                    if wt not in {"equal", "inverse_vol", "score"}:
+                        return self.json(400, {"error": "weighting must be equal, inverse_vol or score"})
+                    res = run_rotation(n=n, k=k, weighting=wt)
                 except Exception as err:
                     return self.json(503, {"status": "UNAVAILABLE", "error": type(err).__name__})
                 return self.json(200 if res.get("status") == "OK" else 503, res)
@@ -508,13 +527,19 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     return self.json(400, {"error": "fee_bps must be a number"})
                 if not sym.isalnum() or not 5 <= len(sym) <= 20 or not 0 <= fee <= 100:
                     return self.json(400, {"error": "Invalid symbol or fee"})
-                key = (sym, iv, fee)
+                try:
+                    slip = float(query.get("slippage_bps", ["0"])[0])
+                except ValueError:
+                    return self.json(400, {"error": "slippage_bps must be a number"})
+                if not 0 <= slip <= 50:
+                    return self.json(400, {"error": "slippage_bps must be 0-50"})
+                key = (sym, iv, fee, slip)
                 hit = _lab_cache.get(key)
                 if hit and time.time() - hit[0] < 120:
                     return self.json(200, hit[1])
                 try:
                     candles = _klines(sym, iv, 1000)
-                    result = {**run_lab(candles, iv, fee), "symbol": sym}
+                    result = {**run_lab(candles, iv, fee, slippage_bps=slip), "symbol": sym, "slippage_bps": slip}
                     record_promotions(result, sym)   # gate passes -> work/runtime/promoted_strategies.json
                 except ValueError as err:
                     return self.json(400, {"error": str(err)})

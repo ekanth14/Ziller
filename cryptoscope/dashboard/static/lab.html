@@ -25,6 +25,16 @@
   @media (max-width:1100px){section[style*='grid-column']{grid-column:auto!important}}
   @media (max-width:1100px){.lab{grid-template-columns:minmax(0,1fr)}}
 </style>
+<style>
+  .rep-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px 14px;font-size:12px;margin:4px 0 10px}
+  .rep-grid span{display:block;color:var(--muted);font-size:10px;letter-spacing:.06em}
+  .rep-grid b{font-family:var(--mono)}
+  .rep-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-top:8px}
+  .rep-h{margin:0 0 6px;font-size:10.5px;letter-spacing:.09em;color:var(--muted);font-weight:700}
+  .heat td{font-family:var(--mono);font-size:11px;text-align:center;padding:3px 4px}
+  .hist{display:flex;align-items:flex-end;gap:2px;height:160px;border-bottom:1px solid var(--line)}
+  .hist i{flex:1;min-width:3px;border-radius:2px 2px 0 0}
+</style>
 </head>
 <body>
 <header class="strip">
@@ -39,6 +49,7 @@
         <input id="symbol" list="syms" value="BTCUSDT" spellcheck="false"><datalist id="syms"></datalist>
         <select id="interval"><option>15m</option><option>1h</option><option>4h</option><option selected>1d</option><option>1w</option></select>
         <select id="fee"><option value="10" selected>10 bp/side</option><option value="7.5">7.5 bp (BNB)</option><option value="0">0 bp</option><option value="20">20 bp</option></select>
+        <select id="slip" title="Slippage per side on top of the fee (LEAN ConstantSlippageModel)"><option value="0" selected>0 bp slip</option><option value="5">5 bp slip</option><option value="10">10 bp slip</option></select>
         <button id="run" class="btn primary">RUN</button>
       </span></div>
     <div id="eq"></div>
@@ -47,10 +58,24 @@
     <p class="muted" style="font-size:11px">Click a row to show/hide its equity curve. p-value: strategy timing vs the same exposure at random (1,000 shuffles), Bonferroni-corrected across every candidate — ✓ means it beats chance on this history. OOS = return on the last 30% of bars (no parameter was tuned on any of it). GATE: each entry is replayed as the bot's own SCALP bracket (target / stop / 4 h, at least 10 bp per side); a candidate is promoted only with ≥ 100 out-of-sample trades, Deflated-Sharpe p &lt; 0.05, PBO &lt; 0.3 and positive expectancy after fees. Promoted candidates are written to work/runtime/promoted_strategies.json; nothing trades them automatically. Past results do not predict future returns.</p>
   </section>
   <section class="panel" style="grid-column:1/-1">
+    <div class="ph"><span><b>STRATEGY REPORT</b> <em>QuantConnect LEAN-style statistics · click a row above or pick one</em></span>
+      <span class="tools"><select id="rep-strat" title="Strategy"></select></span></div>
+    <div id="rep-stats" class="rep-grid"></div>
+    <div class="rep-cols">
+      <div><h4 class="rep-h">MONTHLY RETURNS</h4><div class="tbl-wrap"><table class="tbl heat" id="rep-monthly"></table></div></div>
+      <div><h4 class="rep-h">5 WORST DRAWDOWNS</h4><div class="tbl-wrap"><table class="tbl" id="rep-dd"></table></div></div>
+    </div>
+    <div class="rep-cols">
+      <div><h4 class="rep-h">ROLLING SHARPE <em id="rep-win" class="muted"></em></h4><div id="rep-rs" style="height:180px"></div></div>
+      <div><h4 class="rep-h">RETURNS PER TRADE</h4><div id="rep-hist" class="hist"></div></div>
+    </div>
+  </section>
+  <section class="panel" style="grid-column:1/-1">
     <div class="ph"><span><b>CROSS-SECTIONAL MOMENTUM ROTATION</b> <em id="rot-meta">research only · long-only top-k · weekly · BTC trend gate · fees included</em></span>
       <span class="tools">
         <select id="rot-k" title="Coins held"><option value="3">hold 3</option><option value="5" selected>hold 5</option></select>
         <select id="rot-n" title="Universe size (point-in-time by 30-day dollar volume)"><option value="15">top 15</option><option value="20" selected>top 20</option><option value="30">top 30</option></select>
+        <select id="rot-w" title="Portfolio construction (LEAN ideas)"><option value="equal" selected>equal weight</option><option value="inverse_vol">inverse volatility</option><option value="score">score weighted</option></select>
         <button id="rot-run" class="btn">RUN ROTATION</button>
       </span></div>
     <div id="rot-kpis" class="muted" style="font-size:12px">Ranks the most liquid coins each week by their 7/14/21/28-day returns and holds the top k (Liu, Tsyvinski &amp; Wu). Press RUN ROTATION — it downloads ~60 coins of daily history (about 10 s).</div>

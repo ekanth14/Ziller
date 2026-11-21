@@ -34,11 +34,16 @@ def rotation_backtest(closes: Dict[str, Sequence[Optional[float]]], btc: Sequenc
                       k: int = 3, rebalance_days: int = 7, fee_bps: float = 10.0, gate_sma: int = 50,
                       lookbacks: Sequence[int] = LOOKBACKS, oos_split: float = 0.7,
                       dollar_volume: Optional[Dict[str, Sequence[Optional[float]]]] = None,
-                      top_liquid: Optional[int] = None) -> Dict[str, Any]:
+                      top_liquid: Optional[int] = None, weighting: str = "equal") -> Dict[str, Any]:
     """`closes[sym]` and `btc` are aligned daily closes over `times` (None before a coin listed).
 
     With `dollar_volume` + `top_liquid`, the tradable universe at each rebalance is the `top_liquid` coins
-    by trailing 30-day dollar volume AT THAT DATE (point-in-time), not by the current volume."""
+    by trailing 30-day dollar volume AT THAT DATE (point-in-time), not by the current volume.
+
+    `weighting` (QuantConnect LEAN portfolio-construction ideas): "equal" (EqualWeighting), "inverse_vol"
+    (naive risk parity: weight ~ 1 / 20-day volatility) or "score" (ConfidenceWeighted: weight ~ rank score)."""
+    if weighting not in {"equal", "inverse_vol", "score"}:
+        raise ValueError("weighting must be equal, inverse_vol or score")
     from core.quant.metrics_extra import full_report
     syms = list(closes)
     T, fee, start = len(times), fee_bps / 10000, max(max(lookbacks), gate_sma)
@@ -50,6 +55,7 @@ def rotation_backtest(closes: Dict[str, Sequence[Optional[float]]], btc: Sequenc
         if (t - start) % rebalance_days == 0:
             btc_ok = btc[t] > sum(btc[t - gate_sma + 1:t + 1]) / gate_sma
             target: List[str] = []
+            scores: Dict[str, float] = {}
             if btc_ok:
                 scores, avg_ret = {}, {}
                 per_lb = []
@@ -69,7 +75,7 @@ def rotation_backtest(closes: Dict[str, Sequence[Optional[float]]], btc: Sequenc
                 ranked = [s for s in sorted(scores, key=lambda s: -scores[s]) if sum(avg_ret[s]) / len(avg_ret[s]) > 0]
                 keep = [s for s in w if s in ranked[:2 * k]]
                 target = (keep + [s for s in ranked if s not in keep])[:k]
-            new_w = {s: 1.0 / len(target) for s in target} if target else {}
+            new_w = _weights(target, weighting, closes, t, scores if btc_ok else {})
             turnover = sum(abs(new_w.get(s, 0) - w.get(s, 0)) for s in set(w) | set(new_w))
             for s in set(w) - set(new_w):                      # exits -> per-trade return
                 trade_rets.append(closes[s][t] / opened.pop(s) * (1 - fee) ** 2 - 1)
@@ -112,7 +118,8 @@ def rotation_backtest(closes: Dict[str, Sequence[Optional[float]]], btc: Sequenc
     checks = {"oos_entries_100": oos_entries >= 100, "psr_95": (extra.get("psr") or 0) >= 0.95,
               "positive_oos_after_fees": (oos.get("total_return") or 0) > 0}
     return {"params": {"k": k, "rebalance_days": rebalance_days, "fee_bps": fee_bps, "gate_sma": gate_sma,
-                       "lookbacks": list(lookbacks), "universe": syms, "top_liquid": top_liquid},
+                       "lookbacks": list(lookbacks), "universe": syms, "top_liquid": top_liquid,
+                       "weighting": weighting},
             "full": stats(rets, curve), "oos": oos, "oos_metrics": extra, "entries": entries, "oos_entries": oos_entries,
             "checks": checks, "passes": all(checks.values()),
             "curve": [{"time": times[start + i], "equity": round(v, 6)} for i, v in enumerate(curve)],
@@ -122,16 +129,35 @@ def rotation_backtest(closes: Dict[str, Sequence[Optional[float]]], btc: Sequenc
             "last_holdings": holdings_log[-1] if holdings_log else None}
 
 
+def _weights(target: List[str], weighting: str, closes, t: int, scores: Dict[str, float]) -> Dict[str, float]:
+    if not target:
+        return {}
+    if weighting == "inverse_vol":
+        raw = {}
+        for s in target:
+            px = [closes[s][i] for i in range(max(1, t - 20), t + 1) if closes[s][i] and closes[s][i - 1]]
+            r = [px[i] / px[i - 1] - 1 for i in range(1, len(px))]
+            sd = math.sqrt(sum((x - sum(r) / len(r)) ** 2 for x in r) / (len(r) - 1)) if len(r) > 2 else 0.0
+            raw[s] = 1.0 / sd if sd > 0 else 0.0
+    elif weighting == "score":
+        raw = {s: max(0.0, scores.get(s, 0.0)) for s in target}
+    else:
+        raw = {s: 1.0 for s in target}
+    total = sum(raw.values())
+    return {s: v / total for s, v in raw.items()} if total > 0 else {s: 1.0 / len(target) for s in target}
+
+
 _CACHE: Dict[tuple, tuple] = {}
 
 
 def run_rotation(n: int = 20, k: int = 3, days: int = 1000, fee_bps: float = 10.0, pool_size: int = 60,
+                 weighting: str = "equal",
                  tickers: Optional[Callable[[], list]] = None, klines: Optional[Callable[..., list]] = None) -> Dict[str, Any]:
     """Fetch the universe from Binance (daily klines) and run the backtest. Cached for an hour."""
     from cryptoscope.desk.feed import fetch_klines
     from cryptoscope.desk.scanner import LEVERAGED, STABLE_BASES, fetch_24h_tickers
     from cryptoscope.trading_universe import excluded_symbols
-    key = (n, k, days, fee_bps)
+    key = (n, k, days, fee_bps, weighting)
     hit = _CACHE.get(key)
     if hit and time.time() - hit[0] < 3600:
         return hit[1]
@@ -163,7 +189,7 @@ def run_rotation(n: int = 20, k: int = 3, days: int = 1000, fee_bps: float = 10.
     if len(aligned) < max(2 * k, 6):
         return {"status": "UNAVAILABLE", "error": f"only {len(aligned)} coins with full history"}
     res = {"status": "OK", **rotation_backtest(aligned, [b["close"] for b in btc], times, k=k, fee_bps=fee_bps,
-                                               dollar_volume=dvol, top_liquid=n),
+                                               dollar_volume=dvol, top_liquid=n, weighting=weighting),
            "skipped": [s for s in universe if s not in aligned],
            "caveats": ["Candidate pool is coins listed now; delisted coins are missing (survivorship bias "
                        "flatters results).", "The tradable universe is picked point-in-time by trailing "
