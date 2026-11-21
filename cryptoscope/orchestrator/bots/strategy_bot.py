@@ -123,7 +123,7 @@ class StrategyBot(BaseBot):
         if not price or price <= 0:
             return
 
-        atr = sig.indicators.get("atr", price * 0.015)
+        atr = sig.indicators.get("atr") or self._atr(sig.symbol) or price * 0.015
         entry = price
         stop_pct, target_pct, horizon = bracket(self.profile, atr / price if price else 0.015)
         sign = 1 if sig.direction == "BUY" else -1
@@ -161,16 +161,70 @@ class StrategyBot(BaseBot):
         logger.info("[%s] Proposing %s %s @ %.4f (SL: %.4f, TP: %.4f)", self.name, intent.direction, intent.symbol, entry, stop, target)
         await self.emit(intent)
 
+    def _atr(self, symbol: str, n: int = 14) -> Optional[float]:
+        """Wilder-style simple ATR(n) from the latest closed candles, or None."""
+        c = self.latest_candles.get(symbol) or []
+        if len(c) <= n:
+            return None
+        try:
+            trs = [max(float(b["high"]) - float(b["low"]), abs(float(b["high"]) - float(a["close"])),
+                       abs(float(b["low"]) - float(a["close"]))) for a, b in zip(c[-n - 1:-1], c[-n:])]
+        except (KeyError, TypeError, ValueError):
+            return None
+        return sum(trs) / n if trs else None
+
     def _flow_features(self, symbol: str) -> Dict[str, Any]:
-        """Bar-VPIN and volatility regime from the latest candles (risk-only; RiskBot may shrink size)."""
+        """Context for the THX-02 / Laya meta-label and RiskBot's risk-only sizing, from closed candles.
+
+        VPIN + volatility regime (may shrink size), and RSI(14), 4h / 24h returns, EMA20/50 trend and the
+        scanner tier (descriptive only). Every value uses bars up to the latest close: no lookahead.
+        """
         from cryptoscope.quant.flow_risk import vol_regime, vpin_state
         candles = self.latest_candles.get(symbol) or []
+        out: Dict[str, Any] = {}
         try:
             v, r = vpin_state(candles), vol_regime(candles)
+            out.update({"vpin": v["vpin"], "vpin_pctile": v["vpin_pctile"], "vpin_toxic": v["toxic"],
+                        "regime": r["regime"], "vol_ratio": r["vol_ratio"]})
         except Exception:
-            return {}
-        return {"vpin": v["vpin"], "vpin_pctile": v["vpin_pctile"], "vpin_toxic": v["toxic"],
-                "regime": r["regime"], "vol_ratio": r["vol_ratio"]}
+            pass
+        try:
+            closes = [float(c["close"]) for c in candles]
+        except (KeyError, TypeError, ValueError):
+            closes = []
+        bars_per_hour = {"1m": 60, "5m": 12, "15m": 4, "30m": 2, "1h": 1}.get(getattr(self, "interval", "15m"), 4)
+        if len(closes) > 15:
+            gains = [max(0.0, b - a) for a, b in zip(closes[-15:-1], closes[-14:])]
+            losses = [max(0.0, a - b) for a, b in zip(closes[-15:-1], closes[-14:])]
+            avg_l = sum(losses) / 14
+            out["rsi"] = round(100.0 if avg_l == 0 else 100 - 100 / (1 + (sum(gains) / 14) / avg_l), 1)
+        for key, hours in (("r4h", 4), ("r24h", 24)):
+            k = hours * bars_per_hour
+            if len(closes) > k and closes[-k - 1] > 0:
+                out[key] = round(closes[-1] / closes[-k - 1] - 1, 5)
+        if len(closes) >= 50:
+            def ema(xs, n):
+                a, e = 2 / (n + 1), xs[0]
+                for x in xs[1:]:
+                    e = a * x + (1 - a) * e
+                return e
+            out["ema_trend"] = "up" if ema(closes, 20) > ema(closes, 50) else "down"
+        tier = self._scanner_tier(symbol)
+        if tier:
+            out["tier"] = tier
+        return out
+
+    def _scanner_tier(self, symbol: str) -> Optional[str]:
+        """Tier (TREND / SHORT_TERM / POTENTIAL) the autopilot picked this coin from, if logged."""
+        from cryptoscope.desk.pnl import load_tier_log
+        path = getattr(self, "tier_log_path", None)
+        if path is None:
+            from pathlib import Path
+            path = Path(__file__).resolve().parents[3] / "work" / "runtime" / "scanner_tiers.jsonl"
+        tier = None
+        for rec in load_tier_log(path):
+            tier = rec["tiers"].get(symbol, tier)
+        return tier
 
     def get_health_details(self) -> Dict[str, Any]:
         return {

@@ -81,14 +81,17 @@ class DebateBot(BaseBot):
             await self._run_debate(pre)
 
     @staticmethod
-    def _book_imbalance(symbol: str):
-        """Public depth snapshot -> bid/ask USDT imbalance within +/-0.5% (feature only; None on any error)."""
+    def _book_features(symbol: str) -> Dict[str, Any]:
+        """One public depth snapshot -> spread, USDT depth within 0.2% and imbalance within 0.5% (features only)."""
         try:
-            from cryptoscope.desk.scanner import fetch_depth
+            from cryptoscope.desk.scanner import depth_within, fetch_depth
             from cryptoscope.quant.flow_risk import book_imbalance
-            return book_imbalance(fetch_depth(symbol))
+            d = fetch_depth(symbol)
+            bid, ask = float(d["bids"][0][0]), float(d["asks"][0][0])
+            return {"book_imbalance": book_imbalance(d), "depth_usd": depth_within(d),
+                    "spread_pct": (ask - bid) / ((ask + bid) / 2) if ask >= bid > 0 else None}
         except Exception:
-            return None
+            return {}
 
     async def _meta_assess(self, pre: RiskPreApproved) -> Dict[str, Any]:
         """Ask THX-02 and Laya 'take or skip?'. Returns {} -style 'no opinion' fields on any problem."""
@@ -96,7 +99,7 @@ class DebateBot(BaseBot):
         features = dict((pre.intent.metadata or {}).get("features") or {}) if pre.intent else {}
         horizon_h = (pre.intent.horizon_bars / 4.0) if pre.intent else 4.0   # 15m bars
         if self.meta_labeler._endpoint()[0] and "book_imbalance" not in features:
-            features["book_imbalance"] = await asyncio.to_thread(self._book_imbalance, pre.symbol)
+            features.update(await asyncio.to_thread(self._book_features, pre.symbol))
         try:
             meta = await asyncio.to_thread(self.meta_labeler.assess, pre.symbol, pre.direction, pre.entry_price,
                                            pre.stop_loss, pre.take_profit, horizon_h, features)

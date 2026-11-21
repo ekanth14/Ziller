@@ -10,6 +10,7 @@ from cryptoscope.orchestrator.bots.risk_bot import RiskBot
 from cryptoscope.orchestrator.bots.execution_bot import ExecutionBot
 from cryptoscope.orchestrator.bots.journal_bot import JournalBot
 from cryptoscope.orchestrator.bots.notifier_bot import NotifierBot
+from cryptoscope.orchestrator.bots.lab_signal_bot import LabSignalBot
 
 __all__ = [
     "SupervisorBot",
@@ -22,4 +23,5 @@ __all__ = [
     "ExecutionBot",
     "JournalBot",
     "NotifierBot",
+    "LabSignalBot",
 ]

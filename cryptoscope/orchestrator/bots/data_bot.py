@@ -35,6 +35,8 @@ class DataBot(BaseBot):
         self.candle_store = candle_store or CandleStore()
         self.live = live
         self.interval = interval
+        # 250 closed bars (~2.6 days of 15m): enough for 200-bar Lab strategies, 24h returns and VPIN history.
+        self.history_bars = 250
                 # symbol -> last emitted MarketUpdate
         self.latest_updates: Dict[str, MarketUpdate] = {}
 
@@ -89,7 +91,7 @@ class DataBot(BaseBot):
         Goes through CandleStore.get_fresh_candles (public market data, cached in SQLite), so this
         bot never imports an exchange client; only ExecutionBot does.
         """
-        candles = self.candle_store.get_fresh_candles(sym, self.interval, limit=60, max_age_multiplier=1.0)
+        candles = self.candle_store.get_fresh_candles(sym, self.interval, limit=self.history_bars, max_age_multiplier=1.0)
         minute = self.candle_store.get_fresh_candles(sym, "1m", limit=3, max_age_multiplier=1.0)
         price = float(minute[-1]["close"]) if minute else None
         return candles, price

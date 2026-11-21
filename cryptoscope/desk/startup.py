@@ -136,6 +136,14 @@ class StartupRunner:
 
 
 # ----------------------------------------------------------------------------- concrete checks
+def _lab_count() -> int:
+    try:
+        from cryptoscope.desk.strategy_lab import STRATEGIES
+        return len(STRATEGIES)
+    except Exception:
+        return 0
+
+
 def build_default_checks(mode: str, *, kill_switch, risk_governor, fleet, autopilot, scanner, paper_bots,
                          llm_panel, laya_evaluator, klines, telegram_status, symbol: str = "ADAUSDT",
                          llm_ping: Optional[Callable[[str], Tuple[str, str]]] = None,
@@ -230,6 +238,16 @@ def build_default_checks(mode: str, *, kill_switch, risk_governor, fleet, autopi
         r = detect_regimes_hmm(rets, n_states=2)
         calm = min(range(2), key=lambda k: r["state_stds"][k])
         return "ok", f"2-state model fitted · now in {'calm' if r['current_regime'] == calm else 'volatile'} regime"
+
+    def c_promoted():
+        """Which Lab strategies passed the gate and will trade in the fleet (LabSignalBot)."""
+        from cryptoscope.desk.strategy_lab import load_promoted_strategies
+        p = load_promoted_strategies()
+        fleet = [x for x in p if x.get("interval") == "15m"]
+        if not p:
+            return "ok", "none promoted yet — LabSignalBot idle; fleet trades the analyst/quant signals only"
+        return "ok", (f"{len(fleet)} on the fleet's 15m bars: " + ", ".join(f"{x['symbol']}:{x['strategy']}" for x in fleet)
+                      if fleet else f"{len(p)} promoted, none on 15m bars (the fleet's interval)")
 
     def c_lab():
         from cryptoscope.desk.strategy_lab import run_lab
@@ -378,7 +396,8 @@ def build_default_checks(mode: str, *, kill_switch, risk_governor, fleet, autopi
         Check("committee", "Hedge-fund committee + formula ensemble", "Decision models", c_committee),
         Check("strategies", "Strategy library", "Decision models", c_strats),
         Check("hmm", "HMM regime model", "Decision models", c_hmm),
-        Check("lab", "Strategy Lab (13 strategies)", "Decision models", c_lab),
+        Check("lab", f"Strategy Lab ({_lab_count()} strategies)", "Decision models", c_lab),
+        Check("promoted", "Lab → fleet (promoted strategies)", "Decision models", c_promoted),
         Check("sidecar", "THX-02 + Laya sidecar", "Decision models", c_sidecar),
         Check("meta:thx02", "THX-02 meta-label (HAL-X-AI)", "Decision models", meta_check("thx02")),
         Check("meta:laya", "Laya meta-label (convaiinnovations)", "Decision models", meta_check("laya")),

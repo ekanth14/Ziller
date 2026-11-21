@@ -17,6 +17,7 @@ from cryptoscope.orchestrator.bots import (
     ExecutionBot,
     JournalBot,
     NotifierBot,
+    LabSignalBot,
 )
 from cryptoscope.telegram.gateway import TelegramGateway
 from cryptoscope.execution.protections import ProtectionManager
@@ -49,6 +50,8 @@ class OrchestratorEngine:
         self.data_bot = DataBot(self.bus, symbols=self.symbols, poll_interval=15.0, live=True)
         self.analyst_bot = AnalystBot(self.bus)
         self.quant_bot = QuantBot(self.bus)
+        # Strategies promoted by the Strategy Lab gate (per symbol + interval) become live signals here.
+        self.lab_signal_bot = LabSignalBot(self.bus, interval=self.data_bot.interval)
         self.strategy_bot = StrategyBot(self.bus)
         self.debate_bot = DebateBot(self.bus)
         self.risk_bot = RiskBot(
@@ -82,6 +85,7 @@ class OrchestratorEngine:
             self.data_bot,
             self.analyst_bot,
             self.quant_bot,
+            self.lab_signal_bot,
             self.strategy_bot,
             self.debate_bot,
             self.risk_bot,

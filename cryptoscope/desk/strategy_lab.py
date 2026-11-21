@@ -366,6 +366,34 @@ def s_vortex(c):
     return [1 if _ok(*x[i]) and x[i][0] > x[i][1] else 0 for i in range(len(c))]
 
 
+def _library(cls_name: str, window: int = 120, max_hold: int = 10):
+    """Wrap a desk strategy-library rule (cryptoscope/autotrader/strategies) as a Lab position series.
+
+    Replays the rule bar by bar on a trailing window of closed bars only (no lookahead): long on its
+    BUY, flat on its SELL or after `max_hold` bars, so it faces the same gate as every other candidate.
+    """
+    def run(c):
+        import cryptoscope.autotrader.strategies as lib
+        from cryptoscope.desk.ai_layer import _strategy_indicators
+        strat = getattr(lib, cls_name)()
+        n, pos, cur, held = len(c), [0] * len(c), 0, 0
+        for i in range(60, n):
+            rows = [dict(x, close_time=x.get("close_time", x.get("open_time", i))) for x in c[max(0, i - window + 1):i + 1]]
+            try:
+                side = (strat.evaluate(rows, _strategy_indicators(rows)) or {}).get("side")
+            except Exception:
+                side = None
+            if cur == 0 and side == "BUY":
+                cur, held = 1, 0
+            elif cur == 1:
+                held += 1
+                if side == "SELL" or held >= max_hold:
+                    cur = 0
+            pos[i] = cur
+        return pos
+    return run
+
+
 STRATEGIES: Dict[str, tuple] = {
     "ema_cross": ("EMA cross 12/26", "trend", s_ema_cross),
     "macd_trend": ("MACD + EMA100 filter", "trend", s_macd_trend),
@@ -392,6 +420,12 @@ STRATEGIES: Dict[str, tuple] = {
     "hma_trend": ("Hull MA 55 trend", "trend", s_hma_trend),
     "kama_trend": ("KAMA trend", "trend", s_kama_trend),
     "vortex": ("Vortex 14", "trend", s_vortex),
+    # the desk's strategy library: until now it only showed on the desk, with no route to the bots
+    "lib_volume_breakout": ("Library: volume breakout", "breakout", _library("VolumeBreakoutStrategy")),
+    "lib_shrink_pullback": ("Library: shrink pullback", "trend", _library("ShrinkPullbackStrategy")),
+    "lib_box_oscillation": ("Library: box oscillation", "mean reversion", _library("BoxOscillationStrategy")),
+    "lib_vol_compression": ("Library: volatility compression breakout", "breakout",
+                            _library("VolatilityCompressionBreakoutStrategy")),
 }
 
 

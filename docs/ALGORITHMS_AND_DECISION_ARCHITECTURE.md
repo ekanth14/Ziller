@@ -543,3 +543,32 @@ DebateResult.meta = {thx02_p, laya_p, mean_p, quality, enforced, vetoed}
 * **Order-flow imbalance** predicts only very short horizons. **VPIN** helps more with volatility and jumps than with direction.
 * **Funding/basis carry** has compressed to roughly 3–5% a year and has failed out-of-sample tests. It also needs perpetual shorts, so it stays analytics-only on this spot terminal.
 * **Triple-barrier labels, meta-labeling, CPCV, PBO and the Deflated Sharpe Ratio** (López de Prado; Bailey et al.) guard against false winners. They decide what is promoted (see the Strategy Lab section).
+
+### 14.5 How every bot and algorithm connects (2026-11-21)
+
+```
+Scanner (tiers, spread/depth filter, risk-off) ─► Autopilot ─► FleetManager ─► fleet child process
+   │ logs tier per coin → work/runtime/scanner_tiers.jsonl
+   ▼
+DataBot (250 closed 15m bars + taker volume, live price)
+   ├─► AnalystBot (EMA 9/21 trend)          ─┐
+   ├─► QuantBot (vol regime, CVD order flow) ─┼─► Signal ─► StrategyBot
+   └─► LabSignalBot (Lab strategies that      ─┘      bracket from real ATR(14); features: RSI, 4h/24h return,
+        PASSED the gate for this coin + 15m)            EMA trend, VPIN, vol regime, scanner tier
+                                                        │ TradeIntent
+                                                        ▼
+                    DebateBot ── qwen3:8b debate  +  THX-02 / Laya meta-label (sidecar; + spread, depth,
+                        │                             book imbalance from one depth snapshot)
+                        ▼ DebateResult(meta)
+                    RiskBot ── gates (debate verdict, META_LABEL_SKIP if enforced, daily cap, protections,
+                        │      exposure) → size × VPIN/regime multiplier (≤ 1)
+                        ▼
+                    ExecutionBot (PAPER / TESTNET) ─► JournalBot (incl. meta_labels) ─► P&L page
+                                                  └► NotifierBot (Telegram)
+Strategy Lab (28 candidates: 13 classics, 11 research/catalog rules, 4 desk-library rules)
+   └─ CPCV + PBO + DSR gate ─► promoted_strategies.json ─► LabSignalBot   (today: 0 promoted)
+```
+
+* Desk-only systems (rule PM, SMC + tier-2 classifier, hedge-fund committee + formula ensemble, HMM) still drive the Action Desk view only.
+* The desk's strategy library now reaches the fleet the same way every other strategy does: through the Lab gate.
+* START ALL reports which promoted strategies are live in the fleet (check `promoted`).

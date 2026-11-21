@@ -117,7 +117,7 @@ def test_real_candle_replay_full_pipeline(monkeypatch):
             # Health report verification
             health = engine.health()
             assert health["running"] is True
-            assert health["supervisor"]["healthy_bots_count"] == 9
+            assert health["supervisor"]["healthy_bots_count"] == 10   # incl. LabSignalBot
 
             await engine.stop()
 
