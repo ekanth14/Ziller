@@ -62,6 +62,7 @@ class OrchestratorEngine:
             # Breaker state survives restarts for exchange-connected modes only
             state_path=str(self.work_dir / "risk_state.json") if self.mode in {"TESTNET", "LIVE"} else None,
             protections=ProtectionManager(state_path=str(self.work_dir / "protections.json")),
+            market_filters=__import__("cryptoscope.quant.market_filters", fromlist=["default_filters"]).default_filters(),
         )
         self.execution_bot = ExecutionBot(
             self.bus,

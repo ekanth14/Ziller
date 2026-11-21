@@ -529,6 +529,13 @@ def s_utc_orb(c, first_hours: float = 1.0):
     return pos
 
 
+def s_jump_regime(c):
+    """Long while a statistical jump model (fitted on past bars only, refit every 50) says 'bull'."""
+    from core.quant.jump_model import online_bull_states
+    states = online_bull_states([b["close"] for b in c], lam=20.0, refit=50, warmup=150)
+    return [1 if s == 1 else 0 for s in states]
+
+
 def _library(cls_name: str, window: int = 120, max_hold: int = 10):
     """Wrap a desk strategy-library rule (cryptoscope/autotrader/strategies) as a Lab position series.
 
@@ -599,7 +606,22 @@ STRATEGIES: Dict[str, tuple] = {
     "zscore_revert": ("Z-score reversion 20", "mean reversion", s_zscore_revert),
     "turn_of_month": ("Turn of month (daily)", "seasonality", s_turn_of_month),
     "utc_orb": ("UTC-day opening-range breakout", "breakout", s_utc_orb),
+    "jump_regime": ("Jump-model bull regime", "regime", s_jump_regime),
 }
+
+
+def meta_label_report(c: Candles, key: str, interval: str, fee_bps: float = 10.0) -> Dict[str, Any]:
+    """Meta-labeling (core/quant/meta_ml.py) on one Lab strategy's entries, with the bot's own bracket."""
+    from core.quant.meta_ml import evaluate_meta_label
+    if key not in STRATEGIES:
+        raise ValueError("unknown strategy")
+    a = atr(c, 14)
+    pcts = sorted(a[i] / c[i]["close"] for i in range(len(c)) if a[i] and c[i]["close"])
+    atr_pct = pcts[len(pcts) // 2] if pcts else 0.015
+    stop, target, horizon = bracket("SCALP", atr_pct)
+    res = evaluate_meta_label(c, STRATEGIES[key][2](c), stop, target, horizon, fee=fee_bps / 10000)
+    return {**res, "strategy": key, "label": STRATEGIES[key][0], "interval": interval,
+            "bracket": {"stop": stop, "target": target, "horizon_bars": horizon, "atr_pct": atr_pct}}
 
 
 # --------------------------------------------------------------------------- backtest

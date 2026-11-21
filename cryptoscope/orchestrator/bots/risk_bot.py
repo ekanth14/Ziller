@@ -59,6 +59,7 @@ class RiskBot(BaseBot):
         state_path: Optional[str] = None,      # persist breakers/NAV across restarts when set
         protections: Any = None,               # cryptoscope.execution.protections.ProtectionManager
         max_entries_per_day: Optional[int] = None,  # new positions per UTC day; env ZILLERS_MAX_TRADES_PER_DAY
+        market_filters: Optional[Dict[str, Any]] = None,  # {"btc": BtcTrendGate, "funding": FundingFilter}
     ):
         super().__init__(name, bus)
         self.initial_nav = initial_nav
@@ -82,6 +83,8 @@ class RiskBot(BaseBot):
             except ValueError:
                 max_entries_per_day = 12
         self.max_entries_per_day = max(0, max_entries_per_day)
+        # Veto-only market filters (BTC trend gate, funding crowding). None in tests/replays: offline.
+        self.market_filters: Dict[str, Any] = dict(market_filters or {})
 
         # State tracking
         self.daily_entries: int = 0
@@ -190,6 +193,7 @@ class RiskBot(BaseBot):
         held = self._already_held_reason(intent)
         if held:
             veto_reasons.append(held)
+        veto_reasons.extend(self._market_filter_reasons(intent))
 
         if self.protections is not None:
             locked, reasons = self.protections.is_locked(intent.symbol)
@@ -216,6 +220,20 @@ class RiskBot(BaseBot):
             veto_reasons.append(f"STOP_TOO_TIGHT: Stop distance ({stop_dist*100:.2f}%) below minimum 0.50%.")
 
         return len(veto_reasons) == 0, veto_reasons
+
+    def _market_filter_reasons(self, intent) -> List[str]:
+        """Vetoes from market-wide filters for a NEW long. Any filter error means no opinion."""
+        if intent.direction != "BUY" or intent.symbol in self.open_positions:
+            return []
+        out = []
+        for name, f in self.market_filters.items():
+            try:
+                why = f.veto() if name == "btc" else f.veto(intent.symbol)
+            except Exception:
+                why = None
+            if why:
+                out.append(why)
+        return out
 
     def _already_held_reason(self, intent) -> Optional[str]:
         if intent.direction == "BUY" and intent.symbol in self.open_positions:

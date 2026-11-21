@@ -220,6 +220,8 @@ class AuthStore:
                     VALUES (?, 'USD', 'dark', ?)
                 """, (user_id, now))
                 conn.commit()
+                if user_id is None:   # sqlite3 always sets lastrowid after an INSERT; guard for the type checker
+                    raise RuntimeError("user insert returned no row id")
                 return user_id
             except sqlite3.IntegrityError:
                 raise ValueError("An account with this email address already exists.")

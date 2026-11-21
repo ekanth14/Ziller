@@ -46,7 +46,8 @@ jobs:
 
       - name: Type Checking (mypy)
         run: |
-          mypy cryptoscope/auth cryptoscope/fx cryptoscope/market_data --ignore-missing-imports || true
+          # Package mode (-p) avoids "source file found twice"; these packages are clean, so the check now blocks.
+          mypy -p cryptoscope.auth -p cryptoscope.fx -p cryptoscope.market_data --ignore-missing-imports
 
       - name: Build native kernels (C++)
         run: python native/build.py

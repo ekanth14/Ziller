@@ -643,3 +643,50 @@ Neither point-in-time run has 100 out-of-sample entries, so neither passes.
 | Hourly seasonality as a standalone strategy | Gross edge per trade is ≈ 0.045%, well below the 0.2% round trip |
 | Almgren-Chriss, VWAP and POV scheduling | At retail size, fees and spread outweigh market impact |
 | Meta-labeling with gradient boosting, and a jump-model regime filter | Next candidates; THX-02/Laya already provide a veto-only meta-label |
+
+---
+
+## 16. Dependencies, market filters, jump model, meta-labeling (2026-11-21)
+
+### 16.1 Environments (Windows Application Control blocks some native DLLs on this machine)
+
+| Environment | Contents | Why |
+|---|---|---|
+| `.venv` (Windows) | `requirements.txt` + `requirements-ci.txt` (numpy 2.5.4, pandas 3.1.1, LightGBM, onnxruntime, IPython) | Main runtime and tests. `pip check` is clean. |
+| `work/environments/backtesting` | `quantjourney-bt` (pinned commit), numba 0.68, pandas 2.3 | Pins conflict with the main runtime. Its 13 engine tests pass there: `PYTHONPATH=. work/environments/backtesting/Scripts/python.exe -m pytest cryptoscope/tests/test_feature_integration.py cryptoscope/tests/test_repository_extensions.py` |
+| WSL `~/.zillers-models-venv` | PyTorch CPU, `thx02`, `laya` | PyTorch DLLs are blocked on Windows |
+| WSL `~/.zillers-dev-venv` | mypy 2.4.1 | mypy's compiled modules are blocked on Windows. CI runs `mypy -p cryptoscope.auth -p cryptoscope.fx -p cryptoscope.market_data` (now blocking; clean) |
+
+**Not installed:**
+* `quantstats` 0.0.64 requires numpy < 2, which conflicts with the runtime.
+* scikit-learn's tree models are blocked by Application Control, so LightGBM is used instead.
+
+### 16.2 Market filters — `cryptoscope/quant/market_filters.py` (RiskBot, veto-only, fail open)
+
+* **Funding filter (on):** vetoes a new long when the coin's Binance USD-M perpetual funding is above **+0.05% per 8 h**.
+  * Data comes from the public `fapi/v1/premiumIndex` endpoint (no key needed).
+  * Coins without a perpetual are not affected.
+  * Off switch: `ZILLERS_FUNDING_FILTER=0`. Threshold: `ZILLERS_FUNDING_MAX`.
+* **BTC trend gate (opt-in, `ZILLERS_BTC_GATE=1`):** blocks new longs while BTC's daily close is below its 50-day SMA.
+  * It is off by default because it stops **all** new entries during a BTC downtrend.
+  * On 2026-11-21 BTC closed at 58,952 against an SMA of 77,718.
+
+### 16.3 Statistical jump model — `core/quant/jump_model.py` (Lab candidate "Jump-model bull regime")
+
+The model has two states and is fitted on past bars only.
+* **Objective:** `min Σ‖x_t − θ_{s_t}‖² + λ·#switches`, with λ = 20.
+* **Features:** standardised 10-bar mean return and volatility.
+* **Refits:** every 50 bars.
+* **Between refits:** a trailing 60-bar window is Viterbi-decoded with the fitted centroids, so evidence can build up over several bars before a switch.
+* **Test result:** 82% accuracy on planted regimes with 9 switches.
+
+### 16.4 Meta-labeling — `core/quant/meta_ml.py` (Lab panel "META-LABELING")
+
+**Pipeline:**
+1. Primary entries are taken from a Lab strategy.
+2. Each entry is labelled with the bot's own triple-barrier bracket, including fees.
+3. Nine features are computed at the signal bar only.
+4. A LightGBM model is trained walk-forward with purging (only trades that exited before the test block) and a 2-signal embargo. A numpy logistic regression is used if LightGBM is unavailable.
+5. The output compares out-of-sample expectancy of all trades, trades the model takes, and trades it skips.
+
+**First live runs (XRP 15m):** out-of-sample AUC was 0.34–0.53, with no improvement in expectancy, so the filter is not used.

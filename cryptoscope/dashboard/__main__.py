@@ -473,6 +473,19 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 if not sym.isalnum() or not 5 <= len(sym) <= 20:
                     return self.json(400, {"error": "Invalid symbol"})
                 return self.json(200, market_structure.snapshot(sym))
+            if url.path == "/api/lab/metalabel":
+                from cryptoscope.desk.strategy_lab import meta_label_report
+                sym = query.get("symbol", ["BTCUSDT"])[0].upper()
+                iv = query.get("interval", ["1d"])[0]
+                key = query.get("strategy", [""])[0]
+                if not sym.isalnum() or not 5 <= len(sym) <= 20 or not re.fullmatch(r"[a-z0-9_]{2,40}", key):
+                    return self.json(400, {"error": "Invalid symbol or strategy"})
+                try:
+                    return self.json(200, meta_label_report(_klines(sym, iv, 1000), key, iv))
+                except ValueError as err:
+                    return self.json(400, {"error": str(err)})
+                except Exception as err:
+                    return self.json(503, {"status": "UNAVAILABLE", "error": type(err).__name__})
             if url.path == "/api/lab/rotation":
                 from cryptoscope.desk.rotation import run_rotation
                 try:

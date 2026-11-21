@@ -57,6 +57,11 @@
     <div id="rot-eq" style="height:240px;display:none"></div>
     <p class="muted" id="rot-notes" style="font-size:11px"></p>
   </section>
+  <section class="panel" style="grid-column:1/-1">
+    <div class="ph"><span><b>META-LABELING (ML FILTER)</b> <em>LightGBM · walk-forward · purged · bot's own bracket + fees</em></span>
+      <span class="tools"><select id="ml-strat" title="Strategy whose entries the model filters"></select><button id="ml-run" class="btn">EVALUATE FILTER</button></span></div>
+    <div id="ml-out" class="muted" style="font-size:12px">Trains a gradient-boosting model only on past trades of the chosen strategy (on the coin and interval above) to predict which new entries hit target before stop, then checks out-of-sample whether taking only the model's picks beats taking every entry.</div>
+  </section>
   <section class="panel">
     <div class="ph"><span><b>FORMULAS</b></span></div>
     <pre class="method" id="method"></pre>

@@ -167,3 +167,40 @@ async function run() {
 }
 $('rot-run').addEventListener('click', run);
 })();
+
+/* Meta-labeling panel: ML filter evaluation on one strategy (research; nothing trades from it). */
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pct = v => v == null ? '—' : `${v >= 0 ? '+' : ''}${(v * 100).toFixed(3)}%`;
+const cls = v => v == null ? '' : v >= 0 ? 'up' : 'dn';
+// Fill the strategy list from the Lab table once it renders (rows carry data-k; label in the 2nd cell).
+new MutationObserver(() => {
+  const rows = [...document.querySelectorAll('#tbl tr[data-k]')];
+  if (!rows.length || $('ml-strat').options.length === rows.length) return;
+  const cur = $('ml-strat').value;
+  $('ml-strat').innerHTML = rows.map(r => `<option value="${esc(r.dataset.k)}">${esc(r.children[1].textContent.replace('▲', '').trim())}</option>`).join('');
+  if (cur) $('ml-strat').value = cur;
+}).observe($('tbl'), {childList: true, subtree: true});
+
+$('ml-run').addEventListener('click', async () => {
+  $('ml-run').disabled = true; $('ml-out').textContent = 'Training walk-forward models…';
+  try {
+    const q = new URLSearchParams({symbol: $('symbol').value.trim().toUpperCase(), interval: $('interval').value, strategy: $('ml-strat').value});
+    const d = await fetch('/api/lab/metalabel?' + q).then(r => r.json());
+    if (d.status === 'INSUFFICIENT_DATA') {
+      $('ml-out').innerHTML = `<span class="dn">Not enough trades:</span> ${esc(d.label)} produced ${d.trades} bracket trades on these candles; at least ${d.needed} are needed to train and test. Try a shorter interval or a more active strategy.`;
+    } else if (d.status !== 'OK') {
+      throw new Error(d.error || d.status);
+    } else {
+      const a = d.oos_all, t = d.oos_taken, s = d.oos_skipped;
+      $('ml-out').innerHTML = `<b>${esc(d.label)}</b> · model ${esc(d.model)} · out-of-sample AUC ${d.auc == null ? '—' : d.auc.toFixed(3)} (0.5 = coin flip)<br>` +
+        `All entries: ${a.trades} trades, win ${a.win_rate == null ? '—' : Math.round(a.win_rate * 100) + '%'}, avg <b class="${cls(a.expectancy)}">${pct(a.expectancy)}</b> · ` +
+        `Model takes: ${t.trades}, avg <b class="${cls(t.expectancy)}">${pct(t.expectancy)}</b> · Model skips: ${s.trades}, avg <span class="${cls(s.expectancy)}">${pct(s.expectancy)}</span><br>` +
+        `<b class="${d.verdict.startsWith('Filter improves') ? 'up' : 'dn'}">${esc(d.verdict)}</b> <span class="muted">Bracket: target ${pct(d.bracket.target)}, stop ${pct(d.bracket.stop)}, ${d.bracket.horizon_bars} bars.</span>`;
+    }
+  } catch (e) { $('ml-out').innerHTML = `<span class="dn">Unavailable: ${esc(e.message)}</span>`; }
+  $('ml-run').disabled = false;
+});
+})();
