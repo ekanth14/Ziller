@@ -4,12 +4,17 @@ Every modification, upgrade, fix and deletion, newest first, with date and time 
 Generated from git history by `python scripts/update_changes.py`; regenerate after each commit.
 Deleted code remains recoverable from git with `git show <hash>^:<path>`.
 
-Totals: Upgrade 103 · Fix 39 · Modification 13 · Deletion 19 · Docs 29 · Security 2 · Test 3
+Totals: Upgrade 103 · Fix 39 · Modification 13 · Deletion 19 · Docs 31 · Security 2 · Test 3
 
 Types: **Upgrade** = new feature or capability · **Fix** = bug fix · **Modification** = change/refactor/chore · **Deletion** = code or files removed · **Docs** · **Security** · **Test**.
 
 ## 2026-11-21 (Saturday)
 
+- **20:28 IST** · **Docs** · docs: build spec for an Indian stock-market (NSE/BSE) version of the terminal (`a3bdc12`, Ekanth B S)
+  - Files: +1 added · ~0 modified · −0 deleted
+  - Added: `docs/INDIA_STOCK_TERMINAL_BUILD_SPEC.md`
+- **20:09 IST** · **Docs** · docs: update CHANGES.md (`17df021`, Ekanth B S)
+  - Files: +0 added · ~1 modified · −0 deleted
 - **20:09 IST** · **Upgrade** · feat(fleet): connect the Strategy Lab, strategy library and models to the bot fleet (`5cf3aa0`, Ekanth B S)
   - Files: +2 added · ~10 modified · −0 deleted
   - Added: `cryptoscope/orchestrator/bots/lab_signal_bot.py`, `tests/test_fleet_connections.py`
