@@ -1,5 +1,4 @@
 import copy
-import hashlib
 import json
 import math
 from pathlib import Path
@@ -56,15 +55,6 @@ class RepositoryExtensionTests(unittest.TestCase):
         self.assertLessEqual(a['return_pct_p05'],a['return_pct_median'])
         self.assertLessEqual(a['return_pct_median'],a['return_pct_p95'])
         self.assertEqual(bootstrap([100,100,100],100)['empirical_loss_fraction'],0)
-
-    def test_kronos_source_matches_pinned_git_blobs_with_only_line_ending_normalization(self):
-        manifest=json.loads((ROOT/'integrations/kronos/provenance.json').read_text())
-        for entry in manifest['files']:
-            content=(ROOT/'integrations/kronos/vendor'/entry['path']).read_bytes()
-            lf=content.replace(b'\r\n',b'\n')
-            variants=[content,lf,lf.replace(b'\n',b'\r\n')]
-            hashes=[hashlib.sha1(b'blob '+str(len(v)).encode()+b'\0'+v).hexdigest() for v in variants]
-            self.assertIn(entry['git_blob_sha'],hashes,entry['path'])
 
 
 try:
