@@ -366,6 +366,169 @@ def s_vortex(c):
     return [1 if _ok(*x[i]) and x[i][0] > x[i][1] else 0 for i in range(len(c))]
 
 
+# --------------------------------------------------------------------------- research additions (2026-11-21)
+# From the deep-research report: exits that let winners run (Kaminski & Lo: stops only help when returns
+# trend, so they are wide and volatility-scaled) and well-defined rules not yet tested on crypto. Every
+# one is only a CANDIDATE: the gate (OOS trades, DSR, PBO, expectancy after fees) decides.
+
+def _entries_with_trailing_exit(c, entry: Callable[[int], bool], start: int, n_atr: int = 22, mult: float = 3.0,
+                                chandelier: bool = True, max_hold: Optional[int] = None) -> List[int]:
+    """Enter on `entry`; exit ONLY when the close breaks a ratcheting trailing stop.
+
+    Chandelier (LeBeau): stop = highest high since entry - mult * ATR(n). ATR trail: highest close since
+    entry - mult * ATR(n). The stop never moves down. Optional time stop after `max_hold` bars."""
+    hi, cl = [b["high"] for b in c], [b["close"] for b in c]
+    a = atr(c, n_atr)
+    pos, cur, stop, peak, held = [0] * len(c), 0, None, None, 0
+    for i in range(max(start, n_atr + 1), len(c)):
+        if cur == 0:
+            if entry(i) and a[i]:
+                cur, peak, held = 1, (hi[i] if chandelier else cl[i]), 0
+                stop = peak - mult * a[i]
+        else:
+            held += 1
+            peak = max(peak, hi[i] if chandelier else cl[i])
+            if a[i]:
+                stop = max(stop, peak - mult * a[i])
+            if cl[i] < stop or (max_hold and held >= max_hold):
+                cur = 0
+        pos[i] = cur
+    return pos
+
+
+def s_donchian_chandelier(c):
+    hi, cl = [b["high"] for b in c], [b["close"] for b in c]
+    return _entries_with_trailing_exit(c, lambda i: cl[i] > max(hi[i - 20:i]), 20)
+
+
+def s_tsmom_chandelier(c):
+    cl = [b["close"] for b in c]
+    s50 = sma(cl, 50)
+    return _entries_with_trailing_exit(c, lambda i: i >= 50 and cl[i] / cl[i - 30] > 1 and s50[i] is not None and cl[i] > s50[i], 50)
+
+
+def s_ema_atr_trail(c):
+    cl = [b["close"] for b in c]
+    f, s = ema(cl, 12), ema(cl, 26)
+    return _entries_with_trailing_exit(c, lambda i: f[i] > s[i] and f[i - 1] <= s[i - 1], 27, n_atr=14, mult=2.5,
+                                       chandelier=False)
+
+
+def s_nr7(c, hold: int = 5):
+    """Crabel NR7: the narrowest range of the last 7 bars; go long when a later close breaks its high
+    (within 3 bars); exit after `hold` bars or on a close below the NR7 low."""
+    hi, lo, cl = [b["high"] for b in c], [b["low"] for b in c], [b["close"] for b in c]
+    rng = [h - l for h, l in zip(hi, lo)]
+    pos, cur, held, setup = [0] * len(c), 0, 0, None
+    for i in range(7, len(c)):
+        if cur == 0:
+            if setup and i - setup[0] <= 3 and cl[i] > setup[1]:
+                cur, held, floor = 1, 0, setup[2]
+            elif rng[i - 1] == min(rng[i - 7:i]):
+                setup = (i - 1, hi[i - 1], lo[i - 1])
+        else:
+            held += 1
+            if held >= hold or cl[i] < floor:
+                cur, setup = 0, None
+        pos[i] = cur
+    return pos
+
+
+def s_inside_bar(c, hold: int = 5):
+    """Inside bar (high < prior high and low > prior low), long on a close above the mother bar's high;
+    exit on a close below the mother bar's low or after `hold` bars."""
+    hi, lo, cl = [b["high"] for b in c], [b["low"] for b in c], [b["close"] for b in c]
+    pos, cur, held, mother = [0] * len(c), 0, 0, None
+    for i in range(2, len(c)):
+        if cur == 0:
+            if hi[i - 1] < hi[i - 2] and lo[i - 1] > lo[i - 2]:
+                mother = (hi[i - 2], lo[i - 2])
+            if mother and cl[i] > mother[0]:
+                cur, held, floor = 1, 0, mother[1]
+        else:
+            held += 1
+            if held >= hold or cl[i] < floor:
+                cur, mother = 0, None
+        pos[i] = cur
+    return pos
+
+
+def _percent_rank(xs, i, n):
+    """Share of the previous n values strictly below xs[i] (0-100)."""
+    window = xs[max(0, i - n):i]
+    return 100.0 * sum(1 for v in window if v < xs[i]) / len(window) if window else None
+
+
+def connors_rsi(c, n_rsi: int = 3, n_streak: int = 2, n_rank: int = 100) -> List[Optional[float]]:
+    """Connors RSI = mean(RSI(close, 3), RSI(up/down streak, 2), PercentRank(1-bar return, 100))."""
+    cl = [b["close"] for b in c]
+    streak = [0.0]
+    for i in range(1, len(cl)):
+        s = streak[-1]
+        streak.append((s + 1 if s >= 0 else 1) if cl[i] > cl[i - 1] else (s - 1 if s <= 0 else -1) if cl[i] < cl[i - 1] else 0)
+    r1, r2 = rsi(cl, n_rsi), rsi(streak, n_streak)
+    roc = [None] + [cl[i] / cl[i - 1] - 1 for i in range(1, len(cl))]
+    out: List[Optional[float]] = [None] * len(cl)
+    for i in range(n_rank + 1, len(cl)):
+        pr = _percent_rank(roc, i, n_rank)
+        if r1[i] is not None and r2[i] is not None and pr is not None:
+            out[i] = (r1[i] + r2[i] + pr) / 3
+    return out
+
+
+def s_connors_rsi(c):
+    """Long when Connors RSI < 10 above the 200-bar SMA; exit when CRSI > 70."""
+    cl = [b["close"] for b in c]
+    cr, s200 = connors_rsi(c), sma(cl, 200)
+    return _hold(lambda i: cr[i] is not None and s200[i] is not None and cr[i] < 10 and cl[i] > s200[i],
+                 lambda i: cr[i] is not None and cr[i] > 70, len(c), 201)
+
+
+def s_zscore_revert(c, n: int = 20):
+    """Long when the close is 2 sd below its n-bar mean in an uptrend (above SMA100); exit at the mean."""
+    cl = [b["close"] for b in c]
+    m, sd, s100 = sma(cl, n), stdev(cl, n), sma(cl, 100)
+    z = lambda i: (cl[i] - m[i]) / sd[i] if m[i] is not None and sd[i] else None  # noqa: E731
+    return _hold(lambda i: z(i) is not None and s100[i] is not None and z(i) < -2 and cl[i] > s100[i],
+                 lambda i: z(i) is not None and z(i) >= 0, len(c), 100)
+
+
+def s_turn_of_month(c):
+    """Hold from the last day of each month through the 3rd day of the next (UTC). Daily bars only."""
+    import datetime as _dt
+    out = []
+    for b in c:
+        d = _dt.datetime.fromtimestamp(b["open_time"], _dt.timezone.utc)
+        last = (d + _dt.timedelta(days=1)).month != d.month
+        out.append(1 if last or d.day <= 3 else 0)
+    span = (c[-1]["open_time"] - c[0]["open_time"]) / max(1, len(c) - 1) if len(c) > 1 else 0
+    return out if 80_000 <= span <= 90_000 else [0] * len(c)     # not meaningful on intraday bars
+
+
+def s_utc_orb(c, first_hours: float = 1.0):
+    """Opening-range breakout adapted to 24/7 markets: range = first `first_hours` of the UTC day; long on a
+    close above the range high; flat at the end of the UTC day or on a close below the range low.
+    Intraday bars (15m-1h) only."""
+    span = (c[-1]["open_time"] - c[0]["open_time"]) / max(1, len(c) - 1) if len(c) > 1 else 0
+    if not 60 <= span <= 3600:
+        return [0] * len(c)
+    pos, cur, day, rh, rl = [0] * len(c), 0, None, None, None
+    for i, b in enumerate(c):
+        d, sec = int(b["open_time"] // 86400), b["open_time"] % 86400
+        if d != day:
+            day, rh, rl, cur = d, b["high"], b["low"], 0
+        elif sec < first_hours * 3600:
+            rh, rl = max(rh, b["high"]), min(rl, b["low"])
+        elif cur == 0 and b["close"] > rh:
+            cur = 1
+        elif cur == 1 and b["close"] < rl:
+            cur = 0
+        if sec + span >= 86400:   # last bar of the UTC day: flat
+            cur = 0
+        pos[i] = cur
+    return pos
+
+
 def _library(cls_name: str, window: int = 120, max_hold: int = 10):
     """Wrap a desk strategy-library rule (cryptoscope/autotrader/strategies) as a Lab position series.
 
@@ -426,6 +589,16 @@ STRATEGIES: Dict[str, tuple] = {
     "lib_box_oscillation": ("Library: box oscillation", "mean reversion", _library("BoxOscillationStrategy")),
     "lib_vol_compression": ("Library: volatility compression breakout", "breakout",
                             _library("VolatilityCompressionBreakoutStrategy")),
+    # deep-research additions: trailing exits on existing entries, then untested-on-crypto pattern rules
+    "donchian_chandelier": ("Donchian 20 + Chandelier exit", "trend", s_donchian_chandelier),
+    "tsmom_chandelier": ("TS momentum + Chandelier exit", "momentum", s_tsmom_chandelier),
+    "ema_atr_trail": ("EMA cross + ATR trailing stop", "trend", s_ema_atr_trail),
+    "nr7": ("NR7 breakout (Crabel)", "breakout", s_nr7),
+    "inside_bar": ("Inside-bar breakout", "breakout", s_inside_bar),
+    "connors_rsi": ("Connors RSI < 10", "mean reversion", s_connors_rsi),
+    "zscore_revert": ("Z-score reversion 20", "mean reversion", s_zscore_revert),
+    "turn_of_month": ("Turn of month (daily)", "seasonality", s_turn_of_month),
+    "utc_orb": ("UTC-day opening-range breakout", "breakout", s_utc_orb),
 }
 
 
@@ -479,7 +652,17 @@ def backtest(c: Candles, pos: Sequence[int], fee_bps: float, bars_per_year: floa
         "exposure": held_bars / max(1, n - 1),
         "in_sample_return": curve[split - 1] - 1, "out_of_sample_return": curve[-1] / curve[split - 1] - 1,
         "p_value": p, "curve": curve,
+        # PSR, MinTRL, Ulcer/UPI, Omega, tail ratio, gain-to-pain, SQN, K-ratio, MAR (core/quant/metrics_extra.py)
+        **_extra_metrics(rets, curve, trades, bars_per_year),
     }
+
+
+def _extra_metrics(rets, curve, trades, bars_per_year):
+    from core.quant.metrics_extra import full_report
+    try:
+        return full_report(rets, curve, trades, bars_per_year)
+    except Exception:   # a metric must never break a backtest
+        return {}
 
 
 def run_lab(c: Candles, interval: str = "1d", fee_bps: float = 10.0, only: Optional[List[str]] = None,

@@ -572,3 +572,74 @@ Strategy Lab (28 candidates: 13 classics, 11 research/catalog rules, 4 desk-libr
 * Desk-only systems (rule PM, SMC + tier-2 classifier, hedge-fund committee + formula ensemble, HMM) still drive the Action Desk view only.
 * The desk's strategy library now reaches the fleet the same way every other strategy does: through the Lab gate.
 * START ALL reports which promoted strategies are live in the fleet (check `promoted`).
+
+---
+
+## 15. Deep-research additions (2026-11-21) — `docs/research/Crypto algo strategies and formulas.md`
+
+The research found that the best-supported additions are **evaluation statistics, exits and overlays**, not new alpha signals. Most crypto evidence ends by 2021 or covers bull windows, so the Lab gate on our own data decides.
+
+### 15.1 Metrics — `core/quant/metrics_extra.py` (shown in the Lab: PSR, SQN columns)
+
+| Metric | Formula |
+|---|---|
+| Probabilistic Sharpe (PSR) | `Φ((SR − SR*)·√(n−1) / √(1 − γ₃SR + (γ₄−1)/4·SR²))`, SR per period, γ₄ raw kurtosis |
+| Min track record length | `1 + (1 − γ₃SR + (γ₄−1)/4·SR²)·(z_α/(SR − SR*))²` |
+| Sortino | downside deviation over **all** n periods |
+| Ulcer index / UPI | `√mean(DD%²)`; UPI = annual return % / UI |
+| Omega(0) | `Σmax(r,0) / Σmax(−r,0)` |
+| Tail ratio | `|P95| / |P5|` |
+| Gain-to-pain | `Σr / |Σr⁻|` |
+| SQN (Van Tharp) | `√min(N,100)·mean(R)/sd(R)` |
+| K-ratio (Kestner 2003) | `slope(log equity) / (SE(slope)·√n)` |
+| MAR | CAGR / |max DD| over the full history |
+| Fractional differencing | `w₀=1, w_k = −w_{k−1}(d−k+1)/k`, truncated at \|w\| < 1e-4 (FFD) |
+
+### 15.2 New gated Lab candidates (37 total)
+
+| Candidate | Rule |
+|---|---|
+| Donchian 20 + Chandelier exit | Entry: close above the 20-bar high. Exit only below `HH since entry − 3·ATR(22)`, a stop that only ratchets up |
+| TS momentum + Chandelier exit | Same exit applied to the time-series-momentum entry |
+| EMA cross + ATR trailing stop | EMA 12/26 cross. Exit below `highest close − 2.5·ATR(14)` |
+| NR7 breakout (Crabel) | Narrowest range of 7 bars. Long on a close above its high within 3 bars. Exit after 5 bars or below its low |
+| Inside-bar breakout | Long on a close above the mother bar's high. Exit below its low or after 5 bars |
+| Connors RSI < 10 | `CRSI = mean(RSI₃(close), RSI₂(streak), PercentRank₁₀₀(1-bar return))`, above SMA200. Exit when CRSI > 70 |
+| Z-score reversion 20 | Long when z < −2 above SMA100. Exit at z ≥ 0 |
+| Turn of month | Daily bars only. Hold from the last day of the month to day 3 |
+| UTC-day opening-range breakout | Intraday bars only. Range = first hour of the UTC day. Long above it, flat at day end |
+
+Why the exits are wide: Kaminski & Lo (2014) show that stop-losses lower expected return under a random walk and help only when returns trend.
+
+### 15.3 Cross-sectional momentum rotation — `cryptoscope/desk/rotation.py` (Lab panel, research only)
+
+**Rules:**
+* Weekly rebalance.
+* Score = mean percentile rank of 7/14/21/28-day returns.
+* Hold the top k coins with a positive return, equal weight.
+* Keep a holding while its rank is within the top 2k.
+* BTC gate: hold cash while BTC is below its 50-day SMA.
+* Fees are charged on turnover.
+* The universe is chosen **point-in-time** by trailing 30-day dollar volume.
+
+**First live run (1,000 daily bars):**
+
+| Universe selection | Out-of-sample return |
+|---|---|
+| Today's top 25 coins (biased) | +107% |
+| Point-in-time, k = 3 | **−7%** (PSR 0.56) |
+| Point-in-time, k = 5 | +28% (PSR 0.79) |
+
+Neither point-in-time run has 100 out-of-sample entries, so neither passes.
+
+**Residual bias:** coins delisted before today are missing from the candidate pool.
+
+### 15.4 Deferred (with reasons)
+
+| Item | Reason |
+|---|---|
+| Hedged pairs, copula and Johansen baskets | Every result that survived costs needed a short leg (futures) |
+| Funding, basis and open-interest filters | Need a futures data feed |
+| Hourly seasonality as a standalone strategy | Gross edge per trade is ≈ 0.045%, well below the 0.2% round trip |
+| Almgren-Chriss, VWAP and POV scheduling | At retail size, fees and spread outweigh market impact |
+| Meta-labeling with gradient boosting, and a jump-model regime filter | Next candidates; THX-02/Laya already provide a veto-only meta-label |

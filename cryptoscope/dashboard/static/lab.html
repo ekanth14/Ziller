@@ -46,6 +46,17 @@
     <div class="tbl-wrap"><table id="tbl" class="tbl"></table></div>
     <p class="muted" style="font-size:11px">Click a row to show/hide its equity curve. p-value: strategy timing vs the same exposure at random (1,000 shuffles), Bonferroni-corrected across every candidate — ✓ means it beats chance on this history. OOS = return on the last 30% of bars (no parameter was tuned on any of it). GATE: each entry is replayed as the bot's own SCALP bracket (target / stop / 4 h, at least 10 bp per side); a candidate is promoted only with ≥ 100 out-of-sample trades, Deflated-Sharpe p &lt; 0.05, PBO &lt; 0.3 and positive expectancy after fees. Promoted candidates are written to work/runtime/promoted_strategies.json; nothing trades them automatically. Past results do not predict future returns.</p>
   </section>
+  <section class="panel" style="grid-column:1/-1">
+    <div class="ph"><span><b>CROSS-SECTIONAL MOMENTUM ROTATION</b> <em id="rot-meta">research only · long-only top-k · weekly · BTC trend gate · fees included</em></span>
+      <span class="tools">
+        <select id="rot-k" title="Coins held"><option value="3">hold 3</option><option value="5" selected>hold 5</option></select>
+        <select id="rot-n" title="Universe size (point-in-time by 30-day dollar volume)"><option value="15">top 15</option><option value="20" selected>top 20</option><option value="30">top 30</option></select>
+        <button id="rot-run" class="btn">RUN ROTATION</button>
+      </span></div>
+    <div id="rot-kpis" class="muted" style="font-size:12px">Ranks the most liquid coins each week by their 7/14/21/28-day returns and holds the top k (Liu, Tsyvinski &amp; Wu). Press RUN ROTATION — it downloads ~60 coins of daily history (about 10 s).</div>
+    <div id="rot-eq" style="height:240px;display:none"></div>
+    <p class="muted" id="rot-notes" style="font-size:11px"></p>
+  </section>
   <section class="panel">
     <div class="ph"><span><b>FORMULAS</b></span></div>
     <pre class="method" id="method"></pre>

@@ -473,6 +473,19 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 if not sym.isalnum() or not 5 <= len(sym) <= 20:
                     return self.json(400, {"error": "Invalid symbol"})
                 return self.json(200, market_structure.snapshot(sym))
+            if url.path == "/api/lab/rotation":
+                from cryptoscope.desk.rotation import run_rotation
+                try:
+                    k = int(query.get("k", ["5"])[0]); n = int(query.get("n", ["20"])[0])
+                except ValueError:
+                    return self.json(400, {"error": "k and n must be integers"})
+                if not (1 <= k <= 10 and 5 <= n <= 40 and n >= 2 * k):
+                    return self.json(400, {"error": "need 1 <= k <= 10, 5 <= n <= 40, n >= 2k"})
+                try:
+                    res = run_rotation(n=n, k=k)
+                except Exception as err:
+                    return self.json(503, {"status": "UNAVAILABLE", "error": type(err).__name__})
+                return self.json(200 if res.get("status") == "OK" else 503, res)
             if url.path == "/api/lab":
                 sym = query.get("symbol", ["BTCUSDT"])[0].upper()
                 iv = query.get("interval", ["1d"])[0]

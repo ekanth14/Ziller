@@ -69,10 +69,12 @@ function render() {
     '<th class="num">MAX DD</th><th class="num">CALMAR</th><th class="num">TRADES</th><th class="num">WIN</th><th class="num">PF</th><th class="num">EXPOSURE</th>' +
     '<th class="num">IN-SAMPLE</th><th class="num">OOS</th><th class="num">p</th>' +
     '<th class="num" title="Bracket trades whose signal and exit fall inside one CPCV group">OOS TR</th><th class="num" title="Mean net return per bracket trade after fees">EXPECT</th>' +
-    '<th class="num" title="1 - Deflated Sharpe probability (trials = candidates)">DSR p</th><th title="≥100 OOS trades, DSR p < 0.05, PBO < 0.3, expectancy > 0">GATE</th></tr>' +
+    '<th class="num" title="1 - Deflated Sharpe probability (trials = candidates)">DSR p</th>' +
+    '<th class="num" title="Probabilistic Sharpe ratio: chance the true Sharpe is above 0, corrected for skew and fat tails (Bailey &amp; Lopez de Prado)">PSR</th>' +
+    '<th class="num" title="Van Tharp System Quality Number: sqrt(min(N,100)) x mean / sd of trade returns">SQN</th><th title="≥100 OOS trades, DSR p < 0.05, PBO < 0.3, expectancy > 0">GATE</th></tr>' +
     `<tr><td><span class="sw" style="background:#8b919e"></span></td><td class="muted">Buy &amp; hold</td><td></td><td class="num ${cls(d.buy_hold.total_return)}">${pct(d.buy_hold.total_return)}</td>` +
-    `<td colspan="3"></td><td class="num dn">${pct(d.buy_hold.max_drawdown)}</td><td colspan="12"></td></tr>` +
-    d.results.map((r, i) => r.error ? `<tr><td></td><td>${esc(r.label)}</td><td colspan="18" class="dn">error ${esc(r.error)}</td></tr>` :
+    `<td colspan="3"></td><td class="num dn">${pct(d.buy_hold.max_drawdown)}</td><td colspan="14"></td></tr>` +
+    d.results.map((r, i) => r.error ? `<tr><td></td><td>${esc(r.label)}</td><td colspan="20" class="dn">error ${esc(r.error)}</td></tr>` :
       `<tr data-k="${r.key}" class="${state.shown.has(r.key) ? 'sel' : ''}"><td><span class="sw" style="background:${state.shown.has(r.key) ? COLORS[i % COLORS.length] : 'transparent'};border:1px solid ${COLORS[i % COLORS.length]}"></span></td>` +
       `<td><b>${esc(r.label)}</b>${r.beats_hold ? ' <span class="up" title="beat buy & hold">▲</span>' : ''}</td><td class="muted">${esc(r.family)}</td>` +
       `<td class="num ${cls(r.total_return)}">${pct(r.total_return)}</td><td class="num ${cls(r.cagr)}">${pct(r.cagr)}</td>` +
@@ -80,7 +82,8 @@ function render() {
       `<td class="num">${r.calmar == null ? '—' : r.calmar.toFixed(2)}</td><td class="num">${r.trades}</td><td class="num">${r.win_rate == null ? '—' : Math.round(r.win_rate * 100) + '%'}</td>` +
       `<td class="num">${r.profit_factor == null ? '—' : r.profit_factor.toFixed(2)}</td><td class="num">${Math.round(r.exposure * 100)}%</td>` +
       `<td class="num ${cls(r.in_sample_return)}">${pct(r.in_sample_return)}</td><td class="num ${cls(r.out_of_sample_return)}">${pct(r.out_of_sample_return)}</td>` +
-      `<td class="num ${r.significant ? 'up' : ''}">${r.p_value == null ? '—' : r.p_value.toFixed(3) + (r.significant ? ' ✓' : '')}</td>` + gateCells(r.gate) + '</tr>').join('');
+      `<td class="num ${r.significant ? 'up' : ''}">${r.p_value == null ? '—' : r.p_value.toFixed(3) + (r.significant ? ' ✓' : '')}</td>` + `<td class="num ${r.psr != null && r.psr >= 0.95 ? 'up' : ''}">${r.psr == null ? '—' : Math.round(r.psr * 100) + '%'}</td>` +
+      `<td class="num">${r.sqn == null ? '—' : r.sqn.toFixed(2)}</td>` + gateCells(r.gate) + '</tr>').join('');
   $('method').textContent = d.method;
   renderCatalog(d.catalog);
   draw();
@@ -111,4 +114,56 @@ const q = new URLSearchParams(location.search).get('symbol');
 if (q) $('symbol').value = q.toUpperCase();
 fetch('/api/desk/symbols').then(r => r.json()).then(r => { $('syms').innerHTML = r.symbols.map(s => `<option value="${esc(s.symbol)}">`).join(''); }).catch(() => {});
 run();
+})();
+
+/* Cross-sectional momentum rotation panel (research only; the fleet never trades it). */
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pct = (v, d = 1) => v == null ? '—' : `${v >= 0 ? '+' : ''}${(v * 100).toFixed(d)}%`;
+const cls = v => v == null ? '' : v >= 0 ? 'up' : 'dn';
+const num = (v, d = 2) => v == null ? '—' : (+v).toFixed(d);
+let chart = null;
+
+function draw(d) {
+  const el = $('rot-eq'); el.style.display = '';
+  const LC = window.LightweightCharts;
+  if (!chart) {
+    chart = LC.createChart(el, {autoSize: true, layout: {background: {color: 'transparent'}, textColor: '#8b919e', fontSize: 10, attributionLogo: false},
+      grid: {vertLines: {color: 'rgba(220,225,235,0.05)'}, horzLines: {color: 'rgba(220,225,235,0.05)'}},
+      rightPriceScale: {mode: 1, borderColor: 'rgba(220,225,235,0.14)'}, timeScale: {borderColor: 'rgba(220,225,235,0.14)'}});
+    chart.s = [['#2ee6a6', 'Rotation'], ['#8b919e', 'Equal-weight basket'], ['#ffc56b', 'BTC']]
+      .map(([color, title]) => chart.addLineSeries({color, lineWidth: 2, title, priceLineVisible: false}));
+  }
+  [d.curve, d.benchmark, d.btc].forEach((pts, i) => chart.s[i].setData(pts.map(p => ({time: Math.floor(p.time), value: p.equity}))));
+  if (d.oos_from) chart.s[0].setMarkers([{time: Math.floor(d.oos_from), position: 'aboveBar', color: '#6aa8ff', shape: 'arrowDown', text: 'OOS starts'}]);
+  chart.timeScale().fitContent();
+}
+
+async function run() {
+  $('rot-run').disabled = true;
+  $('rot-kpis').textContent = 'Downloading daily history and running…';
+  try {
+    const r = await fetch(`/api/lab/rotation?k=${$('rot-k').value}&n=${$('rot-n').value}`);
+    const d = await r.json();
+    if (d.status !== 'OK') throw new Error(d.error || d.status);
+    const f = d.full, o = d.oos, m = d.oos_metrics || {}, c = d.checks;
+    const tick = ok => ok ? '<span class="up">✓</span>' : '<span class="dn">✗</span>';
+    $('rot-kpis').innerHTML =
+      `<b>${d.passes ? '<span class="up">PASSES</span>' : '<span class="dn">DOES NOT PASS</span>'}</b> the out-of-sample check · ` +
+      `full period <b class="${cls(f.total_return)}">${pct(f.total_return)}</b> (Sharpe ${num(f.sharpe)}, max DD ${pct(f.max_drawdown)}, ${d.entries} entries) · ` +
+      `out-of-sample <b class="${cls(o.total_return)}">${pct(o.total_return)}</b> (Sharpe ${num(o.sharpe)}, max DD ${pct(o.max_drawdown)}, PSR ${m.psr == null ? '—' : Math.round(m.psr * 100) + '%'}, SQN ${num(m.sqn)}) · ` +
+      `basket ${pct(d.benchmark[d.benchmark.length - 1].equity - 1)} · BTC ${pct(d.btc[d.btc.length - 1].equity - 1)}<br>` +
+      `${tick(c.oos_entries_100)} ≥ 100 out-of-sample entries (${d.oos_entries}) · ${tick(c.psr_95)} PSR ≥ 95% · ${tick(c.positive_oos_after_fees)} positive out-of-sample return after fees` +
+      (d.last_holdings ? ` · latest holdings: ${d.last_holdings.btc_gate ? esc(d.last_holdings.holdings.join(', ') || 'none qualified') : 'cash (BTC below its 50-day average)'}` : '');
+    $('rot-notes').textContent = (d.caveats || []).join(' ');
+    $('rot-meta').textContent = `hold ${d.params.k} of top ${d.params.top_liquid} · weekly · ${d.params.fee_bps} bp/side · BTC > SMA${d.params.gate_sma} gate`;
+    draw(d);
+  } catch (e) {
+    $('rot-kpis').innerHTML = `<span class="dn">Rotation unavailable: ${esc(e.message)}</span>`;
+  }
+  $('rot-run').disabled = false;
+}
+$('rot-run').addEventListener('click', run);
 })();
