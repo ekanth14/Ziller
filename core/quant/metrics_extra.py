@@ -186,3 +186,105 @@ def full_report(rets: Sequence[float], curve: Sequence[float], trade_returns: Se
             "ulcer_index": ulcer_index(curve), "upi": ulcer_performance_index(curve, periods_per_year),
             "omega": omega_ratio(rets), "tail_ratio": tail_ratio(rets), "gain_to_pain": gain_to_pain(rets),
             "sqn": sqn(trade_returns), "k_ratio": k_ratio(curve)}
+
+
+# --------------------------------------------------------------------------- QuantConnect LEAN statistics
+# Ideas from LEAN's PortfolioStatistics / TradeStatistics / Report (Apache-2.0), reimplemented here.
+
+def capm_stats(rets: Sequence[float], bench: Sequence[float], periods_per_year: float, rf: float = 0.0) -> dict:
+    """Beta = cov(r, b)/var(b); Alpha = annR - (rf + beta*(annB - rf)); Treynor = (annR - rf)/beta;
+    tracking error = annualised sd(r - b); information ratio = (annR - annB)/TE."""
+    n = min(len(rets), len(bench))
+    if n < 10:
+        return {}
+    r, b = list(rets[:n]), list(bench[:n])
+    mr, mb = sum(r) / n, sum(b) / n
+    vb = sum((x - mb) ** 2 for x in b) / (n - 1)
+    cov = sum((x - mr) * (y - mb) for x, y in zip(r, b)) / (n - 1)
+    beta = cov / vb if vb > 0 else None
+    ann_r, ann_b = mr * periods_per_year, mb * periods_per_year
+    diff = [x - y for x, y in zip(r, b)]
+    md = sum(diff) / n
+    te = math.sqrt(sum((d - md) ** 2 for d in diff) / (n - 1) * periods_per_year)
+    return {"beta": beta,
+            "alpha": (ann_r - (rf + beta * (ann_b - rf))) if beta is not None else None,
+            "treynor": ((ann_r - rf) / beta) if beta else None,
+            "tracking_error": te, "information_ratio": ((ann_r - ann_b) / te) if te > 0 else None}
+
+
+def var_parametric(rets: Sequence[float], confidence: float = 0.95) -> Optional[float]:
+    """One-period normal VaR as a positive loss fraction (LEAN ValueAtRisk95/99 use the last 252 days)."""
+    r = list(rets[-252:])
+    if len(r) < 20:
+        return None
+    m = sum(r) / len(r)
+    sd = math.sqrt(sum((x - m) ** 2 for x in r) / (len(r) - 1))
+    return max(0.0, -(m + _N.inv_cdf(1 - confidence) * sd))
+
+
+def trade_stats_lean(trades: Sequence[float]) -> dict:
+    """Streaks, largest win/loss, profit-loss ratio and LEAN's expectancy = WinRate*PLR - LossRate."""
+    if not trades:
+        return {}
+    wins, losses = [t for t in trades if t > 0], [t for t in trades if t <= 0]
+    best = cur = 0
+    worst = curl = 0
+    for t in trades:
+        cur, curl = (cur + 1, 0) if t > 0 else (0, curl + 1)
+        best, worst = max(best, cur), max(worst, curl)
+    avg_w = sum(wins) / len(wins) if wins else 0.0
+    avg_l = sum(losses) / len(losses) if losses else 0.0
+    plr = avg_w / abs(avg_l) if avg_l else None
+    wr = len(wins) / len(trades)
+    return {"max_consecutive_wins": best, "max_consecutive_losses": worst, "largest_win": max(trades),
+            "largest_loss": min(trades), "profit_loss_ratio": plr,
+            "lean_expectancy": (wr * plr - (1 - wr)) if plr is not None else None}
+
+
+def drawdown_periods(curve: Sequence[float], times: Sequence[float], top: int = 5) -> List[dict]:
+    """The `top` worst peak-to-trough drawdowns with start, trough, recovery time and depth (LEAN Report)."""
+    out, peak_i, i, n = [], 0, 1, len(curve)
+    while i < n:
+        if curve[i] >= curve[peak_i]:
+            peak_i, i = i, i + 1
+            continue
+        trough_i, j = i, i
+        while j < n and curve[j] < curve[peak_i]:
+            if curve[j] < curve[trough_i]:
+                trough_i = j
+            j += 1
+        out.append({"start": times[peak_i], "trough": times[trough_i], "end": times[j] if j < n else None,
+                    "depth": curve[trough_i] / curve[peak_i] - 1, "bars": (j if j < n else n - 1) - peak_i,
+                    "recovered": j < n})
+        peak_i, i = j if j < n else n - 1, j + 1
+    return sorted(out, key=lambda d: d["depth"])[:top]
+
+
+def monthly_returns(curve: Sequence[float], times: Sequence[float]) -> List[dict]:
+    """Compounded return per calendar month (UTC) from an equity curve (LEAN monthly returns heatmap)."""
+    import datetime as dt
+    out, last_eq, cur_key, start_eq = [], None, None, None
+    for eq, t in zip(curve, times):
+        d = dt.datetime.fromtimestamp(t, dt.timezone.utc)
+        key = (d.year, d.month)
+        if key != cur_key:
+            if cur_key is not None:
+                out.append({"year": cur_key[0], "month": cur_key[1], "ret": last_eq / start_eq - 1})
+            cur_key, start_eq = key, (last_eq if last_eq is not None else eq)
+        last_eq = eq
+    if cur_key is not None and start_eq:
+        out.append({"year": cur_key[0], "month": cur_key[1], "ret": last_eq / start_eq - 1})
+    return out
+
+
+def rolling_sharpe(rets: Sequence[float], times: Sequence[float], window: int, periods_per_year: float,
+                   max_points: int = 150) -> List[dict]:
+    """Rolling annualised Sharpe over `window` periods, down-sampled to at most `max_points` points."""
+    pts = []
+    step = max(1, (len(rets) - window) // max_points) if len(rets) > window else 1
+    for i in range(window, len(rets) + 1, step):
+        w = rets[i - window:i]
+        m = sum(w) / window
+        sd = math.sqrt(sum((x - m) ** 2 for x in w) / (window - 1))
+        pts.append({"time": times[i - 1], "value": (m / sd * math.sqrt(periods_per_year)) if sd else 0.0})
+    return pts

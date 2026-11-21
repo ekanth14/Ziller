@@ -57,6 +57,7 @@ class ExecutionBot(TestnetLifecycle,BaseBot):
         mode: str = "PAPER",  # 'OBSERVE', 'PAPER', 'TESTNET', 'LIVE'
         db_path: Optional[str] = None,
         supervisor_timeout_sec: float = 15.0,
+        fill_realism: bool = False,             # LEAN-style paper fills (bid/ask, gaps, spread guard); engine sets True
         watchdog_grace_sec: Optional[float] = None,
         exchange_api_key: str = "",
         exchange_api_secret: str = ""
@@ -87,6 +88,11 @@ class ExecutionBot(TestnetLifecycle,BaseBot):
             config={"initial_cash": 10000.0, "fee_fraction": 0.001, "slippage_fraction": 0.0005}
         )
         self.live_governor = LiveMultiGateGovernor(mode=self.mode)
+        from cryptoscope.execution import fill_model
+        self.fill_realism = bool(fill_realism)
+        self.fill_cfg = fill_model.settings()
+        self.book = fill_model.BookSource() if self.fill_realism else None
+        self.spread_skips = 0
 
         # Binance Spot Testnet client for TESTNET mode
         self.binance_client = BinanceTestnetClient(
@@ -263,6 +269,10 @@ class ExecutionBot(TestnetLifecycle,BaseBot):
                 }
             for symbol,payload in conn.execute('SELECT symbol,payload FROM position_details'):
                 if symbol in self.active_positions:self.active_positions[symbol].update(json.loads(payload))
+            from cryptoscope.execution.fill_model import BAR_SECONDS
+            for p in self.active_positions.values():
+                p.setdefault('expires_at', float(p.get('created_at') or time.time()) + 16 * BAR_SECONDS)
+                p.setdefault('peak', p.get('entry_price'))
             pending=conn.execute("SELECT * FROM orders WHERE status='RECONCILE_REQUIRED'").fetchall()
             for row in pending:
                 self.active_orders[row['order_id']]=dict(row)
@@ -376,6 +386,16 @@ class ExecutionBot(TestnetLifecycle,BaseBot):
 
         try:
             executed_price = price
+            if self.fill_realism and self.mode == "PAPER" and self.book is not None:
+                from cryptoscope.execution.fill_model import market_fill, spread_ok
+                quote = await asyncio.to_thread(self.book.quote, symbol)
+                ok, spread = spread_ok(quote, self.fill_cfg["max_entry_spread"])
+                if not ok:
+                    self.spread_skips += 1
+                    logger.warning("[%s] Skipping %s entry: spread %.3f%% above %.3f%% (LEAN SpreadExecutionModel)",
+                                   self.name, symbol, spread * 100, self.fill_cfg["max_entry_spread"] * 100)
+                    return
+                executed_price = market_fill("BUY", price, quote, self.fill_cfg["slippage"])
             stop_order_id = None if self.mode == 'TESTNET' else f"paper_stop_{int(time.time()*1000)}"
 
             # Check mock order executor hook if set for failure injection testing
@@ -426,6 +446,9 @@ class ExecutionBot(TestnetLifecycle,BaseBot):
                 "stop_order_id": stop_order_id,
                 "created_at": time.time(),
                 'mode':self.mode,
+                # insight period: close at market if neither target nor stop is hit within the horizon
+                "expires_at": time.time() + max(1, int(getattr(intent, "horizon_bars", 16) or 16)) * 900,
+                "peak": executed_price,
             }
             if self.mode=='TESTNET':pos_data.update(testnet_position)
             self.active_positions[symbol] = pos_data
@@ -475,8 +498,19 @@ class ExecutionBot(TestnetLifecycle,BaseBot):
         exit_triggered = False
         exit_reason = ""
         exit_price = curr_price
+        now = time.time()
 
-        if side == "BUY":
+        if side == "BUY" and self.fill_realism and self.mode == "PAPER":
+            from cryptoscope.execution.fill_model import long_exit, trail_stop
+            pos["peak"] = max(float(pos.get("peak") or entry), curr_price)
+            new_stop = trail_stop(stop, pos["peak"], self.fill_cfg["trailing_pct"])
+            if new_stop > stop:
+                pos["stop_price"] = stop = new_stop
+                self._save_position_db(pos)
+            decision = long_exit(curr_price, stop, target, pos.get("expires_at"), now, self.fill_cfg["slippage"])
+            if decision:
+                exit_triggered, (exit_reason, exit_price) = True, decision
+        elif side == "BUY":
             if curr_price <= stop:
                 exit_triggered = True
                 exit_reason = "STOP_LOSS"
@@ -485,6 +519,10 @@ class ExecutionBot(TestnetLifecycle,BaseBot):
                 exit_triggered = True
                 exit_reason = "TAKE_PROFIT"
                 exit_price = target
+            elif pos.get("expires_at") and now >= float(pos["expires_at"]):
+                exit_triggered = True
+                exit_reason = "TIME_STOP"
+                exit_price = curr_price
         elif side == "SELL":
             if curr_price >= stop:
                 exit_triggered = True

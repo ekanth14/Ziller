@@ -625,11 +625,15 @@ def meta_label_report(c: Candles, key: str, interval: str, fee_bps: float = 10.0
 
 
 # --------------------------------------------------------------------------- backtest
-def backtest(c: Candles, pos: Sequence[int], fee_bps: float, bars_per_year: float, oos_split: float = 0.7) -> Dict[str, object]:
-    """Position decided on bar t close, executed at bar t+1 open."""
-    n, fee = len(c), fee_bps / 10000
+def backtest(c: Candles, pos: Sequence[int], fee_bps: float, bars_per_year: float, oos_split: float = 0.7,
+             slippage_bps: float = 0.0) -> Dict[str, object]:
+    """Position decided on bar t close, executed at bar t+1 open. `slippage_bps` per side is added to the fee
+    (LEAN ConstantSlippageModel). MAE / MFE use each held bar's low / high (LEAN TradeStatistics)."""
+    n, fee = len(c), (fee_bps + slippage_bps) / 10000
     eq, curve, rets = 1.0, [1.0], []
     trades, cur, entry, held_bars = [], 0, None, 0
+    lo_seen = hi_seen = None
+    maes, mfes = [], []
     for t in range(1, n):
         want = pos[t - 1]
         o, cl, prev = c[t]["open"], c[t]["close"], c[t - 1]["close"]
@@ -637,12 +641,16 @@ def backtest(c: Candles, pos: Sequence[int], fee_bps: float, bars_per_year: floa
         if want == 1 and cur == 0:
             r = (cl / o) * (1 - fee) - 1
             cur, entry = 1, o
+            lo_seen, hi_seen = c[t].get("low", o), c[t].get("high", o)
         elif want == 0 and cur == 1:
             r = (o / prev) * (1 - fee) - 1
             trades.append((o / entry) * (1 - fee) ** 2 - 1)
+            maes.append(min(lo_seen, o) / entry - 1)
+            mfes.append(max(hi_seen, o) / entry - 1)
             cur, entry = 0, None
         elif cur == 1:
             r = cl / prev - 1
+            lo_seen, hi_seen = min(lo_seen, c[t].get("low", cl)), max(hi_seen, c[t].get("high", cl))
         held_bars += cur
         eq *= 1 + r
         curve.append(eq)
@@ -676,7 +684,28 @@ def backtest(c: Candles, pos: Sequence[int], fee_bps: float, bars_per_year: floa
         "p_value": p, "curve": curve,
         # PSR, MinTRL, Ulcer/UPI, Omega, tail ratio, gain-to-pain, SQN, K-ratio, MAR (core/quant/metrics_extra.py)
         **_extra_metrics(rets, curve, trades, bars_per_year),
+        # QuantConnect LEAN statistics and report data
+        **_lean_report(c, rets, curve, trades, maes, mfes, bars_per_year),
     }
+
+
+def _lean_report(c, rets, curve, trades, maes, mfes, bars_per_year):
+    from core.quant import metrics_extra as mx
+    try:
+        times = [b.get("open_time", i) for i, b in enumerate(c)]
+        bench = [c[t]["close"] / c[t - 1]["close"] - 1 for t in range(1, len(c))]
+        window = int(min(max(20, bars_per_year / 2), max(20, len(rets) // 4)))   # ~6 months, capped
+        return {
+            **mx.capm_stats(rets, bench, bars_per_year), **mx.trade_stats_lean(trades),
+            "var95": mx.var_parametric(rets, 0.95), "var99": mx.var_parametric(rets, 0.99),
+            "avg_mae": (sum(maes) / len(maes)) if maes else None, "avg_mfe": (sum(mfes) / len(mfes)) if mfes else None,
+            "worst_mae": min(maes) if maes else None, "best_mfe": max(mfes) if mfes else None,
+            "report": {"monthly": mx.monthly_returns(curve, times), "drawdowns": mx.drawdown_periods(curve, times),
+                       "rolling_sharpe": mx.rolling_sharpe(rets, times[1:], window, bars_per_year),
+                       "rolling_window": window, "trade_returns": [round(x, 5) for x in trades]},
+        }
+    except Exception:   # report data must never break a backtest
+        return {}
 
 
 def _extra_metrics(rets, curve, trades, bars_per_year):
@@ -687,7 +716,7 @@ def _extra_metrics(rets, curve, trades, bars_per_year):
         return {}
 
 
-def run_lab(c: Candles, interval: str = "1d", fee_bps: float = 10.0, only: Optional[List[str]] = None,
+def run_lab(c: Candles, interval: str = "1d", fee_bps: float = 10.0, only: Optional[List[str]] = None, slippage_bps: float = 0.0,
             catalog: bool = True) -> Dict[str, object]:
     if interval not in INTERVALS:
         raise ValueError("Unsupported interval")
@@ -703,7 +732,7 @@ def run_lab(c: Candles, interval: str = "1d", fee_bps: float = 10.0, only: Optio
             continue
         try:
             pos = fn(c)
-            m = backtest(c, pos, fee_bps, bpy)
+            m = backtest(c, pos, fee_bps, bpy, slippage_bps=slippage_bps)
         except Exception as exc:  # one broken strategy never takes the lab down
             rows.append({"key": key, "label": label, "family": family, "error": type(exc).__name__})
             continue

@@ -67,7 +67,8 @@ class OrchestratorEngine:
         self.execution_bot = ExecutionBot(
             self.bus,
             mode=self.mode,
-            db_path=str(self.work_dir / "orchestrator_execution.db")
+            db_path=str(self.work_dir / "orchestrator_execution.db"),
+            fill_realism=True,     # bid/ask fills, gap-aware stops, spread guard (QuantConnect LEAN fill models)
         )
         self.journal_bot = JournalBot(
             self.bus,
