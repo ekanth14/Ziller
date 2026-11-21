@@ -4,12 +4,18 @@ Every modification, upgrade, fix and deletion, newest first, with date and time 
 Generated from git history by `python scripts/update_changes.py`; regenerate after each commit.
 Deleted code remains recoverable from git with `git show <hash>^:<path>`.
 
-Totals: Upgrade 106 · Fix 39 · Modification 13 · Deletion 20 · Docs 35 · Security 2 · Test 3
+Totals: Upgrade 107 · Fix 39 · Modification 13 · Deletion 20 · Docs 36 · Security 2 · Test 3
 
 Types: **Upgrade** = new feature or capability · **Fix** = bug fix · **Modification** = change/refactor/chore · **Deletion** = code or files removed · **Docs** · **Security** · **Test**.
 
 ## 2026-11-21 (Saturday)
 
+- **22:46 IST** · **Upgrade** · feat: QuantConnect LEAN ideas - realistic paper fills, time stops, spread guard, trailing stop, LEAN statistics (`0da3c2c`, Ekanth B S)
+  - Files: +1 added · ~4 modified · −0 deleted
+  - Added: `cryptoscope/execution/fill_model.py`
+  - Details: cryptoscope/execution/fill_model.py (LEAN fill/slippage/execution/risk model ideas): paper buys fill at the live ask, gap-through stops fill at the worse market price, entries skipped when spread > 0.3% (SpreadExecutionModel), opt-in trailing stop ZILLERS_TRAILING_STOP_PCT (PAPER only). ExecutionBot enforces each trade's horizon as a TIME_STOP (it was never enforced); realism enabled by the fleet engine only, so tests and replays stay deterministic. Lab backtests report LEAN statistics: alpha, beta, Treynor, tracking error, information ratio, VaR95/99, MAE/MFE, win/loss streaks, profit-loss ra
+- **22:25 IST** · **Docs** · docs: update CHANGES.md (`4445955`, Ekanth B S)
+  - Files: +0 added · ~1 modified · −0 deleted
 - **22:25 IST** · **Upgrade** · feat: dependencies set up; funding filter + opt-in BTC gate, jump-model regime, ML meta-labeling; mypy clean (`5eea342`, Ekanth B S)
   - Files: +4 added · ~11 modified · −0 deleted
   - Added: `core/quant/jump_model.py`, `core/quant/meta_ml.py`, `cryptoscope/quant/market_filters.py`, `tests/test_filters_jump_metalabel.py`
