@@ -4,12 +4,21 @@ Every modification, upgrade, fix and deletion, newest first, with date and time 
 Generated from git history by `python scripts/update_changes.py`; regenerate after each commit.
 Deleted code remains recoverable from git with `git show <hash>^:<path>`.
 
-Totals: Upgrade 107 · Fix 39 · Modification 13 · Deletion 20 · Docs 36 · Security 2 · Test 3
+Totals: Upgrade 108 · Fix 39 · Modification 13 · Deletion 20 · Docs 37 · Security 2 · Test 3
 
 Types: **Upgrade** = new feature or capability · **Fix** = bug fix · **Modification** = change/refactor/chore · **Deletion** = code or files removed · **Docs** · **Security** · **Test**.
 
+## 2026-11-22 (Sunday)
+
+- **00:08 IST** · **Upgrade** · feat(lab,pnl): LEAN-style strategy report, slippage selector, rotation weighting, signal-source accuracy (`4e01a3c`, Ekanth B S)
+  - Files: +2 added · ~7 modified · −0 deleted
+  - Added: `cryptoscope/desk/insight_scores.py`, `tests/test_lean_features.py`
+  - Details: Lab STRATEGY REPORT panel: LEAN statistics (alpha, beta, Treynor, IR, tracking error, VaR95/99, MAE/MFE, streaks, P/L ratio, LEAN expectancy), monthly returns heatmap, 5 worst drawdowns, rolling Sharpe and a returns-per-trade histogram for any strategy. Lab slippage selector (0/5/10 bp per side, LEAN ConstantSlippageModel) through /api/lab. Rotation weighting: equal, score-weighted (ConfidenceWeighted) or inverse volatility (risk parity). P&L SIGNAL SOURCE ACCURACY (LEAN insight scoring): per source, share of calls that came true within 4 h vs the coin's base rate; signals deduplicated per 15 
+
 ## 2026-11-21 (Saturday)
 
+- **22:46 IST** · **Docs** · docs: update CHANGES.md (`7cc7c75`, Ekanth B S)
+  - Files: +0 added · ~1 modified · −0 deleted
 - **22:46 IST** · **Upgrade** · feat: QuantConnect LEAN ideas - realistic paper fills, time stops, spread guard, trailing stop, LEAN statistics (`0da3c2c`, Ekanth B S)
   - Files: +1 added · ~4 modified · −0 deleted
   - Added: `cryptoscope/execution/fill_model.py`
