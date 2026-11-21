@@ -4,12 +4,18 @@ Every modification, upgrade, fix and deletion, newest first, with date and time 
 Generated from git history by `python scripts/update_changes.py`; regenerate after each commit.
 Deleted code remains recoverable from git with `git show <hash>^:<path>`.
 
-Totals: Upgrade 105 · Fix 39 · Modification 13 · Deletion 20 · Docs 34 · Security 2 · Test 3
+Totals: Upgrade 106 · Fix 39 · Modification 13 · Deletion 20 · Docs 35 · Security 2 · Test 3
 
 Types: **Upgrade** = new feature or capability · **Fix** = bug fix · **Modification** = change/refactor/chore · **Deletion** = code or files removed · **Docs** · **Security** · **Test**.
 
 ## 2026-11-21 (Saturday)
 
+- **22:25 IST** · **Upgrade** · feat: dependencies set up; funding filter + opt-in BTC gate, jump-model regime, ML meta-labeling; mypy clean (`5eea342`, Ekanth B S)
+  - Files: +4 added · ~11 modified · −0 deleted
+  - Added: `core/quant/jump_model.py`, `core/quant/meta_ml.py`, `cryptoscope/quant/market_filters.py`, `tests/test_filters_jump_metalabel.py`
+  - Details: Dependencies: quantjourney-bt installed in work/environments/backtesting (its pins conflict with the runtime); the 13 engine tests pass there. onnxruntime + IPython added to .venv; quantstats removed again (needs numpy<2; it had downgraded numpy/pandas - restored numpy 2.5.4 / pandas 3.1.1, pip check clean). mypy runs in WSL (Application Control blocks its compiled modules on Windows). Fixed the 5 type errors (NormalisedTicker.feed_type field, Optional db_path, user insert row id); CI mypy is now blocking. Features: cryptoscope/quant/market_filters.py: funding-rate filter (public Binance USD-M
+- **21:41 IST** · **Docs** · docs: update CHANGES.md (`6d7223f`, Ekanth B S)
+  - Files: +0 added · ~1 modified · −0 deleted
 - **21:41 IST** · **Upgrade** · feat(lab): deep-research additions - PSR/MinTRL and 10 more metrics, trailing exits, 9 new gated candidates, momentum rotation (`2121d41`, Ekanth B S)
   - Files: +7 added · ~5 modified · −0 deleted
   - Added: `core/quant/metrics_extra.py`, `cryptoscope/desk/rotation.py`, `docs/research/Crypto algo strategies and formulas - notes/exits_sizing_execution_metrics.md`, `docs/research/Crypto algo strategies and formulas - notes/statarb_and_ml.md`, `docs/research/Crypto algo strategies and formulas - notes/strategy_families.md`, `docs/research/Crypto algo strategies and formulas.md`, `tests/test_research_additions.py`
