@@ -4,12 +4,20 @@ Every modification, upgrade, fix and deletion, newest first, with date and time 
 Generated from git history by `python scripts/update_changes.py`; regenerate after each commit.
 Deleted code remains recoverable from git with `git show <hash>^:<path>`.
 
-Totals: Upgrade 102 · Fix 38 · Modification 13 · Deletion 19 · Docs 27 · Security 2 · Test 3
+Totals: Upgrade 102 · Fix 39 · Modification 13 · Deletion 19 · Docs 28 · Security 2 · Test 3
 
 Types: **Upgrade** = new feature or capability · **Fix** = bug fix · **Modification** = change/refactor/chore · **Deletion** = code or files removed · **Docs** · **Security** · **Test**.
 
+## 2026-11-21 (Saturday)
+
+- **19:57 IST** · **Fix** · fix(models): load THX-02 in bfloat16 on CPU and preload models one at a time (`5d02029`, Ekanth B S)
+  - Files: +0 added · ~2 modified · −0 deleted
+  - Details: THX-02's loader uses float32 on CPU unless THX02_CPU_DTYPE=bfloat16 (4.5 B params ~ 18 GB), which exceeded WSL's 15.7 GB and got the sidecar killed at 89% of loading. bfloat16 halves it. Models now preload sequentially to avoid a doubled peak. Documented the matching CPU torchvision build (PyPI's 0.29.2 lacked torchvision::nms for torch 2.15). Verified live: both models load in ~3 s; THX-02 gives 0.80 for a clean uptrend vs 0.19 for a falling, thin, toxic setup; Laya 0.65 vs 0.63 (barely separates). START ALL model checks pass.
+
 ## 2026-11-20 (Friday)
 
+- **07:38 IST** · **Docs** · docs: update CHANGES.md (`812256d`, Ekanth B S)
+  - Files: +0 added · ~1 modified · −0 deleted
 - **07:38 IST** · **Upgrade** · feat(lab): indicator catalog, 11 new candidate strategies, CPCV/PBO/DSR promotion gate (`77cc381`, Ekanth B S)
   - Files: +6 added · ~9 modified · −0 deleted
   - Added: `core/quant/validation.py`, `cryptoscope/desk/indicator_catalog.py`, `tests/test_indicator_catalog.py`, `tests/test_quant_validation.py`, `tests/test_scanner_factors.py`, `tests/test_strategy_lab_gate.py`
