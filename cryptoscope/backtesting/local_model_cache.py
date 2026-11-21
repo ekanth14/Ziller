@@ -58,7 +58,7 @@ async def discover(root):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--model',default='gemma4-quant:12b',choices=('gemma4-quant:12b','gemma4:12b'))
+    parser.add_argument('--model',default='qwen3:8b')
     parser.add_argument('--max-requests',type=int,default=100)
     args = parser.parse_args()
     value = os.environ.get('ZILLERS_AUDIT_SANDBOX')

@@ -11,6 +11,65 @@ from cryptoscope.simulation.time_machine import simulate_trade_odds
 from cryptoscope.providers.deadline_http import post_json_deadline
 
 
+_RESOLVED_MODEL = None
+
+
+DEFAULT_DEBATE_MODEL = "qwen3:8b"   # ~10 tok/s on this CPU (the old 12B gave ~1 tok/s)
+
+
+def pick_debate_model(requested, installed_chat):
+    """Choose the debate model from what Ollama actually has installed.
+
+    1. the requested model (OLLAMA_DEBATE_MODEL or OLLAMA_MODEL) if it is installed;
+    2. otherwise an installed model of the same base name (gemma4:12b -> gemma4-quant:12b);
+    3. otherwise the first installed 'quant' chat model, then any installed chat model;
+    4. the requested name (or gemma4:12b) when nothing is installed, so the call fails closed.
+
+    .env asked for gemma4:12b, which is not installed here: every debate got HTTP 404 and every
+    trade was vetoed. Using an installed model instead is safe because the debate still fails
+    closed on any error and only ever vetoes or approves a trade the risk gates already allow.
+    """
+    requested = (requested or "").strip()
+    names = list(installed_chat)
+    if requested and requested in names:
+        return requested
+    if requested:
+        base = requested.split(":", 1)[0].lower()
+        same = [n for n in names if n.lower().startswith(base)]
+        if same:
+            return sorted(same, key=lambda n: ("quant" not in n, n))[0]
+    preferred = [n for n in names if "quant" in n] + names
+    if preferred:
+        return preferred[0]
+    return requested or DEFAULT_DEBATE_MODEL
+
+
+def resolve_debate_model():
+    """OLLAMA_DEBATE_MODEL > OLLAMA_MODEL > installed gemma chat model, always checked against Ollama."""
+    global _RESOLVED_MODEL
+    import os, json, logging, urllib.request
+    requested = (os.environ.get("OLLAMA_DEBATE_MODEL") or os.environ.get("OLLAMA_MODEL") or "").strip()
+    if _RESOLVED_MODEL and _RESOLVED_MODEL[0] == requested:
+        return _RESOLVED_MODEL[1]
+    host = (os.environ.get("OLLAMA_HOST") or "http://127.0.0.1:11434").strip().rstrip("/")
+    if not host.startswith(("http://", "https://")):
+        host = "http://" + host
+    try:
+        with urllib.request.urlopen(host + "/api/tags", timeout=3) as resp:
+            tags = json.loads(resp.read()).get("models", [])
+    except Exception:
+        return requested or DEFAULT_DEBATE_MODEL   # Ollama down: nothing to verify against; the call fails closed
+    chat = [m["name"] for m in tags
+            if not any(x in str(m.get("details", {}).get("family", "")).lower() for x in ("bert", "embed"))]
+    chosen = pick_debate_model(requested, chat)
+    if requested and chosen != requested:
+        logging.getLogger("cryptoscope.agents.consensus").warning(
+            "Debate model %s is not installed in Ollama; using %s instead.", requested, chosen)
+    if chosen in chat:
+        _RESOLVED_MODEL = (requested, chosen)
+    return chosen
+
+
 class DeliberationConsensusEngine:
     """Orchestrates adversarial multi-agent debate and compiles institutional consensus."""
 
@@ -38,9 +97,11 @@ class DeliberationConsensusEngine:
         log = logging.getLogger("cryptoscope.agents.consensus")
         t0 = time.perf_counter()
 
-        model_name = model or os.environ.get("OLLAMA_DEBATE_MODEL", "gemma4:12b")
+        model_name = model or resolve_debate_model()
         deadline = timeout_sec or float(os.environ.get("DEBATE_TIMEOUT_SEC", "35.0"))
-        host = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+        host = (os.environ.get("OLLAMA_HOST") or "http://127.0.0.1:11434").strip().rstrip("/")
+        if not host.startswith(("http://", "https://")):
+            host = "http://" + host
 
         ind = indicators or {}
         context_str = ", ".join(f"{k}={v}" for k, v in ind.items() if not isinstance(v, (list, dict)))
@@ -49,12 +110,12 @@ class DeliberationConsensusEngine:
             "You are an institutional quantitative crypto debate committee. "
             "Deliberate the proposed trade from Bull, Bear, and Risk Moderator perspectives simultaneously. "
             "Respond STRICTLY in JSON format with exactly these keys: "
-            "bull_thesis (string, max 15 words), "
-            "bear_thesis (string, max 15 words), "
+            "bull_thesis (string, max 8 words), "
+            "bear_thesis (string, max 8 words), "
             "risk_verdict (string: APPROVE or VETO), "
             "conviction (integer 1 to 10), "
             "consensus_action (string: BUY, SELL, or STAND_ASIDE), "
-            "reason (string, max 15 words)."
+            "reason (string, max 8 words). Keep every string short; no extra keys."
         )
 
         user_prompt = (
@@ -73,12 +134,13 @@ class DeliberationConsensusEngine:
             "keep_alive": "15m",
             "options": {
                 "temperature": 0.0,
-                "num_predict": 140,
+                "num_predict": 120,  # ~60-80 tokens of JSON; CPU Gemma 12B runs ~1 token/s
             }
         }
 
         try:
-            raw_json=post_json_deadline(f'{host}/api/generate',payload,min(deadline,35.0))
+            # The caller's deadline is authoritative. A hidden 35 s cap made every CPU debate (70-100 s) time out.
+            raw_json=post_json_deadline(f'{host}/api/generate',payload,deadline)
             if raw_json.get('done') is not True or raw_json.get('done_reason')!='stop':
                 raise ValueError('Model generation incomplete')
 

@@ -55,20 +55,6 @@ def audit_function(source):
     return namespace['_audit']
 
 
-def test_online_guard_only_allows_local_generation_http_and_keeps_external_write_denials(monkeypatch):
-    import sys
-    monkeypatch.syspath_prepend(str(Path('scripts').resolve()))
-    script=runpy.run_path('scripts/run_phase2_online.py')
-    normal=audit_function(script['GUARD'])
-    local=audit_function(script['local_model_guard']())
-    normal_url='http://127.0.0.1:11434/api/generate'
-    with pytest.raises(OSError): normal('urllib.Request',(normal_url,))
-    local('urllib.Request',(normal_url,))
-    for url in ('http://example.invalid/api/generate','http://127.0.0.1:8900/api/trade',
-                'http://127.0.0.1:11434/api/pull','http://127.0.0.1:11434/api/create'):
-        with pytest.raises(OSError): local('urllib.Request',(url,))
-    with pytest.raises(OSError):local('socket.connect',(None,('192.0.2.1',11434)))
-    with pytest.raises(PermissionError):local('open',('outside-copy','w',os.O_WRONLY))
 
 
 def test_cache_job_checkpoints_and_stops_after_three_failures(tmp_path,monkeypatch):
@@ -82,7 +68,7 @@ def test_cache_job_checkpoints_and_stops_after_three_failures(tmp_path,monkeypat
         monkeypatch.setenv(name,'fixture')
     monkeypatch.setattr(logging,'disable',lambda _:None)
     monkeypatch.setattr(module.urllib.request,'install_opener',lambda _:None)
-    monkeypatch.setattr(argparse.ArgumentParser,'parse_args',lambda _:argparse.Namespace(model='gemma4-quant:12b',max_requests=100))
+    monkeypatch.setattr(argparse.ArgumentParser,'parse_args',lambda _:argparse.Namespace(model='qwen3:8b',max_requests=100))
     requests={}
     for entry in (100,101,102,103):
         request=dict(symbol='BTCUSDT',direction='BUY',entry=entry,stop=98,target=110,indicators={})

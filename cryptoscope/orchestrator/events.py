@@ -80,6 +80,9 @@ class DebateResult(BaseEvent):
     risk_summary: str = ""
     latency_ms: float = 0.0
     fallback_used: bool = False
+    # THX-02 / Laya meta-label answer: {thx02_p, laya_p, mean_p, quality, enforced, vetoed, errors}.
+    # Advisory unless ZILLERS_META_ENFORCE=1; it can only ever lead to a veto.
+    meta: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

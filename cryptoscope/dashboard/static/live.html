@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZILLERS Live Tradebot</title>
+<link rel="icon" href="/assets/z-app-icon.png">
+<link rel="stylesheet" href="/desk.css">
+<style>
+  .live{display:flex;flex-direction:column;gap:12px;padding:14px 18px}
+  .ktot{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+  .ktot .kpi{border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px 11px;background:var(--panel2);min-width:0}
+  .ktot .k{color:var(--muted);font-size:10px;letter-spacing:.08em}
+  .ktot .v{font:800 clamp(14px,1.3vw,19px)/1.25 var(--mono);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ktot .s{color:var(--muted);font-size:10.5px;font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ktot .hero{background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(20,21,25,.6))}
+
+  /* Adaptive grid: columns and tile height are set from JS so every traded coin fits on screen. */
+  #grid{display:grid;gap:10px;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr))}
+  .tile{position:relative;display:flex;flex-direction:column;min-width:0;height:var(--tile-h,300px);border:1px solid var(--line);
+        border-radius:var(--radius);background:var(--panel);box-shadow:var(--shadow);overflow:hidden;cursor:pointer;transition:border-color .15s,transform .15s}
+  .tile:hover,.tile:focus-visible{border-color:rgba(220,225,235,.38);outline:none}
+  .tile.pos{border-color:rgba(46,230,166,.35)}
+  .tile.pos.loss{border-color:rgba(255,93,125,.35)}
+  .th{display:flex;align-items:baseline;gap:8px;padding:8px 11px 4px;min-width:0}
+  .th .sym{font:800 14px var(--mono);letter-spacing:.02em}
+  .th .px{font:700 13px var(--mono)}
+  .th .chg{font:600 11px var(--mono)}
+  .th .badge{margin-left:auto;font:700 9.5px var(--mono);letter-spacing:.06em;padding:2px 7px;border-radius:999px;border:1px solid var(--line);
+             color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:48%}
+  .badge.in{color:var(--green);border-color:rgba(46,230,166,.45)}
+  .badge.blk{color:var(--amber);border-color:rgba(255,197,107,.4)}
+  .tc{flex:1 1 auto;min-height:60px}
+  .tf{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:5px 11px 8px;border-top:1px solid var(--line);font-size:10px}
+  .tf span{display:block;color:var(--muted);letter-spacing:.05em;white-space:nowrap}
+  .tf b{display:block;font:700 11.5px var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .empty-live{padding:40px 16px;text-align:center;color:var(--muted)}
+  .empty-live b{display:block;color:var(--txt);font-size:15px;margin-bottom:6px}
+
+  /* Expanded coin view */
+  .ov{position:fixed;inset:0;z-index:50;background:rgba(5,5,6,.78);backdrop-filter:blur(6px);display:none;padding:14px}
+  .ov.open{display:block}
+  .ovb{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:auto minmax(0,1fr) auto;gap:10px;
+       border:1px solid var(--line);border-radius:var(--radius);background:var(--bg2);padding:12px;box-shadow:var(--shadow)}
+  .ovh{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .ovh .sym{font:800 20px var(--mono)}
+  .ovh .px{font:800 20px var(--mono)}
+  .ovh .x{margin-left:auto;background:none;border:1px solid var(--line);color:var(--txt);border-radius:var(--radius-sm);padding:6px 12px;cursor:pointer;font:700 12px var(--font)}
+  .ivs{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+  .ivs button{background:none;border:0;color:var(--muted);padding:4px 10px;font:700 11px var(--mono);cursor:pointer}
+  .ivs button.on{background:rgba(220,225,235,.14);color:var(--txt)}
+  #big{min-height:240px;border:1px solid var(--line);border-radius:var(--radius-sm)}
+  .side{overflow:auto;display:flex;flex-direction:column;gap:10px;min-height:0}
+  .card{border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 12px;background:var(--panel)}
+  .card h4{margin:0 0 8px;font-size:10.5px;letter-spacing:.09em;color:var(--muted);font-weight:700}
+  .kv2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
+  .kv2 span{display:block;color:var(--muted);font-size:10px;letter-spacing:.05em}
+  .kv2 b{font:700 13px var(--mono);word-break:break-word}
+  .kv2 .wide{grid-column:1/-1}
+  .bar{position:relative;height:8px;border-radius:999px;background:rgba(220,225,235,.08);margin-top:6px;overflow:hidden}
+  .bar i{position:absolute;top:0;bottom:0;width:3px;background:var(--txt);border-radius:2px}
+  .bar .stop{position:absolute;left:0;top:0;bottom:0;width:50%;background:linear-gradient(90deg,rgba(255,93,125,.35),transparent)}
+  .bar .tgt{position:absolute;right:0;top:0;bottom:0;width:50%;background:linear-gradient(270deg,rgba(46,230,166,.35),transparent)}
+  .ovt{grid-column:1/-1;max-height:30vh;overflow:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .note{color:var(--muted);font-size:11px}
+  @media (max-width:640px){.tf{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:6px}.live{padding:10px}}
+  @media (max-width:900px){
+    .ovb{grid-template-columns:1fr;grid-template-rows:auto 46vh auto auto;overflow:auto}
+    .side{overflow:visible}.ovt{grid-template-columns:1fr;max-height:none}
+    .ov{padding:6px}
+  }
+</style>
+</head>
+<body>
+<header class="strip">
+  <a class="brand" href="/" title="ZILLERS"><img class="logo" src="/assets/z-emblem-large.png" alt="ZILLERS" width="34" height="26"><span class="word">ZILLERS</span><span class="sub">LIVE BOTS</span><i id="live-dot" class="dot off"></i><span id="live-label">CONNECTING</span></a>
+  <nav class="nav"><a href="/">DESK</a><a href="/live" class="on">LIVE</a><a href="/markets">MARKETS</a><a href="/scanner">SCANNER</a><a href="/lab">LAB</a><a href="/bots">BOTS</a><a href="/pnl">P&amp;L</a><a href="/system">SYSTEM</a></nav>
+  <span class="chips"></span>
+  <span class="strip-right">
+    <span class="seg" id="tz-seg" title="Time zone"><button data-tz="IST">IST</button><button data-tz="UTC">UTC</button></span>
+    <span class="seg" id="ccy-seg" title="Currency"><button data-ccy="INR">₹ INR</button><button data-ccy="USD">$ USD</button></span>
+    <span class="seg" id="iv-seg" title="Tile chart interval"><button data-iv="5m">5m</button><button data-iv="15m">15m</button><button data-iv="1h">1h</button></span>
+    <span id="fx" class="muted"></span>
+    <span id="fleet" class="gov">FLEET …</span>
+    <span id="updated" class="muted"></span>
+  </span>
+</header>
+<main class="live">
+  <section class="ktot" id="totals" aria-label="Fleet totals"></section>
+  <section id="grid" aria-label="Coins the bot is trading"></section>
+</main>
+
+<div class="ov" id="ov" role="dialog" aria-modal="true" aria-labelledby="ov-sym">
+  <div class="ovb">
+    <div class="ovh">
+      <span class="sym" id="ov-sym"></span><span class="px" id="ov-px"></span><span id="ov-chg"></span><span id="ov-badge" class="badge"></span>
+      <span class="ivs" id="ov-iv"><button data-iv="1m">1m</button><button data-iv="5m">5m</button><button data-iv="15m">15m</button><button data-iv="1h">1h</button><button data-iv="4h">4h</button></span>
+      <button class="x" id="ov-close" aria-label="Close">✕ CLOSE</button>
+    </div>
+    <div id="big"></div>
+    <div class="side">
+      <div class="card"><h4>POSITION &amp; P&amp;L</h4><div class="kv2" id="ov-pos"></div></div>
+      <div class="card"><h4>THIS COIN · ALL TIME</h4><div class="kv2" id="ov-hist"></div></div>
+      <div class="card"><h4>LAST BOT DECISIONS</h4><div class="kv2" id="ov-dec"></div></div>
+    </div>
+    <div class="ovt">
+      <div class="card"><h4>FILLS</h4><div class="tbl-wrap"><table class="tbl" id="ov-fills"></table></div></div>
+      <div class="card"><h4>CLOSED TRADES</h4><div class="tbl-wrap"><table class="tbl" id="ov-closed"></table></div></div>
+    </div>
+  </div>
+</div>
+
+<footer class="foot"><span class="foot-brand"><img src="/assets/z-emblem-large.png" alt="" width="18" height="14"> ZILLERS · quant trading terminal</span><span>Live view of the fleet's coins · prices stream every second · paper / testnet money only · no investment advice</span></footer>
+<script src="/assets/lightweight-charts.standalone.production.js"></script>
+<script src="/live.js"></script>
+</body>
+</html>

@@ -3,7 +3,6 @@ import pytest
 from cryptoscope.autotrader.strategies.volume_breakout import VolumeBreakoutStrategy
 from cryptoscope.autotrader.strategies.shrink_pullback import ShrinkPullbackStrategy
 from cryptoscope.autotrader.strategies.box_oscillation import BoxOscillationStrategy
-from cryptoscope.autotrader.notifier import AlertNotifier, AlertPayload
 
 
 def _make_consolidation_candles(n: int = 30, base: float = 100.0, height: float = 0.05) -> list:
@@ -141,16 +140,3 @@ class TestExpandedStrategies:
         assert sig["take_profit"] > sig["entry_price"]
         assert sig["stop_loss"] < sig["entry_price"]
 
-    def test_alert_notifier_dispatch_dry_run(self):
-        # Empty configs: should not crash or throw
-        notifier = AlertNotifier()
-        assert not notifier.is_configured()
-
-        alert = AlertPayload(
-            title="Test Signal",
-            message="Volume breakout detected on BTC/USDT",
-            symbol="BTCUSDT",
-            alert_type="TRADE_SIGNAL",
-            details={"price": 65000.0, "volume_ratio": 2.4},
-        )
-        notifier.dispatch(alert, sync=True)

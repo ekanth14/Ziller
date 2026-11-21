@@ -3,6 +3,7 @@ import argparse
 import sys
 import time
 from pathlib import Path
+from typing import Optional
 
 # Add project root to sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -11,7 +12,7 @@ from cryptoscope.auth.store import AuthStore
 from cryptoscope.auth.security import hash_password
 
 
-def cmd_unlock(email: str, db_path: str = None):
+def cmd_unlock(email: str, db_path: Optional[str] = None):
     store = AuthStore(Path(db_path) if db_path else None)
     user = store.get_user_by_email(email)
     if not user:
@@ -25,7 +26,7 @@ def cmd_unlock(email: str, db_path: str = None):
         print(f"[WARN] Account '{email}' was already active.")
 
 
-def cmd_list_users(db_path: str = None):
+def cmd_list_users(db_path: Optional[str] = None):
     store = AuthStore(Path(db_path) if db_path else None)
     with store._lock:
         conn = store._get_connection()
@@ -44,7 +45,7 @@ def cmd_list_users(db_path: str = None):
     print(f"\nTotal users: {len(users)}\n")
 
 
-def cmd_reset_password(email: str, new_password: str, db_path: str = None):
+def cmd_reset_password(email: str, new_password: str, db_path: Optional[str] = None):
     if len(new_password) < 8:
         print("[ERROR] Password must be at least 8 characters long.")
         sys.exit(1)

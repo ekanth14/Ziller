@@ -14,6 +14,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
+# Optional C++ kernels (pure-Python fallbacks exist if this step is removed)
+COPY native ./native
+RUN mkdir -p /native_out && python native/build.py --out /native_out
+
 # Final runtime image
 FROM python:3.12-slim AS runner
 
@@ -32,6 +36,8 @@ COPY --from=builder /install /usr/local
 
 # Copy application source code
 COPY --chown=zillers:zillers cryptoscope ./cryptoscope
+COPY --chown=zillers:zillers core ./core
+COPY --from=builder --chown=zillers:zillers /native_out ./core/quant/_native
 COPY --chown=zillers:zillers .env.example ./
 COPY --chown=zillers:zillers pytest.ini ./
 

@@ -136,6 +136,19 @@ class JournalBot(BaseBot):
                     duration_seconds REAL NOT NULL,
                     exit_reason TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS meta_labels (
+                    timestamp REAL NOT NULL,
+                    intent_id TEXT PRIMARY KEY,
+                    symbol TEXT NOT NULL,
+                    thx02_p REAL,
+                    laya_p REAL,
+                    mean_p REAL,
+                    quality REAL,
+                    enforced INTEGER NOT NULL,
+                    vetoed INTEGER NOT NULL,
+                    latency_ms REAL,
+                    errors TEXT
+                );
             """)
             conn.commit()
         finally:
@@ -164,6 +177,15 @@ class JournalBot(BaseBot):
                     (event.timestamp, event.intent_id, event.symbol, event.verdict,
                      event.conviction_score, event.bull_thesis, event.bear_thesis, event.risk_summary)
                 )
+                meta = getattr(event, "meta", None) or {}
+                if meta:   # THX-02 / Laya meta-label answer (shadow or enforced)
+                    conn.execute(
+                        "INSERT OR REPLACE INTO meta_labels VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (event.timestamp, event.intent_id, event.symbol, meta.get("thx02_p"), meta.get("laya_p"),
+                         meta.get("mean_p"), meta.get("quality"), int(bool(meta.get("enforced"))),
+                         int(bool(meta.get("vetoed"))), meta.get("latency_ms"),
+                         json.dumps(meta.get("errors") or {})[:500])
+                    )
             elif isinstance(event, RiskDecision):
                 veto_str = "; ".join(event.veto_reasons) if isinstance(event.veto_reasons, list) else str(event.veto_reasons)
                 conn.execute(

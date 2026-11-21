@@ -1,1 +1,0 @@
-{"protocol": "phase3-private-memory-v2", "rule": "Second-half private absolute slope <=0.1 MiB/min, private range <=10 MiB, RSS growth slope <=0.1 MiB/min; RSS declines are reported, not classified as leaks", "duration": 1800, "clients": 50, "interval": 30}

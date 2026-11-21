@@ -24,10 +24,10 @@ def concise_schema(schema):
 
 class LayaProvider:
     def __init__(self, config):
-        # Strict grounding: pin to gemma4:12b; no uncalibrated laya-crypto fallback
-        model_name = config.get("model", "gemma4:12b")
-        if model_name in {"laya-crypto", "laya-crypto:latest", "laya"}:
-            model_name = "gemma4:12b"
+        # The old laya-* models were deleted; any of those names maps to the installed qwen3:8b.
+        model_name = config.get("model", "qwen3:8b")
+        if model_name in {"laya-crypto", "laya-crypto:latest", "laya"} or model_name.startswith(("laya-", "gemma4")):
+            model_name = "qwen3:8b"
         self.model = os.environ.get("OLLAMA_MODEL", model_name)
         self.url = os.environ.get("OLLAMA_HOST", config["ollama_url"]).strip().rstrip("/")
         if not self.url.startswith(("http://", "https://")):

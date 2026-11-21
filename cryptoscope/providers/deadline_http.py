@@ -10,6 +10,9 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+# CPU-only 12B models need 60-120 s per answer; the worker is still killed at the deadline.
+MAX_DEADLINE_SEC=300.0
+
 
 def _local_url(url):
     parsed=urllib.parse.urlsplit(url)
@@ -20,8 +23,8 @@ def _local_url(url):
 
 def post_json_deadline(url,payload,timeout_sec):
     _local_url(url)
-    if not math.isfinite(timeout_sec) or not 0<timeout_sec<=35:
-        raise ValueError('Model deadline must be positive and at most 35 seconds')
+    if not math.isfinite(timeout_sec) or not 0<timeout_sec<=MAX_DEADLINE_SEC:
+        raise ValueError(f'Model deadline must be positive and at most {MAX_DEADLINE_SEC:.0f} seconds')
     deadline=time.monotonic()+timeout_sec
     allowed={'SYSTEMROOT','WINDIR','PATH','PYTHONPATH','TEMP','TMP','ZILLERS_AUDIT_SANDBOX',
              'PYTHONDONTWRITEBYTECODE','PYTHONIOENCODING'}

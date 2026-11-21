@@ -25,13 +25,19 @@ class DataBot(BaseBot):
         symbols: Optional[List[str]] = None,
         poll_interval: float = 1.0,
         candle_store: Optional[CandleStore] = None,
-        name: str = "data_bot"
+        name: str = "data_bot",
+        live: bool = False,
+        interval: str = "15m",
     ):
         super().__init__(name, bus)
         self.symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT"] if symbols is None else list(symbols)
         self.poll_interval = poll_interval
         self.candle_store = candle_store or CandleStore()
-        # symbol -> last emitted MarketUpdate
+        self.live = live
+        self.interval = interval
+        # 250 closed bars (~2.6 days of 15m): enough for 200-bar Lab strategies, 24h returns and VPIN history.
+        self.history_bars = 250
+                # symbol -> last emitted MarketUpdate
         self.latest_updates: Dict[str, MarketUpdate] = {}
 
     async def on_event(self, event: BaseEvent) -> None:
@@ -44,13 +50,17 @@ class DataBot(BaseBot):
             self._last_heartbeat = time.time()
             for sym in self.symbols:
                 try:
-                    candles = self.candle_store.load_candles(sym, "15m", limit=50)
-                    if not candles:
-                        candles = self.candle_store.load_candles(sym, "5m", limit=50)
+                    live_price = None
+                    if self.live:
+                        candles, live_price = await asyncio.to_thread(self._fetch_live, sym)
+                    else:
+                        candles = self.candle_store.load_candles(sym, "15m", limit=50)
+                        if not candles:
+                            candles = self.candle_store.load_candles(sym, "5m", limit=50)
 
                     if candles:
                         latest = candles[-1]
-                        price = float(latest["close"])
+                        price = float(live_price if live_price else latest["close"])
                         high = float(latest["high"])
                         low = float(latest["low"])
                         vol = float(latest.get("volume", 0.0))
@@ -66,7 +76,7 @@ class DataBot(BaseBot):
                             volume_24h=vol,
                             spread_pct=spread * 100,
                             candles=candles,
-                            source="candle_store"
+                            source="binance_live" if self.live else "candle_store"
                         )
                         self.latest_updates[sym] = mu
                         await self.emit(mu)
@@ -74,6 +84,17 @@ class DataBot(BaseBot):
                     logger.warning("[%s] Failed to fetch data for %s: %s", self.name, sym, exc)
 
             await asyncio.sleep(self.poll_interval)
+
+    def _fetch_live(self, sym: str):
+        """Closed klines for signals plus the latest 1-minute close as the live price.
+
+        Goes through CandleStore.get_fresh_candles (public market data, cached in SQLite), so this
+        bot never imports an exchange client; only ExecutionBot does.
+        """
+        candles = self.candle_store.get_fresh_candles(sym, self.interval, limit=self.history_bars, max_age_multiplier=1.0)
+        minute = self.candle_store.get_fresh_candles(sym, "1m", limit=3, max_age_multiplier=1.0)
+        price = float(minute[-1]["close"]) if minute else None
+        return candles, price
 
     async def feed_candle(self, symbol: str, candle: Dict[str, Any], history: Optional[List[Dict[str, Any]]] = None) -> MarketUpdate:
         """Manual injection method for historical backtesting and unit test replays."""

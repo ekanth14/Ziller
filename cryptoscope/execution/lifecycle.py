@@ -224,3 +224,62 @@ class TestnetLifecycle:
             self._save_position_db(pos)
             self.halt_state.halt('Exchange close unresolved; exposure retained',self.name)
             return None
+
+    # ------------------------------------------------------------------
+    # Exchange-side stop handling (used by periodic reconciliation)
+    # ------------------------------------------------------------------
+    def book_filled_stop(self,symbol,pos,order):
+        """Account for an exchange stop that filled while the bot was not watching.
+
+        Validates the order identity, then reuses the cumulative close accounting so fills,
+        fees and residuals are booked exactly like a bot-initiated close. Returns the average
+        exit price, or None if accounting could not be completed (the position is then retained
+        and the latch halted by the close routine).
+        """
+        if (pos.get('mode')!='TESTNET' or str(order.get('orderId'))!=str(pos.get('stop_order_id'))
+                or order.get('symbol',symbol)!=symbol or order.get('side')!='SELL'
+                or order.get('type') not in {'STOP_LOSS','STOP_LOSS_LIMIT'} or order.get('status')!='FILLED'):
+            raise ValueError('Stop fill identity does not match the owned protective order')
+        return self._confirmed_testnet_close(symbol,pos)
+
+    def repair_protection(self,symbol,pos):
+        """Restore exchange protection for an owned, unprotected position.
+
+        Returns ('ADOPTED'|'PLACED',None) or ('CLOSED',exit_price). Never creates new exposure:
+        - an existing resting owned stop is adopted instead of duplicated;
+        - if price is already through the stop level the position is closed at market;
+        - otherwise a fresh STOP_LOSS is placed with a new client id and read back.
+        Rate-limited to 3 attempts per 10 minutes per position. Raises on any failure.
+        """
+        if pos.get('mode')!='TESTNET' or float(pos.get('quantity',0))<=0:raise ValueError('Nothing to protect')
+        now=time.time()
+        attempts=[t for t in pos.get('repair_attempts',[]) if now-t<600]
+        if len(attempts)>=3:raise ValueError('Protection repair rate limit reached')
+        attempts.append(now);pos['repair_attempts']=attempts
+        stop=float(pos['stop_price'])
+        for open_order in self.binance_client.get_open_orders(symbol):
+            if (open_order.get('side')=='SELL' and open_order.get('type') in {'STOP_LOSS','STOP_LOSS_LIMIT'}
+                    and str(open_order.get('clientOrderId','')).startswith('stop_')):
+                pos['stop_order_id']=str(open_order['orderId']);pos['stop_client_id']=open_order.get('clientOrderId')
+                pos['protected_quantity']=float(open_order.get('origQty',pos['quantity']))
+                self._save_position_db(pos);return 'ADOPTED',None
+        if float(self.binance_client.get_ticker_price(symbol))<=stop:
+            actual=self._confirmed_testnet_close(symbol,pos)
+            if actual is None:raise ValueError('Close through the stop level unresolved')
+            return 'CLOSED',actual
+        rules=self._rules(symbol)
+        protected=rules.quantity(pos['quantity'],stop)
+        seed=f"{pos.get('entry_reference','')}|{len(attempts)}|{int(now)}"
+        reference='stop_rep_'+hashlib.sha256(seed.encode()).hexdigest()[:16]
+        self._record_uncertain_order(reference,symbol,'SELL',reference,protected,order_type='STOP_LOSS')
+        self._save_position_db(pos)
+        try:
+            protection=self.binance_client.create_order(symbol=symbol,side='SELL',order_type='STOP_LOSS',quantity=protected,stop_price=rules.price(stop),client_order_id=reference)
+        except Exception:
+            protection=self.binance_client.get_order(symbol=symbol,client_order_id=reference)
+        if (not str(protection.get('orderId','')).isdigit() or protection.get('status')!='NEW'
+                or protection.get('symbol',symbol)!=symbol or protection.get('side','SELL')!='SELL'):
+            raise ValueError('Replacement protection not confirmed resting')
+        pos['stop_order_id']=str(protection['orderId']);pos['stop_client_id']=reference;pos['protected_quantity']=protected
+        self._set_order_status(reference,'NEW');self._save_position_db(pos)
+        return 'PLACED',None

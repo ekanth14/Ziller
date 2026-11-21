@@ -7,6 +7,7 @@ __pycache__/
 env/
 venv/
 .venv/
+.venv-models/
 ENV/
 
 # Databases & Backups (Rule 9: Non-negotiable)
@@ -61,3 +62,13 @@ landing/node_modules/
 landing/dist/
 
 .superpowers/
+
+# Built native kernels
+core/quant/_native/
+native/build/
+
+# OCaml build output (dune and build_wsl.sh)
+ocaml/risk_gate/_build/
+
+# Generated run outputs (backtests, research runs) - regenerated locally, never committed
+reports/

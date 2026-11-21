@@ -9,8 +9,10 @@ import uuid
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import re
 import logging
 import os
+import sys
 from pathlib import Path
 import time
 from urllib.parse import parse_qs, urlsplit
@@ -25,6 +27,13 @@ from cryptoscope.auth.security import (
 )
 from cryptoscope.auth.store import AuthStore
 from cryptoscope.dashboard.data import DashboardData
+from cryptoscope.desk import DeskFeed
+from cryptoscope.desk.feed import SymbolDirectory
+from cryptoscope.desk.fleet import FleetManager
+from cryptoscope.desk.llm_panel import LLMPanel
+from cryptoscope.desk.scanner import Autopilot, MarketScanner
+from cryptoscope.desk.markets import MarketDirectory
+from cryptoscope.desk.system_monitor import SystemMonitor
 from cryptoscope.dashboard.collaborate_view import render_collaborations_html
 from cryptoscope.fx.rate_service import FxRateService
 from cryptoscope.market_data.aggregator import MarketDataAggregator
@@ -111,6 +120,94 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
     if not isinstance(kill_switch, PersistentKillSwitch):
         kill_switch = PersistentKillSwitch(kill_switch)
     laya_evaluator = laya_evaluator or LayaTier2Evaluator()
+    def _ollama_status():
+        st = laya_evaluator.get_status()
+        return {"status": "available" if st.get("ollama_available") else "unavailable", "model": st.get("ollama_model"),
+                "role": "explainer only (never votes)",
+                "laya": {"status": st.get("status"), "checkpoint_loaded": st.get("checkpoint_loaded"),
+                         "evaluations": st.get("total_evaluations")}}
+
+    ai_allowed = lambda: not kill_switch.halted  # noqa: E731 - the durable latch gates every AI system
+    # The fleet gets Ollama to itself while it runs: the panel cycling 5 models forces reloads that
+    # make the fleet's debate calls time out.
+    llm_panel = LLMPanel(gate=lambda: ai_allowed() and not fleet.is_running())
+    from cryptoscope.desk.ai_journal import AIJournal
+    ai_journal = AIJournal(str(ROOT / "work" / "runtime" / "ai_journal.db"))
+    desk_feed = DeskFeed(ollama_status=_ollama_status, llm_panel=llm_panel, ai_gate=ai_allowed, journal=ai_journal)
+    symbol_directory = SymbolDirectory()
+    fleet = FleetManager(ROOT)
+    scanner = MarketScanner()
+
+    def _coin_meta():
+        listing = coingecko_service.get_top_listings(per_page=150, page=1)
+        return {str(it.get("base_symbol") or "").upper(): it for it in listing.get("items", []) if it.get("base_symbol")}
+
+    market_directory = MarketDirectory(meta_fetcher=_coin_meta)
+
+    from cryptoscope.desk.paperbots import PaperBotManager
+    from cryptoscope.desk.feed import fetch_klines as _klines
+    from cryptoscope.desk.scanner import _get as _public_get
+
+    def _last_price(symbol):
+        return float(_public_get(f"https://api.binance.com/api/v3/ticker/price?symbol={symbol}", timeout=8)["price"])
+
+    paper_bots = PaperBotManager(str(ROOT / "work" / "runtime" / "paperbots.db"),
+                                 candles=lambda sym, n: _klines(sym, "1m", n), price=_last_price,
+                                 gate=lambda: not kill_switch.halted, notify=fleet.notify)
+    paper_bots.ensure_running()
+
+    from cryptoscope.desk.live_view import PriceCache, build_live
+    live_prices = PriceCache()   # one batched Binance price request per second, shared by every viewer
+
+    from cryptoscope.desk.market_structure import MarketStructure
+    from cryptoscope.desk.strategy_lab import record_promotions, run_lab
+    market_structure = MarketStructure()
+    _lab_cache = {}
+    _insight_cache = {}   # signal-source accuracy, 5 min
+
+    def _fleet_positions_open():
+        db = ROOT / "work" / "runtime" / "orchestrator_execution.db"
+        if not db.is_file():
+            return 0
+        try:
+            with sqlite3.connect(db.resolve().as_uri() + "?mode=ro", uri=True, timeout=5) as conn:
+                return int(conn.execute("SELECT count(*) FROM positions").fetchone()[0])
+        except sqlite3.Error:
+            return 1  # unknown -> treat as holding, so the autopilot never rotates blindly
+
+    autopilot = Autopilot(scanner, fleet, _fleet_positions_open, notify=fleet.notify,
+                          tier_log=ROOT / "work" / "runtime" / "scanner_tiers.jsonl")
+
+    from cryptoscope.desk.startup import StartupRunner, build_default_checks
+
+    def _telegram_status():
+        from cryptoscope.telegram.notify import configured as telegram_configured
+        return telegram_configured()
+
+    from cryptoscope.agents.decision_models import SidecarManager
+    decision_sidecar = SidecarManager()   # real THX-02 + Laya, in WSL on Windows; never imported in-process
+
+    startup = StartupRunner(lambda mode: build_default_checks(
+        mode, kill_switch=kill_switch, risk_governor=RiskGovernor(), fleet=fleet, autopilot=autopilot, scanner=scanner,
+        paper_bots=paper_bots, llm_panel=llm_panel, laya_evaluator=laya_evaluator,
+        klines=lambda s, i, n: _klines(s, i, n), telegram_status=_telegram_status,
+        decision_sidecar=decision_sidecar))
+
+    def _feed_delays():
+        out = {}
+        conns = market_aggregator.get_connection_status()
+        for src, c in conns.items():
+            out[src] = {"state": c.get("state"), "heartbeat_age_s": c.get("last_heartbeat_age"),
+                        "latency_ms": c.get("latency_ms"), "errors": c.get("consecutive_errors"), "feed": c.get("feed_type")}
+        ticks = {}
+        for sym in ("BTCUSDT", "ETHUSDT", "SOLUSDT"):
+            t = market_aggregator.get_ticker(sym)
+            ticks[sym] = {"status": t.get("status"), "age_s": t.get("age_seconds"), "latency_ms": t.get("latency_ms"),
+                          "sources": t.get("sources_reporting"), "source_latencies": t.get("source_latencies")}
+        return {"exchanges": out, "tickers": ticks}
+
+    system_monitor = SystemMonitor(feed_status=_feed_delays,
+                                   extra_targets=(("Ollama (local)", LLMPanel().host + "/api/version"),))
 
     def connection_status():
         return {**market_aggregator.get_connection_status(),
@@ -214,11 +311,24 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
 
             # Static assets
             assets = {
-                "/": ("index.html", "text/html"),
-                "/app.js": ("app.js", "text/javascript"),
-                "/style.css": ("style.css", "text/css"),
-                "/static/app.js": ("app.js", "text/javascript"),
-                "/static/style.css": ("style.css", "text/css"),
+                "/": ("desk.html", "text/html"),
+                "/desk": ("desk.html", "text/html"),
+                "/desk.js": ("desk.js", "text/javascript"),
+                "/desk.css": ("desk.css", "text/css"),
+                "/system": ("system.html", "text/html"),
+                "/system.js": ("system.js", "text/javascript"),
+                "/scanner": ("scanner.html", "text/html"),
+                "/scanner.js": ("scanner.js", "text/javascript"),
+                "/markets": ("markets.html", "text/html"),
+                "/markets.js": ("markets.js", "text/javascript"),
+                "/bots": ("bots.html", "text/html"),
+                "/bots.js": ("bots.js", "text/javascript"),
+                "/lab": ("lab.html", "text/html"),
+                "/lab.js": ("lab.js", "text/javascript"),
+                "/pnl": ("pnl.html", "text/html"),
+                "/pnl.js": ("pnl.js", "text/javascript"),
+                "/live": ("live.html", "text/html"),
+                "/live.js": ("live.js", "text/javascript"),
             }
             if url.path in assets:
                 name, kind = assets[url.path]
@@ -270,6 +380,185 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 if STATIC in asset_path.parents and asset_path.is_file():
                     mime = "text/css" if asset_path.suffix == ".css" else "text/javascript" if asset_path.suffix == ".js" else "image/png" if asset_path.suffix == ".png" else "image/svg+xml" if asset_path.suffix == ".svg" else "application/octet-stream"
                     return self.send(200, asset_path.read_bytes(), f"{mime}; charset=utf-8" if "text" in mime else mime)
+
+            # Action Desk: rule-model votes, PM decision and paper book on real daily candles
+            if url.path == "/api/desk":
+                try:
+                    fee_bps = float(query.get("fee_bps", ["10"])[0])
+                    result = desk_feed.desk(query.get("symbol", ["BTCUSDT"])[0], fee_bps=fee_bps,
+                                            interval=query.get("interval", ["1d"])[0])
+                except ValueError as err:
+                    return self.json(400, {"error": str(err)})
+                return self.json(200 if result.get("status") == "OK" else 503, result)
+
+            if url.path == "/api/desk/symbols":
+                return self.json(200, symbol_directory.symbols())
+            if url.path == "/api/system/metrics":
+                return self.json(200, {**system_monitor.snapshot(), "fleet": fleet.status(),
+                                       "ai": _ollama_status()})
+            if url.path == "/api/fleet/status":
+                return self.json(200, fleet.status())
+            if url.path == "/api/scanner":
+                mode = query.get("mode", ["PAPER"])[0].upper()
+                if mode not in {"PAPER", "TESTNET"}:
+                    return self.json(400, {"error": "mode must be PAPER or TESTNET"})
+                try:
+                    return self.json(200, scanner.scan(mode, force=query.get("force", ["0"])[0] == "1"))
+                except Exception as err:
+                    return self.json(503, {"status": "UNAVAILABLE", "error": type(err).__name__})
+            if url.path == "/api/scanner/autopilot":
+                return self.json(200, autopilot.status())
+            if url.path == "/api/ai/journal":
+                return self.json(200, ai_journal.scoreboard(query.get("symbol", [None])[0], query.get("interval", [None])[0]))
+            if url.path == "/api/protections":
+                from cryptoscope.execution.protections import read_status
+                return self.json(200, read_status(str(ROOT / "work" / "runtime" / "protections.json")))
+            # Live Tradebot view: every coin the fleet trades, live marks, per-coin P&L
+            if url.path == "/api/live":
+                return self.json(200, build_live(ROOT / "work" / "runtime", fleet.status(), live_prices,
+                                                 with_detail=(query.get("symbol", [None])[0] or None)))
+            if url.path == "/api/live/candles":
+                from cryptoscope.desk.feed import fetch_klines
+                from cryptoscope.desk.live_view import coin_book
+                sym = query.get("symbol", [""])[0].upper()
+                interval = query.get("interval", ["15m"])[0]
+                if not re.fullmatch(r"[A-Z0-9]{5,20}", sym) or interval not in {"1m", "5m", "15m", "1h", "4h"}:
+                    return self.json(400, {"error": "bad symbol or interval"})
+                try:
+                    limit = max(20, min(500, int(query.get("limit", ["200"])[0])))
+                    candles = fetch_klines(sym, interval, limit)
+                except Exception as err:
+                    return self.json(503, {"error": type(err).__name__})
+                book = coin_book(ROOT / "work" / "runtime", sym, fills_limit=100)
+                return self.json(200, {"symbol": sym, "interval": interval, "candles": candles,
+                                       "fills": book["fills"], "position": book["position"], "closed": book["closed"]})
+            if url.path == "/api/live/stream":
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                self.send_header("Cache-Control", "no-cache, no-transform")
+                self.send_header("X-Accel-Buffering", "no")
+                self.end_headers()
+                detail = query.get("symbol", [None])[0] or None
+                try:
+                    for _ in range(3600):   # the browser reconnects after an hour; keeps threads from piling up
+                        payload = build_live(ROOT / "work" / "runtime", fleet.status(), live_prices, with_detail=detail)
+                        self.wfile.write(("data: " + json.dumps(payload) + "\n\n").encode("utf-8"))
+                        self.wfile.flush()
+                        time.sleep(1.0)
+                except (ConnectionError, BrokenPipeError, TimeoutError, OSError):
+                    pass
+                return
+            if url.path == "/api/insights/scores":
+                from cryptoscope.desk.insight_scores import score_signals
+                try:
+                    h = max(1, min(96, int(query.get("horizon", ["16"])[0])))
+                except ValueError:
+                    return self.json(400, {"error": "horizon must be an integer (15 m bars)"})
+                hit = _insight_cache.get(h)
+                if hit and time.time() - hit[0] < 300:
+                    return self.json(200, hit[1])
+                try:
+                    res = score_signals(ROOT / "work" / "runtime", horizon=h)
+                except Exception as err:
+                    return self.json(503, {"status": "UNAVAILABLE", "error": type(err).__name__})
+                _insight_cache[h] = (time.time(), res)
+                return self.json(200, res)
+            if url.path == "/api/pnl":
+                from cryptoscope.desk.pnl import build_pnl
+                marks = {}
+
+                def _mark(sym):
+                    if sym not in marks:
+                        marks[sym] = _last_price(sym)
+                    return marks[sym]
+                try:
+                    bots_now = paper_bots.list()
+                except Exception:
+                    bots_now = []
+                return self.json(200, {**build_pnl(ROOT / "work" / "runtime", bots_now, _mark),
+                                       "halted": kill_switch.halted, "fleet": fleet.status()})
+            if url.path == "/api/bots":
+                return self.json(200, {"bots": paper_bots.list(), "halted": kill_switch.halted})
+            if url.path.startswith("/api/bots/") and url.path.count("/") == 3:
+                try:
+                    return self.json(200, paper_bots.get(url.path.rsplit("/", 1)[1]))
+                except KeyError:
+                    return self.json(404, {"error": "Bot not found"})
+            if url.path == "/api/marketdata":
+                sym = query.get("symbol", ["BTCUSDT"])[0].upper()
+                if not sym.isalnum() or not 5 <= len(sym) <= 20:
+                    return self.json(400, {"error": "Invalid symbol"})
+                return self.json(200, market_structure.snapshot(sym))
+            if url.path == "/api/lab/metalabel":
+                from cryptoscope.desk.strategy_lab import meta_label_report
+                sym = query.get("symbol", ["BTCUSDT"])[0].upper()
+                iv = query.get("interval", ["1d"])[0]
+                key = query.get("strategy", [""])[0]
+                if not sym.isalnum() or not 5 <= len(sym) <= 20 or not re.fullmatch(r"[a-z0-9_]{2,40}", key):
+                    return self.json(400, {"error": "Invalid symbol or strategy"})
+                try:
+                    return self.json(200, meta_label_report(_klines(sym, iv, 1000), key, iv))
+                except ValueError as err:
+                    return self.json(400, {"error": str(err)})
+                except Exception as err:
+                    return self.json(503, {"status": "UNAVAILABLE", "error": type(err).__name__})
+            if url.path == "/api/lab/rotation":
+                from cryptoscope.desk.rotation import run_rotation
+                try:
+                    k = int(query.get("k", ["5"])[0]); n = int(query.get("n", ["20"])[0])
+                except ValueError:
+                    return self.json(400, {"error": "k and n must be integers"})
+                if not (1 <= k <= 10 and 5 <= n <= 40 and n >= 2 * k):
+                    return self.json(400, {"error": "need 1 <= k <= 10, 5 <= n <= 40, n >= 2k"})
+                try:
+                    wt = query.get("weighting", ["equal"])[0]
+                    if wt not in {"equal", "inverse_vol", "score"}:
+                        return self.json(400, {"error": "weighting must be equal, inverse_vol or score"})
+                    res = run_rotation(n=n, k=k, weighting=wt)
+                except Exception as err:
+                    return self.json(503, {"status": "UNAVAILABLE", "error": type(err).__name__})
+                return self.json(200 if res.get("status") == "OK" else 503, res)
+            if url.path == "/api/lab":
+                sym = query.get("symbol", ["BTCUSDT"])[0].upper()
+                iv = query.get("interval", ["1d"])[0]
+                try:
+                    fee = float(query.get("fee_bps", ["10"])[0])
+                except ValueError:
+                    return self.json(400, {"error": "fee_bps must be a number"})
+                if not sym.isalnum() or not 5 <= len(sym) <= 20 or not 0 <= fee <= 100:
+                    return self.json(400, {"error": "Invalid symbol or fee"})
+                try:
+                    slip = float(query.get("slippage_bps", ["0"])[0])
+                except ValueError:
+                    return self.json(400, {"error": "slippage_bps must be a number"})
+                if not 0 <= slip <= 50:
+                    return self.json(400, {"error": "slippage_bps must be 0-50"})
+                key = (sym, iv, fee, slip)
+                hit = _lab_cache.get(key)
+                if hit and time.time() - hit[0] < 120:
+                    return self.json(200, hit[1])
+                try:
+                    candles = _klines(sym, iv, 1000)
+                    result = {**run_lab(candles, iv, fee, slippage_bps=slip), "symbol": sym, "slippage_bps": slip}
+                    record_promotions(result, sym)   # gate passes -> work/runtime/promoted_strategies.json
+                except ValueError as err:
+                    return self.json(400, {"error": str(err)})
+                except Exception as err:
+                    return self.json(503, {"status": "UNAVAILABLE", "error": type(err).__name__})
+                _lab_cache[key] = (time.time(), result)
+                return self.json(200, result)
+            if url.path == "/api/markets":
+                m = market_directory.markets()
+                return self.json(200 if m.get("status") in {"OK", "STALE"} else 503, m)
+            if url.path == "/api/system/startup":
+                return self.json(200, startup.status())
+            if url.path == "/api/models/sidecar":
+                from cryptoscope.agents.decision_models import enforce_enabled, min_probability
+                return self.json(200, {**decision_sidecar.status(), "enforced": enforce_enabled(),
+                                       "min_p": min_probability()})
+            if url.path == "/api/telegram/status":
+                from cryptoscope.telegram.notify import configured as telegram_configured
+                return self.json(200, telegram_configured())
 
             # Public market data and FX APIs
             if url.path == "/api/fx/rate":
@@ -397,6 +686,8 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     "halted_at": kill_switch.halted_at,
                     "halted_by": kill_switch.halted_by,
                     "target_exchange": "Binance Spot",
+                    "ai_layer": "stopped" if kill_switch.halted else "running",
+                    "fleet_running": fleet.status()["running"],
                 })
 
             # Quantitative Analysis & Statistical Arbitrage APIs
@@ -727,14 +1018,6 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                     return self.json(200, res)
                 if url.path == '/api/features':
                     return self.json(200, data.feature_catalog())
-                if url.path == '/api/autotrader':
-                    return self.json(200, data.autotrader())
-                if url.path.startswith('/api/autotrader/runs/'):
-                    run_id = url.path.removeprefix('/api/autotrader/runs/')
-                    report = data.autotrader_run(run_id)
-                    if report is None:
-                        return self.json(404, {'error': 'Autonomous decision not found'})
-                    return self.json(200, report, f'zien-auto-{run_id}.json' if 'download' in query else None)
                 for kind in ('forecasts', 'strategies'):
                     if url.path.startswith(f'/api/{kind}/'):
                         run_id = url.path.removeprefix(f'/api/{kind}/')
@@ -1334,11 +1617,120 @@ def handler_for(data, auth_store=None, rate_limiter=None, lockout_mgr=None, fx_s
                 auth_store.update_settings(session["user_id"], currency, theme)
                 return self.json(200, {"status": "ok", "settings": {"display_currency": currency, "theme": theme}})
 
+            # Telegram test message (admin + CSRF); sent by a child process so the token never enters this server
+            if url.path == "/api/telegram/test":
+                if session.get("role") != "admin":
+                    return self.json(403, {"error": "Admin role required"})
+                import subprocess as _sp
+                env = {k: v for k, v in os.environ.items() if not k.startswith("TELEGRAM_")}
+                out = _sp.run([sys.executable, "-B", "-m", "cryptoscope.telegram.notify", "--test"], cwd=str(ROOT), env=env,
+                              capture_output=True, text=True, timeout=25)
+                try:
+                    result = json.loads(out.stdout.strip().splitlines()[-1])
+                except Exception:
+                    result = {"ok": False, "error": "Telegram sender produced no result"}
+                return self.json(200 if result.get("ok") else 502, result)
+
+            # Grid / DCA paper bots (admin + CSRF; paper only)
+            if url.path.startswith("/api/bots/"):
+                if session.get("role") != "admin":
+                    return self.json(403, {"error": "Admin role required"})
+                parts = url.path.strip("/").split("/")  # api, bots, <id|create>, [action]
+                try:
+                    if parts[2] == "create":
+                        if kill_switch.halted:
+                            return self.json(409, {"error": "Emergency halt is engaged"})
+                        symbol = str(body.get("symbol", "")).upper()
+                        if not symbol.isalnum() or not 5 <= len(symbol) <= 20:
+                            return self.json(400, {"error": "Invalid symbol"})
+                        return self.json(200, paper_bots.create(str(body.get("kind", "")), symbol, body.get("config") or {},
+                                                                session.get("email", "admin")))
+                    bot_id, action = parts[2], (parts[3] if len(parts) > 3 else "")
+                    if action == "stop":
+                        return self.json(200, paper_bots.set_status(bot_id, "STOPPED"))
+                    if action == "resume":
+                        return self.json(200, paper_bots.set_status(bot_id, "RUNNING"))
+                    if action == "delete":
+                        paper_bots.delete(bot_id)
+                        return self.json(200, {"deleted": bot_id})
+                    return self.json(404, {"error": "Unknown bot action"})
+                except KeyError:
+                    return self.json(404, {"error": "Bot not found"})
+                except (ValueError, TypeError) as err:
+                    return self.json(400, {"error": str(err)})
+
+            # Scanner autopilot: scan all USDT pairs, trade the top 10 (BTC/ETH/SOL excluded), rescan every 4 h (admin + CSRF)
+            # START ALL: test every LLM / decision model / safety system, then launch the bots (admin + CSRF)
+            if url.path == "/api/system/startup":
+                if session.get("role") != "admin":
+                    return self.json(403, {"error": "Admin role required to start the system"})
+                if kill_switch.halted:
+                    return self.json(409, {"error": "Emergency halt is engaged; resume the governor first"})
+                try:
+                    return self.json(202, startup.start(str(body.get("mode", "PAPER")), session.get("email", "admin")))
+                except ValueError as err:
+                    return self.json(400, {"error": str(err)})
+                except RuntimeError as err:
+                    return self.json(409, {"error": str(err)})
+
+            if url.path == "/api/models/sidecar":
+                if session.get("role") != "admin":
+                    return self.json(403, {"error": "Admin role required"})
+                action = str(body.get("action", "")).lower()
+                if action == "start":
+                    return self.json(200, decision_sidecar.start())
+                if action == "stop":
+                    decision_sidecar.stop()
+                    return self.json(200, {"ok": True, "stopped": True})
+                return self.json(400, {"error": "action must be start or stop"})
+
+            if url.path == "/api/scanner/autopilot":
+                if session.get("role") != "admin":
+                    return self.json(403, {"error": "Admin role required to control the autopilot"})
+                if not body.get("enable", True):
+                    autopilot.stop()
+                    return self.json(200, autopilot.status())
+                if kill_switch.halted:
+                    return self.json(409, {"error": "Emergency halt is engaged; resume the governor first"})
+                mode = str(body.get("mode", "PAPER")).upper()
+                if mode not in {"PAPER", "TESTNET"}:
+                    return self.json(400, {"error": "Autopilot runs in PAPER or TESTNET only"})
+                try:
+                    out = autopilot.start(mode, session.get("email", "admin"))
+                except (ValueError, RuntimeError) as err:
+                    return self.json(400, {"error": str(err)})
+                return self.json(200, {"autopilot": out["autopilot"], "top": out["scan"]["top"]})
+
+            # Autotrading fleet (PAPER / TESTNET only; admin + CSRF; refuses while the halt latch is engaged)
+            if url.path in {"/api/fleet/start", "/api/fleet/stop"}:
+                if session.get("role") != "admin":
+                    return self.json(403, {"error": "Admin role required to control the trading fleet"})
+                if url.path == "/api/fleet/stop":
+                    return self.json(200, fleet.stop())
+                if kill_switch.halted:
+                    return self.json(409, {"error": "Emergency halt is engaged; resume the governor before starting the fleet"})
+                try:
+                    symbols = body.get("symbols") or scanner.scan(str(body.get("mode", "PAPER")))["top"]
+                    if not symbols:
+                        return self.json(409, {"error": "Scanner found no eligible coins right now; nothing to trade"})
+                    return self.json(200, fleet.start(body.get("mode", "PAPER"), symbols, session.get("email", "admin")))
+                except (ValueError, RuntimeError) as err:
+                    return self.json(400, {"error": str(err)})
+
             # Master Emergency Kill Switch (supports HALT and HALT_FLATTEN)
             if url.path == "/api/governor/kill_switch":
                 operator = session.get("email", "Operator")
                 action = str(body.get("action", "HALT")).strip().upper()
                 result = kill_switch.execute_kill_switch(action=action, triggered_by=operator)
+                # Master kill: also stop everything this server runs in the background.
+                result["background"] = {"fleet": {"was_running": fleet.status()["running"]},
+                                        "llm": llm_panel.halt(), "ai_layer": "stopped"}
+                autopilot.stop()
+                fleet.stop(reason="master kill switch")
+                result["background"]["fleet"]["running"] = fleet.status()["running"]
+                # The THX-02 + Laya sidecar frees ~10 GB of RAM; stopping it in WSL can take seconds, so not inline.
+                threading.Thread(target=decision_sidecar.stop, daemon=True, name="sidecar-stop").start()
+                result["background"]["decision_sidecar"] = "stopping"
                 return self.json(200, result)
 
             # Resume from Emergency Kill Switch (Requires Admin Password)

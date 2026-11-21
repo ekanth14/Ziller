@@ -51,10 +51,24 @@ class BinanceRateLimitError(BinanceClientError):
     pass
 
 
+class BinanceClockSkewError(BinanceClientError):
+    """Timestamp rejected by the exchange (-1021). The request was not processed."""
+    pass
+
+
+class BinanceNetworkError(BinanceClientError):
+    """Transport failure (DNS, connect, read timeout). Order state after a POST is UNKNOWN."""
+    pass
+
+
 class BinanceTestnetClient:
     """Official Binance Spot Testnet REST client for order execution and safety controls."""
 
     DEFAULT_BASE_URL = "https://testnet.binance.vision"
+    TIME_RESYNC_SECONDS = 30.0
+    # During a rate-limit cooldown, safety-critical calls (cancel, exits/stops, order status)
+    # may probe the exchange at most this often instead of being blocked outright.
+    CRITICAL_PROBE_INTERVAL = 5.0
 
     def __init__(
         self,
@@ -70,6 +84,9 @@ class BinanceTestnetClient:
         self.base_url = validate_testnet_url(self.base_url)
         self.timeout = timeout
         self.retry_after_monotonic=0.0
+        self._time_offset_ms=0
+        self._time_synced_monotonic=-1e9
+        self._last_critical_probe=-1e9
         self._opener=urllib.request.build_opener(_NoRedirect())
 
     @property
@@ -91,23 +108,74 @@ class BinanceTestnetClient:
         ).hexdigest()
         return f"{query_string}&signature={signature}"
 
+    def _signed_timestamp(self) -> int:
+        """Server-aligned timestamp from a cached clock offset (resynced at most every 30s).
+
+        Avoids one extra /time request per signed call and never fails the caller: if a
+        resync is impossible (network error, rate-limit cooldown) the last known offset is used.
+        """
+        now = time.monotonic()
+        if now - self._time_synced_monotonic > self.TIME_RESYNC_SECONDS and now >= self.retry_after_monotonic:
+            try:
+                server = self.get_server_time()
+                self._time_offset_ms = server - int(time.time() * 1000)
+                self._time_synced_monotonic = now
+            except BinanceClientError:
+                logger.warning("Binance time resync failed; using last known clock offset")
+        return int(time.time() * 1000) + self._time_offset_ms
+
     def _request(
         self,
         method: str,
         path: str,
         params: Optional[Dict[str, Any]] = None,
         signed: bool = False,
+        critical: bool = False,
     ) -> Dict[str, Any]:
-        """Execute HTTP request against Binance Testnet."""
+        """Execute an HTTP request with bounded, safe retries.
+
+        - GET requests retry transport errors up to twice (short backoff).
+        - A -1021 timestamp rejection (request never processed) is retried once after a clock resync.
+        - Rate-limit errors and order-changing requests are never retried automatically.
+        """
+        net_retries = 2 if method.upper() == "GET" else 0
+        attempt = 0
+        skew_retried = False
+        while True:
+            try:
+                return self._request_once(method, path, params, signed, critical)
+            except BinanceClockSkewError:
+                if skew_retried or not signed:
+                    raise
+                skew_retried = True
+                self._time_synced_monotonic = -1e9  # force clock resync on the retry
+            except BinanceNetworkError:
+                if attempt >= net_retries:
+                    raise
+                attempt += 1
+                time.sleep(0.2 * attempt)
+
+    def _request_once(
+        self,
+        method: str,
+        path: str,
+        params: Optional[Dict[str, Any]] = None,
+        signed: bool = False,
+        critical: bool = False,
+    ) -> Dict[str, Any]:
+        """Execute a single HTTP request against Binance Testnet."""
         params = params.copy() if params else {}
-        if time.monotonic()<self.retry_after_monotonic:
-            raise BinanceRateLimitError('Exchange cooldown active',http_status=429)
+        now = time.monotonic()
+        if now < self.retry_after_monotonic:
+            if not critical or now - self._last_critical_probe < self.CRITICAL_PROBE_INTERVAL:
+                raise BinanceRateLimitError('Exchange cooldown active',http_status=429)
+            self._last_critical_probe = now
 
         if signed:
             if not self.api_key or not self.api_secret:
                 raise BinanceAuthError("Binance API key and secret must be configured for signed endpoints.")
             # Automatically add timestamp and recvWindow
-            server_time = self.get_server_time()
+            server_time = self._signed_timestamp()
             params.setdefault("timestamp", server_time)
             params.setdefault("recvWindow", 5000)
             encoded_query = self._sign_query(params)
@@ -157,6 +225,8 @@ class BinanceTestnetClient:
                 except (ValueError,TypeError):delay=60.
                 self.retry_after_monotonic=time.monotonic()+delay
                 raise BinanceRateLimitError('Exchange cooldown active',code=err_code,http_status=exc.code) from None
+            if err_code == -1021:
+                raise BinanceClockSkewError('Timestamp outside recvWindow', code=err_code, http_status=exc.code) from None
             if exc.code == 401 or err_code in (-2014, -2015):
                 raise BinanceAuthError('Authentication failed', code=err_code, http_status=exc.code) from None
             elif err_code == -1013:
@@ -165,9 +235,10 @@ class BinanceTestnetClient:
                 raise BinanceInsufficientBalanceError('Insufficient funds', code=err_code, http_status=exc.code) from None
             else:
                 raise BinanceClientError('Binance request failed', code=err_code, http_status=exc.code) from None
-        except urllib.error.URLError as exc:
+        except OSError:
+            # URLError, socket timeouts and connection resets (HTTPError is handled above)
             logger.error('Binance Testnet network request failed')
-            raise BinanceClientError('Network error connecting to Binance') from None
+            raise BinanceNetworkError('Network error connecting to Binance') from None
 
     def ping(self) -> bool:
         """Test connectivity to Binance Spot Testnet."""
@@ -242,6 +313,10 @@ class BinanceTestnetClient:
                 params["price"] = wire_amount(price)
                 params["timeInForce"] = time_in_force
 
+        # Exits and protective stops must still reach the exchange during a rate-limit cooldown.
+        critical = side.upper() == "SELL" or order_type.upper() in {"STOP_LOSS", "STOP_LOSS_LIMIT"}
+        if critical:
+            return self._request("POST", "/api/v3/order", params=params, signed=True, critical=True)
         return self._request("POST", "/api/v3/order", params=params, signed=True)
 
     def get_order(
@@ -259,7 +334,7 @@ class BinanceTestnetClient:
         else:
             raise ValueError("Either order_id or client_order_id must be provided")
 
-        return self._request("GET", "/api/v3/order", params=params, signed=True)
+        return self._request("GET", "/api/v3/order", params=params, signed=True, critical=True)
 
     def cancel_order(
         self,
@@ -276,7 +351,7 @@ class BinanceTestnetClient:
         else:
             raise ValueError("Either order_id or client_order_id must be provided")
 
-        return self._request("DELETE", "/api/v3/order", params=params, signed=True)
+        return self._request("DELETE", "/api/v3/order", params=params, signed=True, critical=True)
 
     def get_open_orders(self, symbol: Optional[str] = None) -> List[Dict[str, Any]]:
         """Fetch all currently open orders."""
@@ -289,6 +364,6 @@ class BinanceTestnetClient:
 
     def get_my_trades(self,symbol,order_id):
         if not str(order_id).isdigit():raise BinanceClientError('Fill query requires an exact order identity')
-        result=self._request('GET','/api/v3/myTrades',params=dict(symbol=symbol,orderId=order_id,limit=1000),signed=True)
+        result=self._request('GET','/api/v3/myTrades',params=dict(symbol=symbol,orderId=order_id,limit=1000),signed=True,critical=True)
         if not isinstance(result,list):raise BinanceClientError('Invalid exchange fill response')
         return result

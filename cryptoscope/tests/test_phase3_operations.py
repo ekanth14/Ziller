@@ -201,7 +201,8 @@ def test_plain_halt_keeps_exchange_protection_and_exposure(tmp_path):
 
 def test_reconciliation_mismatch_and_legacy_position_halt_without_orders(tmp_path):
     bot=make_bot(tmp_path);bot.active_positions['BTCUSDT']=position()
-    bot.binance_client.get_order.return_value=dict(symbol='BTCUSDT',side='SELL',type='STOP_LOSS',status='CANCELED',origQty='.01',executedQty='0')
+    # A partially executed stop is not auto-repairable: halt and place no orders.
+    bot.binance_client.get_order.return_value=dict(symbol='BTCUSDT',side='SELL',type='STOP_LOSS',status='PARTIALLY_FILLED',origQty='.01',executedQty='.004')
     bot.reconcile_testnet_positions()
     assert bot.halt_state.snapshot()['halted']
     bot.binance_client.create_order.assert_not_called()

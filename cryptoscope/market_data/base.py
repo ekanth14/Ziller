@@ -30,6 +30,7 @@ class NormalisedTicker:
     received_at: float = 0.0
     latency_ms: Optional[float] = None
     is_heartbeat: bool = False
+    feed_type: str = "rest"       # 'websocket' | 'rest' (set by the feed that produced the tick)
 
     def to_dict(self) -> Dict:
         return {

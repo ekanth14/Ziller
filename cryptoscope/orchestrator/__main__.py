@@ -1,7 +1,7 @@
 """CLI Entry point for ZILLERS Multi-Bot Autonomous Orchestrator.
 
 Usage:
-    python -m cryptoscope.orchestrator [--mode PAPER|TESTNET|OBSERVE] [--symbols BTCUSDT ETHUSDT SOLUSDT]
+    python -m cryptoscope.orchestrator [--mode PAPER|TESTNET|OBSERVE] --symbols ADAUSDT XRPUSDT ...
 """
 
 import argparse
@@ -49,6 +49,10 @@ async def run_orchestrator(mode: str, symbols: list[str]):
     telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
     telegram_owner_chat_id = os.getenv("TELEGRAM_OWNER_CHAT_ID")
     env_mode = validate_startup(mode)
+    if not symbols:
+        print("[ZILLERS] No tradable symbols: pass --symbols (BTC/ETH/SOL are excluded) or start from the dashboard scanner.",
+              file=sys.stderr, flush=True)
+        raise SystemExit(2)
 
     print(f"============================================================", flush=True)
     print(f"  QUANT AUTONOMOUS MULTI-BOT TRADING FLEET", flush=True)
@@ -93,8 +97,12 @@ async def run_orchestrator(mode: str, symbols: list[str]):
 def main():
     parser = argparse.ArgumentParser(description="ZILLERS Multi-Bot Autonomous Orchestrator")
     parser.add_argument("--mode", type=str, default=None, choices=["OBSERVE", "PAPER", "TESTNET"], help="Trading mode; must agree with environment")
-    parser.add_argument("--symbols", nargs="+", default=["BTCUSDT", "ETHUSDT", "SOLUSDT"], help="Trading symbols")
+    parser.add_argument("--symbols", nargs="+", default=[], help="Trading symbols (BTC/ETH/SOL are excluded by default)")
     args = parser.parse_args()
+    from cryptoscope.trading_universe import filter_symbols
+    args.symbols, dropped = filter_symbols(args.symbols)
+    if dropped:
+        print(f"[ZILLERS] Excluded from autotrading: {', '.join(dropped)}", flush=True)
 
     try:
         asyncio.run(run_orchestrator(args.mode, args.symbols))

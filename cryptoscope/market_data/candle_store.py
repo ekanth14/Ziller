@@ -145,8 +145,14 @@ class CandleStore:
         now = time.time()
         is_stale = False
 
+        backfill_key = (symbol, interval, limit)
+        backfilled = self.__dict__.setdefault("_backfilled", set())
         if not candles or len(candles) < min(limit, 20):
             is_stale = True
+        elif len(candles) < limit and backfill_key not in backfilled:
+            # Fewer bars cached than asked for (e.g. the fleet now keeps 250): backfill once, not every poll.
+            is_stale = True
+            backfilled.add(backfill_key)
         else:
             latest_close = float(candles[-1].get("close_time") or 0.0)
             if (now - latest_close) > max(sec * max_age_multiplier, 120.0):

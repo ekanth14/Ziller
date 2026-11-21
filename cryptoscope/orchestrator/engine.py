@@ -17,8 +17,10 @@ from cryptoscope.orchestrator.bots import (
     ExecutionBot,
     JournalBot,
     NotifierBot,
+    LabSignalBot,
 )
 from cryptoscope.telegram.gateway import TelegramGateway
+from cryptoscope.execution.protections import ProtectionManager
 from cryptoscope.security.config import validate_startup
 
 logger = logging.getLogger("cryptoscope.orchestrator.engine")
@@ -44,29 +46,40 @@ class OrchestratorEngine:
         self.supervisor = SupervisorBot(self.bus)
 
         # Micro-bots
-        self.data_bot = DataBot(self.bus, symbols=self.symbols)
+        # Live Binance candles every 15 s (closed 15m bars for signals, ticker price for stops)
+        self.data_bot = DataBot(self.bus, symbols=self.symbols, poll_interval=15.0, live=True)
         self.analyst_bot = AnalystBot(self.bus)
         self.quant_bot = QuantBot(self.bus)
+        # Strategies promoted by the Strategy Lab gate (per symbol + interval) become live signals here.
+        self.lab_signal_bot = LabSignalBot(self.bus, interval=self.data_bot.interval)
         self.strategy_bot = StrategyBot(self.bus)
         self.debate_bot = DebateBot(self.bus)
         self.risk_bot = RiskBot(
             self.bus,
             initial_nav=10000.0,
             max_daily_loss_pct=0.03,
-            max_drawdown_pct=0.10
+            max_drawdown_pct=0.10,
+            # Breaker state survives restarts for exchange-connected modes only
+            state_path=str(self.work_dir / "risk_state.json") if self.mode in {"TESTNET", "LIVE"} else None,
+            protections=ProtectionManager(state_path=str(self.work_dir / "protections.json")),
+            market_filters=__import__("cryptoscope.quant.market_filters", fromlist=["default_filters"]).default_filters(),
         )
         self.execution_bot = ExecutionBot(
             self.bus,
             mode=self.mode,
-            db_path=str(self.work_dir / "orchestrator_execution.db")
+            db_path=str(self.work_dir / "orchestrator_execution.db"),
+            fill_realism=True,     # bid/ask fills, gap-aware stops, spread guard (QuantConnect LEAN fill models)
         )
         self.journal_bot = JournalBot(
             self.bus,
             db_path=str(self.work_dir / "trading_journal.db")
         )
+        from cryptoscope.fx.rate_service import FxRateService
         self.notifier_bot = NotifierBot(
             self.bus,
-            rate_limit_per_minute=30
+            rate_limit_per_minute=30,
+            mode=self.mode,
+            fx_service=FxRateService(),
         )
 
         # Register bots with supervisor watchdog
@@ -74,6 +87,7 @@ class OrchestratorEngine:
             self.data_bot,
             self.analyst_bot,
             self.quant_bot,
+            self.lab_signal_bot,
             self.strategy_bot,
             self.debate_bot,
             self.risk_bot,
@@ -107,6 +121,8 @@ class OrchestratorEngine:
         validate_startup(self.mode)
         logger.info("[OrchestratorEngine] Starting autonomous fleet in %s mode...", self.mode)
         self._running = True
+        # Positions restored from disk count toward the risk bot's open-position and per-coin limits.
+        self.risk_bot.seed_open_positions(self.execution_bot.active_positions)
 
         # Start supervisor first
         await self.supervisor.start()
@@ -126,6 +142,9 @@ class OrchestratorEngine:
                 logger.warning("[OrchestratorEngine] Telegram could not connect: %s. Offline spool enabled.", exc)
 
         logger.info("[OrchestratorEngine] Autonomous fleet online (%d bots active).", len(self.supervisor.bots))
+        await self.notifier_bot.announce(
+            f"🤖 <b>Autotrader fleet online</b>\nMode: <b>{self.mode}</b> · Symbols: {', '.join(self.symbols)}\n"
+            "You will get a message for every fill, every closed position and every halt.")
 
     async def stop(self) -> None:
         """Clean shutdown of all bots, bus, and gateways."""

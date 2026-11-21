@@ -13,6 +13,8 @@ import math
 import random
 from typing import Sequence, Tuple
 
+from core.quant import native as _native
+
 
 def compute_sharpe_ratio(
     returns: Sequence[float],
@@ -87,8 +89,26 @@ def run_monte_carlo_drawdown(
 ) -> float:
     """Shuffle trade sequence across N iterations and return percentile maximum drawdown fraction.
 
-    Confidence 0.95 returns the 95th percentile worst drawdown.
+    Confidence 0.95 returns the 95th percentile worst drawdown. Uses the native C++ kernel
+    (bit-identical shuffles to Python's random.Random) when available, else pure Python.
     """
+    if not trade_pnls:
+        return 0.0
+    if seed is not None:
+        fast = _native.monte_carlo_drawdown(list(trade_pnls), iterations, confidence, initial_equity, seed)
+        if fast is not None:
+            return fast
+    return run_monte_carlo_drawdown_py(trade_pnls, iterations, confidence, initial_equity, seed)
+
+
+def run_monte_carlo_drawdown_py(
+    trade_pnls: Sequence[float],
+    iterations: int = 1000,
+    confidence: float = 0.95,
+    initial_equity: float = 10000.0,
+    seed: int | None = 42,
+) -> float:
+    """Pure-Python reference implementation (source of truth and fallback)."""
     if not trade_pnls:
         return 0.0
 

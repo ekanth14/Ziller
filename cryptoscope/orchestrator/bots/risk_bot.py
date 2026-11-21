@@ -1,9 +1,12 @@
 """RiskBot: Deterministic risk controls, multi-limit gating, and fractional Kelly sizing."""
 
 import asyncio
+import json
 import logging
 import math
+import os
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from cryptoscope.orchestrator.base_bot import BaseBot
@@ -53,6 +56,10 @@ class RiskBot(BaseBot):
         kelly_fraction: float = 0.5,           # Half-Kelly sizing
         fixed_risk_fraction: float = 0.005,    # 0.5% default fixed fractional risk
         enable_kelly_sizing: bool = False,     # Gated: requires >= 300 closed trades
+        state_path: Optional[str] = None,      # persist breakers/NAV across restarts when set
+        protections: Any = None,               # cryptoscope.execution.protections.ProtectionManager
+        max_entries_per_day: Optional[int] = None,  # new positions per UTC day; env ZILLERS_MAX_TRADES_PER_DAY
+        market_filters: Optional[Dict[str, Any]] = None,  # {"btc": BtcTrendGate, "funding": FundingFilter}
     ):
         super().__init__(name, bus)
         self.initial_nav = initial_nav
@@ -69,8 +76,18 @@ class RiskBot(BaseBot):
         self.kelly_fraction = kelly_fraction
         self.fixed_risk_fraction = fixed_risk_fraction
         self.enable_kelly_sizing = enable_kelly_sizing
+        # Fewer, better trades: every round trip costs ~0.2% in fees, so cap new entries per day.
+        if max_entries_per_day is None:
+            try:
+                max_entries_per_day = int(os.environ.get("ZILLERS_MAX_TRADES_PER_DAY", "12"))
+            except ValueError:
+                max_entries_per_day = 12
+        self.max_entries_per_day = max(0, max_entries_per_day)
+        # Veto-only market filters (BTC trend gate, funding crowding). None in tests/replays: offline.
+        self.market_filters: Dict[str, Any] = dict(market_filters or {})
 
         # State tracking
+        self.daily_entries: int = 0
         self.daily_realized_pnl: float = 0.0
         self.daily_loss_circuit_breaker: bool = False
         self.drawdown_circuit_breaker: bool = False
@@ -85,10 +102,70 @@ class RiskBot(BaseBot):
             "SOLUSDT": {"BTCUSDT": 0.82, "ETHUSDT": 0.84}
         }
 
+        self._state_path: Optional[Path] = Path(state_path) if state_path else None
+        self.protections = protections
+        self._day = self._utc_day()
+        self._load_state()
+
         self.subscribe(TradeIntent)
         self.subscribe(DebateResult)
         self.subscribe(Fill)
         self.subscribe(PositionClosed)
+
+    # -- durable breaker state ------------------------------------------------
+    @staticmethod
+    def _utc_day() -> str:
+        return time.strftime("%Y-%m-%d", time.gmtime())
+
+    def _load_state(self) -> None:
+        """Restore NAV/peak/breakers. Daily figures survive only within the same UTC day."""
+        if self._state_path is None or not self._state_path.is_file():
+            return
+        try:
+            data = json.loads(self._state_path.read_text(encoding="utf-8"))
+            self.current_nav = float(data["current_nav"])
+            self.peak_nav = float(data["peak_nav"])
+            self.drawdown_circuit_breaker = bool(data.get("drawdown_circuit_breaker", False))
+            self.closed_trades_count = int(data.get("closed_trades_count", 0))
+            if data.get("day") == self._day:
+                self.daily_realized_pnl = float(data.get("daily_realized_pnl", 0.0))
+                self.daily_entries = int(data.get("daily_entries", 0))
+                self.daily_loss_circuit_breaker = bool(data.get("daily_loss_circuit_breaker", False))
+        except (OSError, ValueError, KeyError, TypeError):
+            # Unreadable risk state must fail closed rather than silently reset the breakers.
+            logger.error("[%s] Risk state unreadable; latching drawdown breaker", self.name)
+            self.drawdown_circuit_breaker = True
+
+    def _save_state(self) -> None:
+        if self._state_path is None:
+            return
+        data = {
+            "day": self._day,
+            "daily_realized_pnl": self.daily_realized_pnl,
+            "daily_entries": self.daily_entries,
+            "daily_loss_circuit_breaker": self.daily_loss_circuit_breaker,
+            "drawdown_circuit_breaker": self.drawdown_circuit_breaker,
+            "current_nav": self.current_nav,
+            "peak_nav": self.peak_nav,
+            "closed_trades_count": self.closed_trades_count,
+        }
+        try:
+            self._state_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self._state_path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(data), encoding="utf-8")
+            os.replace(tmp, self._state_path)
+        except OSError:
+            logger.exception("[%s] Failed to persist risk state", self.name)
+
+    def _roll_day(self) -> None:
+        """Reset the daily-loss figures at the UTC day boundary (drawdown latch is never reset)."""
+        today = self._utc_day()
+        if today != self._day:
+            self._day = today
+            self.daily_realized_pnl = 0.0
+            self.daily_entries = 0
+            self.daily_loss_circuit_breaker = False
+            self._save_state()
 
     async def on_event(self, event: BaseEvent) -> None:
         if isinstance(event, TradeIntent):
@@ -103,11 +180,25 @@ class RiskBot(BaseBot):
     def check_pre_trade_risk(self, intent: TradeIntent) -> Tuple[bool, List[str]]:
         """Deterministic pre-trade risk gating before expensive LLM deliberation."""
         veto_reasons = []
+        self._roll_day()
         if not self._valid_prices(intent):
             return False, ['INVALID_PRICES: Finite positive prices and a protective stop are required.']
 
         if self.daily_loss_circuit_breaker:
             veto_reasons.append("DAILY_LOSS_LIMIT: Circuit breaker active.")
+
+        cap = self._entry_cap_reason(intent)
+        if cap:
+            veto_reasons.append(cap)
+        held = self._already_held_reason(intent)
+        if held:
+            veto_reasons.append(held)
+        veto_reasons.extend(self._market_filter_reasons(intent))
+
+        if self.protections is not None:
+            locked, reasons = self.protections.is_locked(intent.symbol)
+            if locked:
+                veto_reasons.extend(reasons)
 
         current_drawdown_pct = (self.peak_nav - self.current_nav) / self.peak_nav if self.peak_nav > 0 else 0.0
         if current_drawdown_pct >= self.max_drawdown_pct:
@@ -130,6 +221,44 @@ class RiskBot(BaseBot):
 
         return len(veto_reasons) == 0, veto_reasons
 
+    def _market_filter_reasons(self, intent) -> List[str]:
+        """Vetoes from market-wide filters for a NEW long. Any filter error means no opinion."""
+        if intent.direction != "BUY" or intent.symbol in self.open_positions:
+            return []
+        out = []
+        for name, f in self.market_filters.items():
+            try:
+                why = f.veto() if name == "btc" else f.veto(intent.symbol)
+            except Exception:
+                why = None
+            if why:
+                out.append(why)
+        return out
+
+    def _already_held_reason(self, intent) -> Optional[str]:
+        if intent.direction == "BUY" and intent.symbol in self.open_positions:
+            return f"ALREADY_IN_POSITION: {intent.symbol} is already held; one position per coin."
+        return None
+
+    def seed_open_positions(self, positions: Dict[str, Dict[str, Any]]) -> None:
+        """Tell the risk bot about positions the execution layer restored on startup (exposure + counts)."""
+        for sym, p in (positions or {}).items():
+            try:
+                qty, entry = float(p["quantity"]), float(p["entry_price"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if qty > 0 and str(p.get("side", "BUY")).upper() == "BUY":
+                self.open_positions[sym] = {"quantity": qty, "entry": entry, "usd_value": qty * entry}
+
+    def _entry_cap_reason(self, intent) -> Optional[str]:
+        """Veto a NEW position once today's entry cap is used (adding to an open one is not an entry)."""
+        self._roll_day()
+        if intent.direction == "BUY" and intent.symbol not in self.open_positions \
+                and self.daily_entries >= self.max_entries_per_day:
+            return (f"MAX_DAILY_TRADES: {self.daily_entries} new positions today "
+                    f"(cap {self.max_entries_per_day}, ZILLERS_MAX_TRADES_PER_DAY).")
+        return None
+
     @staticmethod
     def _valid_prices(intent):
         values = (intent.entry_price,intent.stop_loss,intent.take_profit)
@@ -147,11 +276,16 @@ class RiskBot(BaseBot):
         self.peak_nav = max(self.peak_nav,nav)
         if self.peak_nav <= 0 or (self.peak_nav-nav)/self.peak_nav >= self.max_drawdown_pct:
             self.drawdown_circuit_breaker = True
+        self._save_state()
 
     def _handle_fill(self, fill: Fill) -> None:
         """Track open position exposure."""
         sym = fill.symbol
         if fill.side == "BUY":
+            if sym not in self.open_positions:
+                self._roll_day()
+                self.daily_entries += 1
+                self._save_state()
             pos = self.open_positions.get(sym, {"quantity": 0.0, "entry": fill.executed_price, "usd_value": 0.0})
             pos["quantity"] += fill.quantity
             pos["entry"] = fill.executed_price
@@ -168,6 +302,18 @@ class RiskBot(BaseBot):
 
     def _handle_position_closed(self, closed: PositionClosed) -> None:
         """Update daily PnL and NAV tracking."""
+        self._roll_day()
+        if self.protections is not None:
+            new_locks = self.protections.record_close(closed.symbol, closed.pnl_pct / 100.0, closed.pnl_usd, closed.exit_reason)
+            for lk in new_locks:
+                if lk.guard == "CooldownPeriod":
+                    continue  # routine; not worth a Telegram message
+                note = SystemAlert(severity="WARNING", source=self.name, title=f"Protection: {lk.guard}",
+                                   message=f"{'ALL pairs' if lk.pair == '*' else lk.pair} locked: {lk.reason}")
+                try:
+                    asyncio.get_running_loop().create_task(self.emit(note))
+                except RuntimeError:
+                    logger.warning("[%s] %s", self.name, note.message)
         self.daily_realized_pnl += closed.pnl_usd
         self.current_nav += closed.pnl_usd
         self.peak_nav = max(self.peak_nav, self.current_nav)
@@ -177,13 +323,18 @@ class RiskBot(BaseBot):
         max_daily_loss_usd = self.initial_nav * self.max_daily_loss_pct
         if self.daily_realized_pnl <= -max_daily_loss_usd:
             self.daily_loss_circuit_breaker = True
-            asyncio.create_task(self.emit(SystemAlert(
+            alert = SystemAlert(
                 severity="CRITICAL",
                 source=self.name,
                 title="Daily Loss Limit Breached",
                 message=f"Daily realized loss of ${abs(self.daily_realized_pnl):.2f} exceeds limit ${max_daily_loss_usd:.2f}."
-            )))
+            )
+            try:
+                asyncio.get_running_loop().create_task(self.emit(alert))
+            except RuntimeError:
+                logger.critical("[%s] %s (no event loop to publish alert)", self.name, alert.message)
 
+        self._save_state()
         logger.info(
             "[%s] Position %s closed. PnL: $%.2f. Daily PnL: $%.2f. NAV: $%.2f",
             self.name, closed.symbol, closed.pnl_usd, self.daily_realized_pnl, self.current_nav
@@ -208,6 +359,23 @@ class RiskBot(BaseBot):
         if debate.verdict != "APPROVE":
             veto_reasons.append(f"Debate layer verdict is {debate.verdict} (Conviction: {debate.conviction_score:.1f})")
 
+        # Gate 1m: THX-02 / Laya meta-label filter. Veto-only, and only when the operator enforces it.
+        from cryptoscope.agents.decision_models import veto_reason
+        meta_veto = veto_reason(getattr(debate, "meta", None))
+        if meta_veto:
+            veto_reasons.append(meta_veto)
+
+        # Gate 1a: daily entry cap (re-checked here: fills may have landed during the debate)
+        cap = self._entry_cap_reason(intent)
+        if cap:
+            veto_reasons.append(cap)
+
+        # Gate 1b: Protections (cooldown, stop-loss guard, low-profit pair, closed-trade drawdown)
+        if self.protections is not None:
+            locked, reasons = self.protections.is_locked(intent.symbol)
+            if locked:
+                veto_reasons.extend(reasons)
+
         # Gate 2: Daily Loss Limit
         max_daily_loss_usd = self.initial_nav * self.max_daily_loss_pct
         if self.daily_realized_pnl <= -max_daily_loss_usd:
@@ -223,6 +391,12 @@ class RiskBot(BaseBot):
             veto_reasons.append(
                 f"MAX_DRAWDOWN: Current drawdown ({current_drawdown_pct*100:.1f}%) exceeds max allowed ({self.max_drawdown_pct*100:.1f}%)"
             )
+
+        # Gate 3b: one position per coin. Each trade has its own bracket; adding to a held coin stacked
+        # $500 + $250 + ... fills that the execution layer could not track as one position.
+        held = self._already_held_reason(intent)
+        if held:
+            veto_reasons.append(held)
 
         # Gate 4: Max Open Positions
         if intent.symbol not in self.open_positions and len(self.open_positions) >= self.max_open_positions:
@@ -283,6 +457,14 @@ class RiskBot(BaseBot):
         # Round down so precision handling never increases approved exposure.
         approved_usd = min(approved_usd,self.current_nav * self.max_order_pct,
                            max(0.0,max_coin_usd-existing_exposure))
+        # Risk-only scaling AFTER every cap: toxic order flow (bar VPIN) or a high-volatility regime shrink
+        # the final trade. Clamped to [0, 1], so it can never enlarge a position.
+        from cryptoscope.quant.flow_risk import size_multiplier
+        scale = size_multiplier((intent.metadata or {}).get("features"))
+        mult = min(1.0, max(0.0, float(scale["multiplier"])))
+        if mult < 1.0:
+            approved_usd *= mult
+            logger.info("[%s] %s size x%.2f (%s)", self.name, intent.symbol, mult, "; ".join(scale["reasons"]))
         approved_qty = math.floor(min(approved_qty,approved_usd/entry)*100_000_000)/100_000_000
         approved_usd = approved_qty * entry
         risk_usd = approved_qty * abs(entry-stop)
@@ -321,5 +503,7 @@ class RiskBot(BaseBot):
             "daily_realized_pnl": self.daily_realized_pnl,
             "open_positions": list(self.open_positions.keys()),
             "max_daily_loss_usd": self.initial_nav * self.max_daily_loss_pct,
+            "daily_entries": self.daily_entries,
+            "max_entries_per_day": self.max_entries_per_day,
             "drawdown_halted": self.drawdown_circuit_breaker
         }

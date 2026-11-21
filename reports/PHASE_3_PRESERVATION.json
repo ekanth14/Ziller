@@ -1,6 +1,0 @@
-{
-  "branch": "verified-fleet",
-  "source_head": "5bb2144b432f24c4ffc4363e4bfb27a63035a824",
-  "protected_sources_unchanged": true,
-  "existing_dashboard_http_status_after_soak": 200
-}
