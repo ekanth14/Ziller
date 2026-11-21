@@ -160,6 +160,9 @@ def main():
     names = [n.strip() for n in os.environ.get("ZILLERS_SIDECAR_MODELS", "thx02,laya").split(",") if n.strip() in LOADERS]
     os.environ.setdefault("USE_TF", "0")             # Laya card: transformers can hang if TensorFlow is present
     os.environ.setdefault("HF_HUB_OFFLINE", "1")     # weights are local; never fetch at run time
+    # THX-02 loads in float32 on CPU unless told otherwise: 4.5 B params x 4 bytes ~ 18 GB, more than
+    # WSL's default memory. bfloat16 halves that (~9 GB), as the THX-02 card's CPU figures assume.
+    os.environ.setdefault("THX02_CPU_DTYPE", "bfloat16")
     try:
         import torch
         torch.set_num_threads(max(1, min(8, (os.cpu_count() or 4) - 2)))
@@ -167,8 +170,9 @@ def main():
         pass
     slots = {n: Slot(n) for n in names}
     if os.environ.get("ZILLERS_SIDECAR_PRELOAD", "1") == "1":
-        for s in slots.values():
-            threading.Thread(target=lambda s=s: _safe(s.get), daemon=True).start()
+        # One after the other (smallest first): loading both at once can double the peak memory.
+        order = sorted(slots.values(), key=lambda s: s.name != "laya")
+        threading.Thread(target=lambda: [_safe(s.get) for s in order], daemon=True, name="preload").start()
     httpd = ThreadingHTTPServer((HOST, port), make_handler(slots, token))
     print(f"zillers decision-model sidecar on http://{HOST}:{port} models={names}", flush=True)
     httpd.serve_forever()
